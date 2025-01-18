@@ -1,0 +1,127 @@
+const { ApiError } = require('../../errorHandler');
+const { Astrologer, Rating } = require('../../models');
+
+const getActiveAstrologers = async (req, res, next) => {
+    try {
+        // Fetch all active astrologers and exclude the password field
+        const activeAstrologers = await Astrologer.find({ status: 'Active' })
+            .select('-password'); // Exclude password field
+
+        return res.status(200).json({
+            success: true,
+            message: 'Active astrologers fetched successfully',
+            data: activeAstrologers,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const addRatingAndReview = async (req, res, next) => {
+    try {
+        const { astrologer_id, rating, review } = req.body;
+        const user_id = req.user._id; // User ID from middleware
+
+        // Validate rating
+        if (rating < 1 || rating > 5) {
+            throw new ApiError('Rating must be between 1 and 5', 400);
+        }
+
+        // Save the rating and review
+        const newRating = new Rating({
+            user_id,
+            astrologer_id,
+            rating,
+            review,
+        });
+        await newRating.save();
+
+        // Update the astrologer's average rating and total reviews
+        const astrologer = await Astrologer.findById(astrologer_id);
+        if (!astrologer) {
+            throw new ApiError('Astrologer not found', 404);
+        }
+
+        // Calculate new average rating
+        const totalRating = astrologer.rating * astrologer.total_reviews + rating;
+        const totalReviews = astrologer.total_reviews + 1;
+        const newAverageRating = totalRating / totalReviews;
+
+        // Update the astrologer
+        astrologer.rating = newAverageRating;
+        astrologer.total_reviews = totalReviews;
+        await astrologer.save();
+
+        return res.status(201).json({
+            success: true,
+            message: 'Rating and review added successfully',
+            data: newRating,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAstrologerProfileWithReviews = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch the astrologer's profile
+        const astrologer = await Astrologer.findById(id).select('-password');
+        if (!astrologer) {
+            throw new ApiError('Astrologer not found', 404);
+        }
+
+        // Fetch the latest 5 reviews for the astrologer
+        const latestReviews = await Rating.find({ astrologer_id: id })
+            .sort({ _id: -1 }) // Sort by _id in descending order (latest first)
+            .limit(5) // Limit to 5 reviews
+            .populate('user_id', 'name email profile_img'); // Include user details
+
+        return res.status(200).json({
+            success: true,
+            message: 'Astrologer profile fetched successfully',
+            data: {
+                astrologer,
+                latestReviews,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAstrologerReviews = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = 30; // 30 reviews per page
+
+        // Fetch paginated reviews for the astrologer
+        const reviews = await Rating.find({ astrologer_id: id })
+            .sort({ _id: -1 }) // Sort by _id in descending order (latest first)
+            .skip((page - 1) * limit) // Skip reviews for previous pages
+            .limit(limit) // Limit to 30 reviews per page
+            .populate('user_id', 'name email profile_img'); // Include user details
+
+        // Get total number of reviews for pagination metadata
+        const totalReviews = await Rating.countDocuments({ astrologer_id: id });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Astrologer reviews fetched successfully',
+            data: {
+                reviews,
+                pagination: {
+                    currentPage: page,
+                    totalPages: Math.ceil(totalReviews / limit),
+                    totalReviews,
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { getActiveAstrologers, addRatingAndReview, getAstrologerProfileWithReviews, getAstrologerReviews };
