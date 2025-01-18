@@ -14,6 +14,8 @@ const callChatHistorySchema = new Schema({
 });
 
 // Indexing for faster queries
-callChatHistorySchema.index({ user_id: 1, astrologer_id: 1, created_at: -1 });
+callChatHistorySchema.index({ user_id: 1, call_type: 1, created_at: -1 }); // For user-specific queries with call_type and latest at top
+callChatHistorySchema.index({ astrologer_id: 1, call_type: 1, created_at: -1 }); // For astrologer-specific queries with call_type and latest at top
+// callChatHistorySchema.index({ call_type: 1, created_at: -1 }); // For admin queries filtering by call_type with latest at top
 
 module.exports = mongoose.model('CallChatHistory', callChatHistorySchema);

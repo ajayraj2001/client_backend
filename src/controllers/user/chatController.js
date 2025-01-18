@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { ChatMessage } = require('../../models');
+const { ChatMessage, CallChatHistory } = require('../../models');
 
 // Get last chats for a user or astrologer
 const getLastChats = async (req, res, next) => {
@@ -55,4 +55,43 @@ const getLastChats = async (req, res, next) => {
     }
 };
 
-module.exports = { getLastChats };
+const getCallHistory = async (req, res, next) => {
+  try {
+    const { call_type } = req.body;
+    const user_id = req.user._id; // User ID from middleware
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 30; // 30 records per page
+
+    // Validate call_type
+    if (!['chat', 'voice', 'video'].includes(call_type)) {
+      throw new ApiError('Invalid call type', 400);
+    }
+
+    // Fetch the call history with pagination
+    const callHistory = await CallChatHistory.find({ user_id, call_type })
+      .sort({ start_time: -1 }) // Sort by latest first
+      .skip((page - 1) * limit) // Skip records for previous pages
+      .limit(limit) // Limit to 30 records per page
+      .populate('astrologer_id', 'name profile_img'); // Include astrologer details
+
+    // Get total number of records for pagination metadata
+    const totalRecords = await CallChatHistory.countDocuments({ user_id, call_type });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Call history fetched successfully',
+      data: {
+        callHistory: callHistory,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalRecords / limit),
+          totalRecords,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getLastChats ,getCallHistory};

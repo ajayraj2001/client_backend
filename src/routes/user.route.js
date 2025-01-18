@@ -29,6 +29,11 @@ const {
   handleRazorpayWebhook
 } = require("../controllers/paymentGateway/paymentWebhook");
 
+const {
+  getCallHistory,
+  getLastChats
+} = require("../controllers/user/chatController");
+
 const userRoute = require("express").Router();
 
 //auth
@@ -51,7 +56,10 @@ userRoute.get("/getAstrologerProfileWithReviews", authenticateUser, getAstrologe
 userRoute.post('/recharge', authenticateUser, initiateRecharge);
 // Razorpay webhook
 userRoute.post('/razorpay_webhook', handleRazorpayWebhook);
-userRoute.post('/getWalletHistory', getWalletHistory);
+userRoute.post('/getWalletHistory', authenticateUser, getWalletHistory);
+
+// Get call history
+userRoute.post('/call_history', authenticateUser, getCallHistory);
 
 
 module.exports = userRoute;
