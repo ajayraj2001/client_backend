@@ -117,6 +117,5 @@ const UserSchema = new Schema({
 
 // Indexes for faster queries
 UserSchema.index({ number: 1 }); // Index on `number` for fast lookups
-UserSchema.index({ email: 1 });  // Index on `email` for fast lookups
 
 module.exports = mongoose.model('User', UserSchema);

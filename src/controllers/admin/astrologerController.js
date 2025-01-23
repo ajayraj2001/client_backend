@@ -217,7 +217,6 @@ const updateAstrologer = async (req, res, next) => {
   }
 };
 
-
 // Delete Astrologer
 const deleteAstrologer = async (req, res, next) => {
   try {
@@ -363,33 +362,80 @@ const updateAstrologerStatus = async (req, res, next) => {
   }
 };
 
+// const getAllRequests = async (req, res, next) => {
+//   try {
+//     // Get the status filter from query parameters (optional)
+//     const { status } = req.query;
+
+//     // Define the filter object
+//     const filter = {};
+//     if (status) {
+//       // Validate the status
+//       if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
+//         throw new ApiError('Invalid status. Status must be "Pending", "Approved", or "Rejected"', 400);
+//       }
+//       filter.status = status; // Add status to the filter
+//     }
+
+//     // Fetch all requests (filtered by status if provided)
+//     const requests = await BankAccountRequest.find(filter).populate('astrologer_id', 'name email number').sort({_id:-1});
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Bank account requests fetched successfully',
+//       requests,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getAllRequests = async (req, res, next) => {
   try {
-    // Get the status filter from query parameters (optional)
-    const { status } = req.query;
+    // Get the filters from query parameters (optional)
+    const { status, name, number } = req.query;
 
     // Define the filter object
     const filter = {};
+
+    // Add status filter if provided
     if (status) {
-      // Validate the status
       if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
         throw new ApiError('Invalid status. Status must be "Pending", "Approved", or "Rejected"', 400);
       }
       filter.status = status; // Add status to the filter
     }
 
-    // Fetch all requests (filtered by status if provided)
-    const requests = await BankAccountRequest.find(filter).populate('astrologer_id', 'name email number');
+    // Fetch all requests (filtered by status, name, or number if provided)
+    const requests = await BankAccountRequest.find(filter)
+      .populate('astrologer_id', 'name email number') // Populate astrologer details
+      .sort({ _id: -1 });
+
+    // Filter by astrologer's name or number if provided
+    const filteredRequests = requests.filter(request => {
+      let matches = true;
+
+      if (name && !request.astrologer_id.name.toLowerCase().includes(name.toLowerCase())) {
+        matches = false;
+      }
+      
+      if (number && !request.astrologer_id.number.includes(number)) {
+        matches = false;
+      }
+
+      return matches;
+    });
 
     return res.status(200).json({
       success: true,
       message: 'Bank account requests fetched successfully',
-      requests,
+      requests: filteredRequests,
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 const approveOrRejectRequest = async (req, res, next) => {
   try {
@@ -442,8 +488,6 @@ const approveOrRejectRequest = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 
 module.exports = {

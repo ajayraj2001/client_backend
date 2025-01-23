@@ -1,7 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const { getCurrentIST } = require('../utils/timeUtils'); 
+const { getCurrentIST } = require('../utils/timeUtils');
 
 // Subdocument for account details
 const accountDetailsSchema = new Schema({
@@ -49,13 +49,12 @@ const astrologerSchema = new Schema({
   aadhar_card_img: { type: String, default: '' },
   pan_card_img: { type: String, default: '' },
 
-  
-  status: { type: String,  enum: ['Active', 'Inactive'],default: 'Inactive', },
+
+  status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive', },
 
   // Device Information
   deviceToken: { type: String, default: '' },
   deviceId: { type: String, default: '' },
-  deviceType: { type: String, default: '' },
 
   // Additional Information
   contact_no2: { type: String, default: '' },
@@ -64,18 +63,25 @@ const astrologerSchema = new Schema({
   aadhar_card_no: { type: String, default: '' },
   gst: { type: String, default: '' },
   busy: { type: Boolean, default: false },
-  call_type: { type: String, default: '' }, 
+  call_type: { type: String, default: '' },
 
-  // Ratings and Orders
+  //otp
+  otp: { type: String, default: null },
+  otp_expiry: { type: Date, default: null },
+
+  // Ratings & Calls Count
   rating: { type: Number, default: 0 },
   total_reviews: { type: Number, default: 0 },
-  order_count: { type: Number, default: 0 },
-},{
-  timestamps: { 
-    createdAt: 'created_at', 
-    updatedAt: 'updated_at', 
+  call_counts: { type: Number, default: 0 },
+}, {
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     currentTime: getCurrentIST, // Use IST for timestamps
   }
 });
+
+astrologerSchema.index({ number: 1 });  // Index on `email` for fast lookups
+astrologerSchema.index({ email: 1 });  // Index on `email` for fast lookups
 
 module.exports = mongoose.model('Astrologer', astrologerSchema);

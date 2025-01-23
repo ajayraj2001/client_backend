@@ -3,6 +3,9 @@ const { Astrologer } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const { getOtp } = require('../../utils');
+const sendOtpEmail = require('../../utils/sendOtpToEmail');
+
 const { ACCESS_TOKEN_SECRET } = process.env;
 
 // Login Controller
@@ -51,10 +54,94 @@ const login = async (req, res, next) => {
     }
 };
 
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email) throw new ApiError('Email is required', 400);
+
+        // Find the astrologer by email
+        const astrologer = await Astrologer.findOne({ email });
+
+        if (!astrologer) throw new ApiError('Astrologer not found with this email', 404);
+
+        const otp = getOtp(); // Assuming getOtp() is a function that generates an OTP
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // OTP expires in 5 minutes
+
+        astrologer.otp = otp;
+        astrologer.otp_expiry = otpExpiry;
+        await astrologer.save();
+
+        // Send OTP via email using Nodemailer
+        await sendOtpEmail(astrologer.email, otp);
+
+        return res.status(200).json({
+            success: true,
+            message: `OTP has been sent to your registered email ${astrologer.email}`
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const verifyOtp = async (req, res, next) => {
+    try {
+        const { email, otp } = req.body;
+
+        // Validate input
+        if (!email || !otp) throw new ApiError('Email and OTP are required', 400);
+
+        // Find the astrologer by email
+        const astrologer = await Astrologer.findOne({ email });
+        if (!astrologer) throw new ApiError('Astrologer not found', 404);
+
+        // Validate OTP
+        if (Date.now() > new Date(astrologer.otp_expiry).getTime()) throw new ApiError('OTP expired', 400);
+        if (astrologer.otp !== otp) throw new ApiError('Invalid OTP', 400);
+
+        // If OTP is valid, return success response
+        return res.status(200).json({
+            success: true,
+            message: 'OTP verified successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const resetPassword = async (req, res, next) => {
+    try {
+        const { email, newPassword } = req.body;
+
+        // Validate input
+        if (!email || !newPassword) throw new ApiError('Email and new password are required', 400);
+
+        // Find the astrologer by email
+        const astrologer = await Astrologer.findOne({ email });
+        if (!astrologer) throw new ApiError('Astrologer not found', 404);
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update the astrologer's password
+        astrologer.password = hashedPassword;
+        astrologer.otp = null; // Clear the OTP after successful password reset
+        astrologer.otp_expiry = null;
+        await astrologer.save();
+
+        // Return success response
+        return res.status(200).json({
+            success: true,
+            message: 'Password has been reset successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Signup Controller
 const signup = async (req, res, next) => {
     try {
-        const { name, number, email, password, about, experience, address, language, state, city } = req.body;
+        const { name, number, email, password, about, experience, address, languages, state, city, skills } = req.body;
 
         if (!name || !number || !email || !password) {
             throw new ApiError('Name, number, email, and password are required', 400);
@@ -78,7 +165,8 @@ const signup = async (req, res, next) => {
             about,
             experience,
             address,
-            language,
+            languages,
+            skills,
             state,
             city,
             status: 'Inactive',
@@ -111,5 +199,8 @@ const notifyAdmin = (astrologer) => {
 
 module.exports = {
     login,
+    forgotPassword,
+    verifyOtp,
+    resetPassword,
     signup,
 };
