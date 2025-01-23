@@ -1,10 +1,10 @@
 const { ApiError } = require('../../errorHandler');
-const { Astrologer } = require('../../models');
+const { Astrologer, AstrologerSignupRequest } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const { getOtp } = require('../../utils');
-const sendOtpEmail = require('../../utils/sendOtpToEmail');
+const {sendOtpEmail} = require('../../utils/sendEmail');
 
 const { ACCESS_TOKEN_SECRET } = process.env;
 
@@ -140,56 +140,101 @@ const resetPassword = async (req, res, next) => {
 
 // Signup Controller
 const signup = async (req, res, next) => {
+    let profileImgPath, aadharImgPath, panImgPath;
+  
     try {
-        const { name, number, email, password, about, experience, address, languages, state, city, skills } = req.body;
-
-        if (!name || !number || !email || !password) {
-            throw new ApiError('Name, number, email, and password are required', 400);
+      uploadAstrologerFiles(req, res, async (err) => {
+        if (err) {
+          console.error('Multer Error:', err);
+          return next(new ApiError(err.message, 400));
         }
-
-        // Check if the astrologer already exists
+  
+        const { name, number, email, about, experience, address, languages, state, city, skills } = req.body;
+  
+        // Validate required fields
+        if (!name || !number || !email) {
+          throw new ApiError('Name, number, and email are required', 400);
+        }
+  
+        // Check if the astrologer already exists in the main collection
         const existingAstrologer = await Astrologer.findOne({ $or: [{ number }, { email }] });
         if (existingAstrologer) {
-            throw new ApiError('Astrologer with this number or email already exists', 400);
+          throw new ApiError('Astrologer with this number or email already exists', 400);
         }
-
-        // Hash the password before saving
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create a new astrologer with status 'Inactive'
-        const astrologer = new Astrologer({
-            name,
-            number,
-            email,
-            password: hashedPassword,
-            about,
-            experience,
-            address,
-            languages,
-            skills,
-            state,
-            city,
-            status: 'Inactive',
+  
+        // Check if there is a pending or rejected request for this number/email
+        const existingRequest = await AstrologerSignupRequest.findOne({
+          $or: [{ number }, { email }],
+          status: { $in: ['Pending', 'Rejected'] },
         });
-
-        await astrologer.save();
-
-        // Notify admin (you can implement this function to send a notification to the admin)
-        notifyAdmin(astrologer);
-
-        // Remove password from the response
-        const astrologerResponse = astrologer.toObject();
-        delete astrologerResponse.password;
-
+  
+        if (existingRequest) {
+          if (existingRequest.status === 'Pending') {
+            throw new ApiError('A signup request with this number or email is already pending approval', 400);
+          } else if (existingRequest.status === 'Rejected') {
+            // Allow reapplication if the previous request was rejected
+            const newSignupRequest = new AstrologerSignupRequest({
+              name,
+              number,
+              email,
+              about,
+              experience,
+              address,
+              languages: JSON.parse(languages || '[]').map((id) => new mongoose.Types.ObjectId(id)),
+              skills: JSON.parse(skills || '[]').map((id) => new mongoose.Types.ObjectId(id)),
+              state,
+              city,
+              profile_img: profileImgPath || '',
+              aadhar_card_img: aadharImgPath || '',
+              pan_card_img: panImgPath || '',
+              reapply: true, // Mark as reapplication
+              previousRequestId: existingRequest._id, // Link to the previous request
+            });
+  
+            await newSignupRequest.save();
+            notifyAdmin(newSignupRequest);
+  
+            return res.status(201).json({
+              success: true,
+              message: 'Reapplication submitted successfully. Waiting for admin approval.',
+            });
+          }
+        }
+  
+        // If no existing request, create a new one
+        const signupRequest = new AstrologerSignupRequest({
+          name,
+          number,
+          email,
+          about,
+          experience,
+          address,
+          languages: JSON.parse(languages || '[]').map((id) => new mongoose.Types.ObjectId(id)),
+          skills: JSON.parse(skills || '[]').map((id) => new mongoose.Types.ObjectId(id)),
+          state,
+          city,
+          profile_img: profileImgPath || '',
+          aadhar_card_img: aadharImgPath || '',
+          pan_card_img: panImgPath || '',
+        });
+  
+        await signupRequest.save();
+        notifyAdmin(signupRequest);
+  
         return res.status(201).json({
-            success: true,
-            message: 'Astrologer registered successfully. Waiting for admin approval.',
-            astrologer: astrologerResponse,
+          success: true,
+          message: 'Signup request submitted successfully. Waiting for admin approval.',
         });
+      });
     } catch (error) {
-        next(error);
+      // Delete uploaded files if an error occurs
+      if (profileImgPath) await deleteFile(profileImgPath);
+      if (aadharImgPath) await deleteFile(aadharImgPath);
+      if (panImgPath) await deleteFile(panImgPath);
+  
+      next(error);
     }
-};
+  };
 
 // Function to notify admin (you can implement this as per your requirements)
 const notifyAdmin = (astrologer) => {

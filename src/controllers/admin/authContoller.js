@@ -3,7 +3,7 @@ const { Admin } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getOtp } = require('../../utils');
-const sendOtpEmail = require('../../utils/sendOtpToEmail');
+const {sendOtpEmail} = require('../../utils/sendEmail');
 
 const { ACCESS_TOKEN_SECRET } = process.env;
 

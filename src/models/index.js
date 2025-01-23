@@ -14,6 +14,7 @@ const PendingTransaction = require("./userPendingTransaction");
 const Language = require("./language");
 const Skill = require("./skill");
 const Puja = require("./puja");
+const AstrologerSignupRequest = require("./astrologerSignupRequest");
 
 module.exports = {
   Admin,
@@ -31,6 +32,7 @@ module.exports = {
   PendingTransaction,
   Language,
   Skill,
-  Puja
+  Puja,
+  AstrologerSignupRequest,
 };
 

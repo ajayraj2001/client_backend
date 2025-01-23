@@ -1,9 +1,11 @@
 const { ApiError } = require('../../errorHandler');
-const { Astrologer, BankAccountRequest } = require('../../models');
+const { Astrologer, BankAccountRequest, AstrologerSignupRequest } = require('../../models');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 
+const { sendLoginCredentials, notifyAstrologer} = require('../../utils/sendEmail')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
+
 
 // Multer setup for multiple file uploads with different folders
 const uploadAstrologerFiles = getMultipleFilesUploader(
@@ -489,6 +491,74 @@ const approveOrRejectRequest = async (req, res, next) => {
   }
 };
 
+const approveAstrologerSignup = async (req, res, next) => {
+  try {
+    const { requestId, action, rejectionReason } = req.body; // action can be 'approve' or 'reject'
+
+    const signupRequest = await AstrologerSignupRequest.findById(requestId);
+    if (!signupRequest) {
+      throw new ApiError('Signup request not found', 404);
+    }
+
+    if (action === 'approve') {
+      // Generate password using DOB and Aadhar number
+      const password = generatePassword(signupRequest.dob, signupRequest.aadhar_card_no);
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create a new astrologer in the main collection
+      const astrologer = new Astrologer({
+        ...signupRequest.toObject(),
+        password: hashedPassword,
+        status: 'Active', // Set status to 'Inactive' initially
+      });
+
+      await astrologer.save();
+
+      // Send login credentials to the astrologer
+      sendLoginCredentials(signupRequest.email, signupRequest.dob);
+
+      // Delete the signup request
+      await AstrologerSignupRequest.findByIdAndDelete(requestId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Astrologer approved successfully. Login credentials sent.',
+      });
+    } else if (action === 'reject') {
+      // Update the request with rejection reason
+      signupRequest.status = 'Rejected';
+      signupRequest.rejectionReason = rejectionReason || 'Request rejected due to incomplete or incorrect information.';
+      await signupRequest.save();
+      
+      // Notify the astrologer about the rejection
+       notifyAstrologer(signupRequest.email, signupRequest.rejectionReason);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Signup request rejected successfully.',
+      });
+    } else {
+      throw new ApiError('Invalid action', 400);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generatePassword = (dob, aadharNumber) => {
+  // Extract the year from DOB (assuming format is DD-MM-YYYY)
+  const year = dob.split('-')[2]; // Extracts the year part (e.g., "2001")
+
+  // Extract the first four digits of the Aadhar number
+  const aadharFirstFour = aadharNumber.substring(0, 4); // Extracts the first 4 digits
+
+  // Combine them with a separator (e.g., "@")
+  const password = `${year}@${aadharFirstFour}`;
+
+  return password;
+};
 
 module.exports = {
   createAstrologer,
@@ -499,4 +569,5 @@ module.exports = {
   updateAstrologerStatus,
   getAllRequests,
   approveOrRejectRequest,
+  approveAstrologerSignup
 };
