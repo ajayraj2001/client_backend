@@ -7,7 +7,7 @@ const getDashboardData = async (req, res, next) => {
 
     // Remove password from user object
     const userProfile = { ...user.toObject() };
-    delete userProfile.password;
+    delete userProfile.otp;
 
     // Fetch active banners
     const activeBanners = await Banner.find({ status: 'Active' });
@@ -16,9 +16,9 @@ const getDashboardData = async (req, res, next) => {
     const activeBlogs = await Blog.find({ status: 'Active' });
 
     // Fetch top 4 astrologers with is_chat_online = "on"
-    const onlineAstrologers = await Astrologer.find({ is_chat_online: 'on' })
+    const onlineAstrologers = await Astrologer.find({ status: "Active", is_chat_online: 'on' })
       .limit(4) // Limit to 4 astrologers
-      .select('-password'); // Exclude password field
+      .select('-password -aadhar_card_img -pan_card_img'); // Exclude password field
 
     return res.status(200).json({
       success: true,

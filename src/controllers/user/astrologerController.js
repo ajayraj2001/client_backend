@@ -5,7 +5,7 @@ const getActiveAstrologers = async (req, res, next) => {
     try {
         // Fetch all active astrologers and exclude the password field
         const activeAstrologers = await Astrologer.find({ status: 'Active' })
-            .select('-password'); // Exclude password field
+            .select('-password -aadhar_card_img -pan_card_img'); // Exclude password field
 
         return res.status(200).json({
             success: true,
@@ -67,7 +67,7 @@ const getAstrologerProfileWithReviews = async (req, res, next) => {
         const { id } = req.params;
 
         // Fetch the astrologer's profile
-        const astrologer = await Astrologer.findById(id).select('-password');
+        const astrologer = await Astrologer.findById(id).select('-password -aadhar_card_img -pan_card_img');
         if (!astrologer) {
             throw new ApiError('Astrologer not found', 404);
         }
@@ -95,7 +95,7 @@ const getAstrologerReviews = async (req, res, next) => {
     try {
         const { id } = req.params;
         const page = parseInt(req.query.page) || 1; // Default to page 1
-        const limit = 30; // 30 reviews per page
+        const limit = 10; // 10 reviews per page
 
         // Fetch paginated reviews for the astrologer
         const reviews = await Rating.find({ astrologer_id: id })

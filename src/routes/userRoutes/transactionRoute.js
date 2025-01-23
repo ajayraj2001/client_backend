@@ -9,8 +9,8 @@ const {
 const { handleRazorpayWebhook } = require("../../controllers/paymentGateway/paymentWebhook");
 
 // Transaction routes
+router.get('/walletHistory', authenticateUser, getWalletHistory);
 router.post('/recharge', authenticateUser, initiateRecharge);
-router.post('/getWalletHistory', authenticateUser, getWalletHistory);
 
 // Payment webhook route
 router.post('/razorpay_webhook', handleRazorpayWebhook);

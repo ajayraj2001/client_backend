@@ -9,9 +9,9 @@ const {
 } = require("../../controllers/user/astrologerController");
 
 // Astrologer routes
-router.get("/getAstrologers", authenticateUser, getActiveAstrologers);
-router.get("/getAstrologerReviews", authenticateUser, getAstrologerReviews);
+router.get("/", authenticateUser, getActiveAstrologers);
+router.get("/getReviews/:id", authenticateUser, getAstrologerReviews);
 router.post("/addRatingAndReview", authenticateUser, addRatingAndReview);
-router.get("/getAstrologerProfileWithReviews", authenticateUser, getAstrologerProfileWithReviews);
+router.get("/getAstrologerProfile/:id", authenticateUser, getAstrologerProfileWithReviews);
 
 module.exports = router;

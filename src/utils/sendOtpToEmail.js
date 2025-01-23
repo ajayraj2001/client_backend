@@ -16,7 +16,7 @@ const sendOtpEmail = async (recipientEmail, otp) => {
       from: 'ajayraj072001@gmail.com', // Sender address
       to: recipientEmail, // List of recipients
       subject: 'Your OTP for Password Reset', // Subject line
-      html: `Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for 2 minutes.`, // HTML body with bold OTP
+      html: `Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for 5 minutes.`, // HTML body with bold OTP
     };
 
     // Send email

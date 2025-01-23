@@ -6,6 +6,12 @@ const createLanguage = async (req, res, next) => {
   try {
     const { name } = req.body;
 
+    // Check if the language already exists
+    const existingLanguage = await Language.findOne({ name });
+    if (existingLanguage) {
+      throw new ApiError('Language already exists', 400); // 400 for bad request
+    }
+
     const language = new Language({ name });
     await language.save();
 
@@ -19,11 +25,18 @@ const createLanguage = async (req, res, next) => {
   }
 };
 
+
 // Update a language
 const updateLanguage = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
+
+    // Check if the new name already exists (excluding the current language)
+    const existingLanguage = await Language.findOne({ name, _id: { $ne: id } });
+    if (existingLanguage) {
+      throw new ApiError('Language already exists', 400); // 400 for bad request
+    }
 
     const language = await Language.findByIdAndUpdate(
       id,

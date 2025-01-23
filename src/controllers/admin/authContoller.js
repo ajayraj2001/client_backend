@@ -97,7 +97,7 @@ const forgotPassword = async (req, res, next) => {
         if (!admin) throw new ApiError('Admin not found with this email', 404);
 
         const otp = getOtp();
-        const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
         admin.otp = otp;
         admin.otp_expiry = otpExpiry;
@@ -118,7 +118,7 @@ const forgotPassword = async (req, res, next) => {
 const getProfile = async (req, res, next) => {
     try {
         // Find the admin by their ID
-        const admin = await Admin.findById(req.admin._id);
+        const admin = await Admin.findById(req.admin._id).select('-password');
 
         // If admin is not found, return an error
         if (!admin) {
