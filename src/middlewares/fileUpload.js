@@ -3,8 +3,7 @@ const fs = require('fs');
 const {ApiError} = require('../errorHandler')
 
 function getFileUploader(fieldName, publicDirName = '', mimetypes) {
-  if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif'];
-
+  if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif', 'image/jfif', 'application/octet-stream'];
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
       if (!fs.existsSync(`public/${publicDirName}`)) {

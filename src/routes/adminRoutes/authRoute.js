@@ -8,7 +8,7 @@ const {
   resetPassword,
   getProfile,
   changePassword,
-} = require("../../controllers/admin/authController");
+} = require("../../controllers/admin/authContoller");
 
 // User authentication routes
 router.post("/login", login);

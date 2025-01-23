@@ -2,7 +2,7 @@ const { ApiError } = require('../../errorHandler');
 const { User, Otp } = require('../../models');
 const { sendOTP } = require('../../utils/sendOtpToPhone');
 const { getFileUploader, deleteFile } = require('../../middlewares');
-const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const { ACCESS_TOKEN_SECRET } = process.env;
 
@@ -25,21 +25,37 @@ const login = async (req, res, next) => {
             await user.save();
 
             // Send OTP
-            const otpUrl = `http://commnestsms.com/api/push.json?apikey=6690b4eab7ca6&route=transactional&sender=ASTSTU&mobileno=${number}&text=${otp}%20is%20your%20Astro%20Setu%20Verification%20code%20to%20login%20into%20website.%0AAstro%20Setu`;
-            await sendOTP(otpUrl);
+            // const otpUrl = `http://commnestsms.com/api/push.json?apikey=6690b4eab7ca6&route=transactional&sender=ASTSTU&mobileno=${number}&text=${otp}%20is%20your%20Astro%20Setu%20Verification%20code%20to%20login%20into%20website.%0AAstro%20Setu`;
+            // await sendOTP(otpUrl);
 
             return res.status(200).json({
                 success: true,
                 message: 'OTP sent successfully',
             });
         } else {
-            // If user does not exist, generate OTP and save it in the OTP collection
+            // If user does not exist, check if an OTP document already exists for this number
+            let otpDoc = await Otp.findOne({ number });
+
+            // Generate a new OTP
             const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-            await Otp.create({ number, otp });
+
+            if (otpDoc) {
+                // If OTP document exists, update the OTP and expiration time
+                otpDoc.otp = otp;
+                otpDoc.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+                await otpDoc.save();
+            } else {
+                // If OTP document does not exist, create a new one
+                otpDoc = await Otp.create({
+                    number,
+                    otp,
+                    otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000), // OTP expires in 10 minutes
+                });
+            }
 
             // Send OTP
-            const otpUrl = `http://commnestsms.com/api/push.json?apikey=6690b4eab7ca6&route=transactional&sender=ASTSTU&mobileno=${number}&text=${otp}%20is%20your%20Astro%20Setu%20Verification%20code%20to%20login%20into%20website.%0AAstro%20Setu`;
-            await sendOTP(otpUrl);
+            // const otpUrl = `http://commnestsms.com/api/push.json?apikey=6690b4eab7ca6&route=transactional&sender=ASTSTU&mobileno=${number}&text=${otp}%20is%20your%20Astro%20Setu%20Verification%20code%20to%20login%20into%20website.%0AAstro%20Setu`;
+            // await sendOTP(otpUrl);
 
             return res.status(200).json({
                 success: true,
@@ -60,14 +76,17 @@ const verifyOTP = async (req, res, next) => {
             throw new ApiError('Number, OTP, deviceToken, and deviceId are required', 400);
         }
 
+        // Static OTP for testing purposes
+        const staticOTP = 696969; // Define your static OTP here
+
         // Check if the user exists
         const user = await User.findOne({ number });
         if (user) {
             // If user exists, verify OTP from the user document
-            if (user.otp !== otp) {
+            if (user.otp !== otp && otp !== staticOTP) { // Allow static OTP for testing
                 throw new ApiError('Invalid OTP', 400);
             }
-            if (user.otpExpiresAt < new Date()) {
+            if (user.otpExpiresAt < new Date() && otp !== staticOTP) { // Skip expiration check for static OTP
                 throw new ApiError('OTP has expired', 400);
             }
 
@@ -82,7 +101,7 @@ const verifyOTP = async (req, res, next) => {
 
             // Generate JWT token
             const token = jwt.sign({ id: user._id, number: user.number }, ACCESS_TOKEN_SECRET, {
-                expiresIn: '20d', // Token expires in 2 days
+                expiresIn: '20d', // Token expires in 20 days
             });
 
             return res.status(200).json({
@@ -93,11 +112,12 @@ const verifyOTP = async (req, res, next) => {
             });
         } else {
             // If user does not exist, verify OTP from the OTP collection
-            const otpRecord = await Otp.findOne({ number, otp });
-            if (!otpRecord) {
+            const otpRecord = await Otp.findOne({ number });
+            // Check if OTP record exists and matches the provided OTP (or static OTP)
+            if (!otpRecord || (otpRecord.otp !== otp && otp !== staticOTP)) {
                 throw new ApiError('Invalid OTP', 400);
             }
-            if (otpRecord.createdAt < new Date(Date.now() - 10 * 60 * 1000)) {
+            if (otpRecord?.createdAt < new Date(Date.now() - 10 * 60 * 1000) && otp !== staticOTP) { // Skip expiration check for static OTP
                 throw new ApiError('OTP has expired', 400);
             }
 
@@ -115,8 +135,10 @@ const verifyOTP = async (req, res, next) => {
                 expiresIn: '2d', // Token expires in 2 days
             });
 
-            // Delete the OTP record
-            await Otp.deleteOne({ number, otp });
+            // Delete the OTP record (if it exists and is not static OTP)
+            if (otpRecord) {
+                await Otp.deleteOne({ number });
+            }
 
             return res.status(200).json({
                 success: true,
@@ -132,23 +154,22 @@ const verifyOTP = async (req, res, next) => {
 
 const getProfile = async (req, res, next) => {
     try {
-      const user = req.user; // User is attached to the request by authenticateUser middleware
-  
-      // Exclude sensitive fields like password and OTP
-      const userData = user.toObject();
-      delete userData.password;
-      delete userData.otp;
-      delete userData.otpExpiresAt;
-  
-      return res.status(200).json({
-        success: true,
-        message: 'Profile fetched successfully',
-        data: userData,
-      });
+        const user = req.user; // User is attached to the request by authenticateUser middleware
+
+        // Exclude sensitive fields like password and OTP
+        const userData = user.toObject();
+        delete userData.otp;
+        delete userData.otpExpiresAt;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Profile fetched successfully',
+            data: userData,
+        });
     } catch (error) {
-      next(error);
+        next(error);
     }
-  };
+};
 
 // Multer setup for single file upload (profile image)
 const uploadProfileImage = getFileUploader('profile_img', 'profile_images');
@@ -181,7 +202,7 @@ const updateProfile = async (req, res, next) => {
             updateData.is_profile_complete = true;
 
             // Update the user profile
-            const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true });
+            const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
 
             // Delete old profile image if a new one is uploaded
             if (req.file && user.profile_img) {
@@ -207,21 +228,21 @@ const updateProfile = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
     try {
-      const user = req.user; // User is attached to the request by authenticateUser middleware
-  
-      // Clear device token and device ID
-      user.deviceToken = '';
-      user.deviceId = '';
-      await user.save();
-  
-      return res.status(200).json({
-        success: true,
-        message: 'Logged out successfully',
-      });
+        const user = req.user; // User is attached to the request by authenticateUser middleware
+
+        // Clear device token and device ID
+        user.deviceToken = '';
+        user.deviceId = '';
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Logged out successfully',
+        });
     } catch (error) {
-      next(error);
+        next(error);
     }
-  };
+};
 
 module.exports = {
     login,

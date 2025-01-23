@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateUser } = require("../../middlewares/authenticateUser");
+const { authenticateUser } = require("../../middlewares");
 const { getDashboardData } = require("../../controllers/user/dashboardController");
 
 // Dashboard routes

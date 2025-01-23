@@ -16,23 +16,18 @@ const UserSchema = new Schema({
     default: '',
   },
   number: {
-    type: String,
+    type: Number,
     unique: true,
-    required: true,
-    trim: true,
+    required: true
   },
   is_profile_complete: {
     type: Boolean,
     default: false,
   },
-  password: {
-    type: String,
-    required: true,
-  },
   gender: {
     type: String,
-    enum: ['Male', 'Female', 'Other'],
-    default: 'Other',
+    enum: ['Male', 'Female', 'Other', ''],
+    default: '',
   },
   busy: {
     type: Boolean,
@@ -59,8 +54,15 @@ const UserSchema = new Schema({
     default: '',
   },
   dob: {
-    type: String,
-    default: '',
+    type: String, // Store as String
+    default: '',  // Default to empty string
+    validate: {
+      validator: function(v) {
+        // Validate the format (dd-mm-yyyy)
+        return /^\d{2}-\d{2}-\d{4}$/.test(v);
+      },
+      message: 'Date of birth must be in dd-mm-yyyy format!',
+    },
   },
   tob: {
     type: String,
@@ -88,8 +90,19 @@ const UserSchema = new Schema({
     default: '',
   },
   otp: {
-    type: String,
-    default: '',
+    type: Number,
+    default: null,
+  },
+  otp: {
+    type: Number,
+    default: null,
+    validate: {
+      validator: function(v) {
+        // Validate that OTP is a 6-digit number (if provided)
+        return v === null || (v >= 100000 && v <= 999999);
+      },
+      message: 'OTP must be a 6-digit number',
+    },
   },
   otpExpiresAt: {
     type: Date, // Field to store OTP expiration time
