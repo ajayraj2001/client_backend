@@ -6,7 +6,7 @@ const scripts = require('./src/scripts');
 const {initializeSocket} = require('./socket'); // Import Socket.IO setup
 const {cleanupPendingTransactions} = require('./src/controllers/cronJobs/cronJobController')
 
-const { PORT } = process.env || 8003;
+const { PORT } = process.env || 5001;
 
 (async () => {
   try {
