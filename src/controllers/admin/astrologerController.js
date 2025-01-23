@@ -63,9 +63,9 @@ const createAstrologer = async (req, res, next) => {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Convert `languages` and `skills` to ObjectId array
-        const castLanguages = languages ? languages.map((id) => mongoose.Types.ObjectId(id)) : [];
-        const castSkills = skills ? skills.map((id) => mongoose.Types.ObjectId(id)) : [];
+            // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
+            const parsedLanguages = languages ? JSON.parse(languages).map((id) => mongoose.Types.ObjectId(id)) : [];
+            const parsedSkills = skills ? JSON.parse(skills).map((id) => mongoose.Types.ObjectId(id)) : [];
 
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
@@ -88,8 +88,8 @@ const createAstrologer = async (req, res, next) => {
         about,
         experience,
         address,
-        languages: castLanguages,
-        skills: castSkills,
+         languages: parsedLanguages,
+        skills: parsedSkills,
         state,
         city,
         account_details,
@@ -148,6 +148,7 @@ const updateAstrologer = async (req, res, next) => {
 
       const { id } = req.params;
       const updateData = req.body;
+      console.log('updaye',updateData)
 
       // Find the existing astrologer
       const existingAstrologer = await Astrologer.findById(id);
@@ -155,13 +156,17 @@ const updateAstrologer = async (req, res, next) => {
         throw new ApiError('Astrologer not found', 404);
       }
 
-         // Convert `languages` and `skills` to ObjectId array if provided
-         if (updateData.languages) {
-          updateData.languages = updateData.languages.map((id) => mongoose.Types.ObjectId(id));
-        }
-        if (updateData.skills) {
-          updateData.skills = updateData.skills.map((id) => mongoose.Types.ObjectId(id));
-        }
+          // Parse `languages` and `skills` into arrays of ObjectIds if present
+      if (updateData.languages) {
+        updateData.languages = JSON.parse(updateData.languages).map((id) =>
+          mongoose.Types.ObjectId(id)
+        );
+      }
+      if (updateData.skills) {
+        updateData.skills = JSON.parse(updateData.skills).map((id) =>
+          mongoose.Types.ObjectId(id)
+        );
+      }
 
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
