@@ -230,6 +230,17 @@ const deleteAstrologer = async (req, res, next) => {
       throw new ApiError('Astrologer not found', 404);
     }
 
+      // Delete associated files
+      if (astrologer.profile_img) {
+        await deleteFile(astrologer.profile_img);
+      }
+      if (astrologer.aadhar_card_img) {
+        await deleteFile(astrologer.aadhar_card_img);
+      }
+      if (astrologer.pan_card_img) {
+        await deleteFile(astrologer.pan_card_img);
+      }
+
     return res.status(200).json({
       success: true,
       message: 'Astrologer deleted successfully',
@@ -345,8 +356,7 @@ const updateAstrologerStatus = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Astrologer status updated successfully',
-      data: astrologer,
+      message: 'Astrologer status updated successfully'
     });
   } catch (error) {
     next(error);
