@@ -18,7 +18,9 @@ const getDashboardData = async (req, res, next) => {
     // Fetch top 4 astrologers with is_chat_online = "on"
     const onlineAstrologers = await Astrologer.find({ status: "Active", is_chat_online: 'on' })
       .limit(4) // Limit to 4 astrologers
-      .select('-password -aadhar_card_img -pan_card_img'); // Exclude password field
+      .select('-password -aadhar_card_img -pan_card_img') // Exclude password field
+      .populate('languages', 'name')
+      .populate('skills', 'name');
 
     return res.status(200).json({
       success: true,

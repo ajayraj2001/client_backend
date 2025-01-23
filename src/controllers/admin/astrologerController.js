@@ -3,7 +3,7 @@ const { Astrologer, BankAccountRequest, AstrologerSignupRequest } = require('../
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 
-const { sendLoginCredentials, notifyAstrologer} = require('../../utils/sendEmail')
+const { sendLoginCredentials, notifyAstrologer } = require('../../utils/sendEmail')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
 
 
@@ -231,16 +231,16 @@ const deleteAstrologer = async (req, res, next) => {
       throw new ApiError('Astrologer not found', 404);
     }
 
-      // Delete associated files
-      if (astrologer.profile_img) {
-        await deleteFile(astrologer.profile_img);
-      }
-      if (astrologer.aadhar_card_img) {
-        await deleteFile(astrologer.aadhar_card_img);
-      }
-      if (astrologer.pan_card_img) {
-        await deleteFile(astrologer.pan_card_img);
-      }
+    // Delete associated files
+    if (astrologer.profile_img) {
+      await deleteFile(astrologer.profile_img);
+    }
+    if (astrologer.aadhar_card_img) {
+      await deleteFile(astrologer.aadhar_card_img);
+    }
+    if (astrologer.pan_card_img) {
+      await deleteFile(astrologer.pan_card_img);
+    }
 
     return res.status(200).json({
       success: true,
@@ -321,7 +321,9 @@ const getAstrologerById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const astrologer = await Astrologer.findById(id).select('-password');
+    const astrologer = await Astrologer.findById(id).select('-password')
+      .populate('languages', 'name')
+      .populate('skills', 'name');
 
     if (!astrologer) {
       throw new ApiError('Astrologer not found', 404);
@@ -392,6 +394,8 @@ const updateAstrologerStatus = async (req, res, next) => {
 //   }
 // };
 
+
+//bank approval requests
 const getAllRequests = async (req, res, next) => {
   try {
     // Get the filters from query parameters (optional)
@@ -420,7 +424,7 @@ const getAllRequests = async (req, res, next) => {
       if (name && !request.astrologer_id.name.toLowerCase().includes(name.toLowerCase())) {
         matches = false;
       }
-      
+
       if (number && !request.astrologer_id.number.includes(number)) {
         matches = false;
       }
@@ -437,7 +441,6 @@ const getAllRequests = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const approveOrRejectRequest = async (req, res, next) => {
   try {
@@ -491,6 +494,64 @@ const approveOrRejectRequest = async (req, res, next) => {
   }
 };
 
+
+//signup approval request
+const getSignupRequests = async (req, res, next) => {
+  try {
+    const { status, fromDate, toDate, sortBy, sortOrder } = req.query;
+
+    // Build the filter object
+    const filter = {};
+    if (status) filter.status = status;
+    if (fromDate || toDate) {
+      filter.created_at = {};
+      if (fromDate) filter.created_at.$gte = new Date(fromDate);
+      if (toDate) filter.created_at.$lte = new Date(toDate);
+    }
+
+    // Build the sort object
+    const sort = {};
+    if (sortBy) sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Fetch signup requests with filters and sorting
+    const signupRequests = await AstrologerSignupRequest.find(filter)
+      .sort(sort)
+      .select('-__v'); // Exclude unnecessary fields
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signup requests fetched successfully',
+      data: signupRequests,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getSignupRequestDetails = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+
+    // Fetch the signup request by ID
+    const signupRequest = await AstrologerSignupRequest.findById(requestId)
+      .select('-__v')
+      .populate('languages', 'name')
+      .populate('skills', 'name');
+
+    if (!signupRequest) {
+      throw new ApiError('Signup request not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signup request details fetched successfully',
+      data: signupRequest,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const approveAstrologerSignup = async (req, res, next) => {
   try {
     const { requestId, action, rejectionReason } = req.body; // action can be 'approve' or 'reject'
@@ -531,9 +592,9 @@ const approveAstrologerSignup = async (req, res, next) => {
       signupRequest.status = 'Rejected';
       signupRequest.rejectionReason = rejectionReason || 'Request rejected due to incomplete or incorrect information.';
       await signupRequest.save();
-      
+
       // Notify the astrologer about the rejection
-       notifyAstrologer(signupRequest.email, signupRequest.rejectionReason);
+      notifyAstrologer(signupRequest.email, signupRequest.rejectionReason);
 
       return res.status(200).json({
         success: true,
@@ -569,5 +630,7 @@ module.exports = {
   updateAstrologerStatus,
   getAllRequests,
   approveOrRejectRequest,
-  approveAstrologerSignup
+  getSignupRequests,
+  getSignupRequestDetails,
+  approveAstrologerSignup,
 };

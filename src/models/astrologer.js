@@ -53,6 +53,7 @@ const astrologerSchema = new Schema({
 
 
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive', },
+  password_created: { type: Boolean,  default: false, },
 
   // Device Information
   deviceToken: { type: String, default: '' },

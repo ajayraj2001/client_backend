@@ -6,8 +6,8 @@ const {
   forgotPassword,
   verifyOtp,
   resetPassword,
-  getProfile,
-  updateProfile,
+  getAstrologerProfile,
+  updateAstrologerProfile,
   logout,
 } = require("../../controllers/astrologer/authController");
 
@@ -15,9 +15,9 @@ const {
 router.post('/login', login);
 router.post('/forgot_password', forgotPassword);
 router.post('/verify_otp', verifyOtp);
-router.post('/reset-password', resetPassword);
-router.get("/profile", authenticateAstrologer, getProfile);
-router.put('/update_profile', authenticateAstrologer, updateProfile);
+router.post('/reset_password', resetPassword);
+router.get("/profile", authenticateAstrologer, getAstrologerProfile);
+router.put('/update_profile', authenticateAstrologer, updateAstrologerProfile);
 router.post('/logout', authenticateAstrologer, logout);
 
 module.exports = router;

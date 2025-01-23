@@ -5,7 +5,9 @@ const getActiveAstrologers = async (req, res, next) => {
     try {
         // Fetch all active astrologers and exclude the password field
         const activeAstrologers = await Astrologer.find({ status: 'Active' })
-            .select('-password -aadhar_card_img -pan_card_img'); // Exclude password field
+        .select('-password -aadhar_card_img -pan_card_img') // Exclude sensitive fields
+        .populate('languages', 'name')
+        .populate('skills', 'name'); 
 
         return res.status(200).json({
             success: true,
@@ -67,7 +69,10 @@ const getAstrologerProfileWithReviews = async (req, res, next) => {
         const { id } = req.params;
 
         // Fetch the astrologer's profile
-        const astrologer = await Astrologer.findById(id).select('-password -aadhar_card_img -pan_card_img');
+        const astrologer = await Astrologer.findById(id).select('-password -aadhar_card_img -pan_card_img')
+        .populate('languages', 'name')
+        .populate('skills', 'name'); 
+        
         if (!astrologer) {
             throw new ApiError('Astrologer not found', 404);
         }
