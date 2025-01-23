@@ -97,9 +97,9 @@ const createAstrologer = async (req, res, next) => {
         is_chat,
         is_voice_call,
         is_video_call,
-        profile_img: profileImgPath || '', // Save file path or empty string
-        aadhar_card_img: aadharImgPath || '', // Save file path or empty string
-        pan_card_img: panImgPath || '', // Save file path or empty string
+        profile_img: profileImgPath || '',
+        aadhar_card_img: aadharImgPath || '',
+        pan_card_img: panImgPath || '',
         contact_no2,
         pincode,
         pan_card,
