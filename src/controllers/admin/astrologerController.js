@@ -63,6 +63,10 @@ const createAstrologer = async (req, res, next) => {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Convert `languages` and `skills` to ObjectId array
+        const castLanguages = languages ? languages.map((id) => mongoose.Types.ObjectId(id)) : [];
+        const castSkills = skills ? skills.map((id) => mongoose.Types.ObjectId(id)) : [];
+
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
@@ -84,8 +88,8 @@ const createAstrologer = async (req, res, next) => {
         about,
         experience,
         address,
-        languages,
-        skills,
+        languages: castLanguages,
+        skills: castSkills,
         state,
         city,
         account_details,
@@ -150,6 +154,14 @@ const updateAstrologer = async (req, res, next) => {
       if (!existingAstrologer) {
         throw new ApiError('Astrologer not found', 404);
       }
+
+         // Convert `languages` and `skills` to ObjectId array if provided
+         if (updateData.languages) {
+          updateData.languages = updateData.languages.map((id) => mongoose.Types.ObjectId(id));
+        }
+        if (updateData.skills) {
+          updateData.skills = updateData.skills.map((id) => mongoose.Types.ObjectId(id));
+        }
 
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
