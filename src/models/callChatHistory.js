@@ -11,6 +11,8 @@ const callChatHistorySchema = new Schema({
     duration: { type: Number }, // in seconds
     status: { type: String, enum: ['call_initiate', 'accept_astro', 'reject_astro', 'reject_user', 'end_user', 'end_astro', 'auto_cut', 'wallet_empty'], required: true },
     cost: { type: Number, default: 0 }, // total cost of the call/chat
+    astro_cut: { type: Number, default: 0 }, // astro cut of the call/chat
+    admin_cut: { type: Number, default: 0 }, // admin cut of the call/chat
 });
 
 // Indexing for faster queries

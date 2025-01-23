@@ -125,6 +125,8 @@ const initializeSocket = (server) => {
             callHistory.end_time = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000); // IST
             callHistory.duration = duration;
             callHistory.cost = cost;
+            callHistory.astro_cut = astrologerCommission;
+            callHistory.admin_cut = adminCommission;
             await callHistory.save();
 
             // Save to wallet histories
