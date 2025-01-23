@@ -1,6 +1,7 @@
 const { ApiError } = require('../../errorHandler');
 const { Astrologer, BankAccountRequest } = require('../../models');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
 
@@ -63,9 +64,9 @@ const createAstrologer = async (req, res, next) => {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-            // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
-            const parsedLanguages = languages ? JSON.parse(languages).map((id) => mongoose.Types.ObjectId(id)) : [];
-            const parsedSkills = skills ? JSON.parse(skills).map((id) => mongoose.Types.ObjectId(id)) : [];
+      // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
+      const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
+      const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
 
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
@@ -88,7 +89,7 @@ const createAstrologer = async (req, res, next) => {
         about,
         experience,
         address,
-         languages: parsedLanguages,
+        languages: parsedLanguages,
         skills: parsedSkills,
         state,
         city,
@@ -138,7 +139,7 @@ const createAstrologer = async (req, res, next) => {
 const updateAstrologer = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
   try {
-    
+
     // Handle multiple file uploads
     uploadAstrologerFiles(req, res, async (err) => {
       if (err) {
@@ -148,7 +149,7 @@ const updateAstrologer = async (req, res, next) => {
 
       const { id } = req.params;
       const updateData = req.body;
-      console.log('updaye',updateData)
+      console.log('updaye', updateData)
 
       // Find the existing astrologer
       const existingAstrologer = await Astrologer.findById(id);
@@ -156,15 +157,15 @@ const updateAstrologer = async (req, res, next) => {
         throw new ApiError('Astrologer not found', 404);
       }
 
-          // Parse `languages` and `skills` into arrays of ObjectIds if present
+      // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
         updateData.languages = JSON.parse(updateData.languages).map((id) =>
-          mongoose.Types.ObjectId(id)
+          new mongoose.Types.ObjectId(id)
         );
       }
       if (updateData.skills) {
         updateData.skills = JSON.parse(updateData.skills).map((id) =>
-          mongoose.Types.ObjectId(id)
+          new mongoose.Types.ObjectId(id)
         );
       }
 
@@ -354,81 +355,81 @@ const updateAstrologerStatus = async (req, res, next) => {
 
 const getAllRequests = async (req, res, next) => {
   try {
-      // Get the status filter from query parameters (optional)
-      const { status } = req.query;
+    // Get the status filter from query parameters (optional)
+    const { status } = req.query;
 
-      // Define the filter object
-      const filter = {};
-      if (status) {
-          // Validate the status
-          if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
-              throw new ApiError('Invalid status. Status must be "Pending", "Approved", or "Rejected"', 400);
-          }
-          filter.status = status; // Add status to the filter
+    // Define the filter object
+    const filter = {};
+    if (status) {
+      // Validate the status
+      if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
+        throw new ApiError('Invalid status. Status must be "Pending", "Approved", or "Rejected"', 400);
       }
+      filter.status = status; // Add status to the filter
+    }
 
-      // Fetch all requests (filtered by status if provided)
-      const requests = await BankAccountRequest.find(filter).populate('astrologer_id', 'name email number');
+    // Fetch all requests (filtered by status if provided)
+    const requests = await BankAccountRequest.find(filter).populate('astrologer_id', 'name email number');
 
-      return res.status(200).json({
-          success: true,
-          message: 'Bank account requests fetched successfully',
-          requests,
-      });
+    return res.status(200).json({
+      success: true,
+      message: 'Bank account requests fetched successfully',
+      requests,
+    });
   } catch (error) {
-      next(error);
+    next(error);
   }
 };
 
 const approveOrRejectRequest = async (req, res, next) => {
   try {
-      const { request_id, status } = req.body;
+    const { request_id, status } = req.body;
 
-      // Validate required fields
-      if (!request_id || !status) {
-          throw new ApiError('Request ID and status are required', 400);
+    // Validate required fields
+    if (!request_id || !status) {
+      throw new ApiError('Request ID and status are required', 400);
+    }
+
+    // Check if the status is valid
+    if (!['Approved', 'Rejected'].includes(status)) {
+      throw new ApiError('Invalid status. Status must be "Approved" or "Rejected"', 400);
+    }
+
+    // Find the bank account request
+    const bankAccountRequest = await BankAccountRequest.findById(request_id).populate('astrologer_id', 'name email number');
+    if (!bankAccountRequest) {
+      throw new ApiError('Bank account request not found', 404);
+    }
+
+    // Update the status of the request
+    bankAccountRequest.status = status;
+    await bankAccountRequest.save();
+
+    // If approved, add the bank account to the astrologer's account_details
+    if (status === 'Approved') {
+      const astrologer = await Astrologer.findById(bankAccountRequest.astrologer_id);
+      if (!astrologer) {
+        throw new ApiError('Astrologer not found', 404);
       }
 
-      // Check if the status is valid
-      if (!['Approved', 'Rejected'].includes(status)) {
-          throw new ApiError('Invalid status. Status must be "Approved" or "Rejected"', 400);
-      }
-
-      // Find the bank account request
-      const bankAccountRequest = await BankAccountRequest.findById(request_id).populate('astrologer_id', 'name email number');
-      if (!bankAccountRequest) {
-          throw new ApiError('Bank account request not found', 404);
-      }
-
-      // Update the status of the request
-      bankAccountRequest.status = status;
-      await bankAccountRequest.save();
-
-      // If approved, add the bank account to the astrologer's account_details
-      if (status === 'Approved') {
-          const astrologer = await Astrologer.findById(bankAccountRequest.astrologer_id);
-          if (!astrologer) {
-              throw new ApiError('Astrologer not found', 404);
-          }
-
-          astrologer.account_details.push({
-              account_type: bankAccountRequest.account_type,
-              account_holder_name: bankAccountRequest.account_holder_name,
-              account_no: bankAccountRequest.account_no,
-              bank: bankAccountRequest.bank,
-              ifsc: bankAccountRequest.ifsc,
-          });
-
-          await astrologer.save();
-      }
-
-      return res.status(200).json({
-          success: true,
-          message: `Bank account request ${status.toLowerCase()} successfully`,
-          bankAccountRequest,
+      astrologer.account_details.push({
+        account_type: bankAccountRequest.account_type,
+        account_holder_name: bankAccountRequest.account_holder_name,
+        account_no: bankAccountRequest.account_no,
+        bank: bankAccountRequest.bank,
+        ifsc: bankAccountRequest.ifsc,
       });
+
+      await astrologer.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Bank account request ${status.toLowerCase()} successfully`,
+      bankAccountRequest,
+    });
   } catch (error) {
-      next(error);
+    next(error);
   }
 };
 
