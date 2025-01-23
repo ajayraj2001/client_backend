@@ -4,7 +4,7 @@ const { connectToDatabase } = require('./config');
 const app = require('./src/app');
 const scripts = require('./src/scripts');
 const {initializeSocket} = require('./socket'); // Import Socket.IO setup
-const {cleanupPendingTransactions} = require('./src/controllers/cronJobs/transactionController')
+const {cleanupPendingTransactions} = require('./src/controllers/cronJobs/cronJobController')
 
 const { PORT } = process.env || 8003;
 

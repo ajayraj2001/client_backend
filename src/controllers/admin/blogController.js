@@ -4,185 +4,191 @@ const { getMultipleFilesUploader, deleteFile } = require('../../middlewares');
 
 // Multer setup for multiple file uploads
 const uploadBlogFiles = getMultipleFilesUploader([
-    { name: 'img', folder: 'blog_images' }, // Save blog images in 'blog_images' folder
-    { name: 'icon', folder: 'blog_icons' }, // Save blog icons in 'blog_icons' folder
+  { name: 'thumbnailImage', folder: 'blog_thumbnails', maxCount: 1 }, // Single thumbnail image
+  { name: 'galleryImages', folder: 'blog_gallery', maxCount: 10 }, // Multiple gallery images (max 10)
 ]);
 
 const createBlog = async (req, res, next) => {
-    let imgPath = '', iconPath = '';
+  let thumbnailImagePath = '';
+  let galleryImagePaths = [];
 
-    try {
-        // Handle multiple file uploads
-        uploadBlogFiles(req, res, async (err) => {
-            if (err) {
-                console.error('Multer Error:', err); // Log Multer errors
-                return next(new ApiError(err.message, 400));
-            }
+  try {
+    // Handle multiple file uploads
+    uploadBlogFiles(req, res, async (err) => {
+      if (err) {
+        console.error('Multer Error:', err);
+        return next(new ApiError(err.message, 400));
+      }
 
-            const { title, description, author, status } = req.body;
+      const { title, description, author, status } = req.body;
 
-            // Save file paths if files are uploaded
-            if (req.files?.img) {
-                imgPath = `/blog_images/${req.files.img[0].filename}`;
-            }
-            if (req.files?.icon) {
-                iconPath = `/blog_icons/${req.files.icon[0].filename}`;
-            }
+      // Save file paths if files are uploaded
+      if (req.files?.thumbnailImage) {
+        thumbnailImagePath = `/blog_thumbnails/${req.files.thumbnailImage[0].filename}`;
+      }
+      if (req.files?.galleryImages) {
+        galleryImagePaths = req.files.galleryImages.map(file => `/blog_gallery/${file.filename}`);
+      }
 
-            // Create new blog
-            const blog = new Blog({
-                title,
-                description,
-                author,
-                img: imgPath || '', // Save file path or empty string
-                icon: iconPath || '', // Save file path or empty string
-                status,
-            });
+      // Create new blog
+      const blog = new Blog({
+        title,
+        description,
+        author,
+        thumbnailImage: thumbnailImagePath || '', // Save thumbnail path or empty string
+        galleryImages: galleryImagePaths, // Save gallery image paths
+        status,
+      });
 
-            await blog.save();
+      await blog.save();
 
-            return res.status(201).json({
-                success: true,
-                message: 'Blog created successfully',
-                data: blog,
-            });
-        });
-    } catch (error) {
-        // Delete uploaded files if an error occurs
-        if (imgPath) await deleteFile(imgPath);
-        if (iconPath) await deleteFile(iconPath);
-
-        next(error);
+      return res.status(201).json({
+        success: true,
+        message: 'Blog created successfully',
+        data: blog,
+      });
+    });
+  } catch (error) {
+    // Delete uploaded files if an error occurs
+    if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
+    if (galleryImagePaths.length > 0) {
+      await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
     }
+
+    next(error);
+  }
 };
 
 const updateBlog = async (req, res, next) => {
-    let imgPath = '', iconPath = '';
+  let thumbnailImagePath = '';
+  let galleryImagePaths = [];
 
-    try {
-        // Handle multiple file uploads
-        uploadBlogFiles(req, res, async (err) => {
-            if (err) {
-                console.error('Multer Error:', err); // Log Multer errors
-                return next(new ApiError(err.message, 400));
-            }
-            
-            const { id } = req.params;
-            const { title, description, author, status } = req.body;
+  try {
+    // Handle multiple file uploads
+    uploadBlogFiles(req, res, async (err) => {
+      if (err) {
+        console.error('Multer Error:', err);
+        return next(new ApiError(err.message, 400));
+      }
 
-            // Find the existing blog
-            const existingBlog = await Blog.findById(id);
-            if (!existingBlog) {
-                throw new ApiError('Blog not found', 404);
-            }
+      const { id } = req.params;
+      const { title, description, author, status } = req.body;
 
-            // Save new file paths if files are uploaded
-            if (req.files?.img) {
-                imgPath = `/blog_images/${req.files.img[0].filename}`;
-            }
-            if (req.files?.icon) {
-                iconPath = `/blog_icons/${req.files.icon[0].filename}`;
-            }
+      // Find the existing blog
+      const existingBlog = await Blog.findById(id);
+      if (!existingBlog) {
+        throw new ApiError('Blog not found', 404);
+      }
 
-            // Update the blog
-            const updateData = {
-                title: title || existingBlog.title,
-                description: description || existingBlog.description,
-                author: author || existingBlog.author,
-                img: imgPath || existingBlog.img,
-                icon: iconPath || existingBlog.icon,
-                status: status || existingBlog.status,
-            };
+      // Save new file paths if files are uploaded
+      if (req.files?.thumbnailImage) {
+        thumbnailImagePath = `/blog_thumbnails/${req.files.thumbnailImage[0].filename}`;
+      }
+      if (req.files?.galleryImages) {
+        galleryImagePaths = req.files.galleryImages.map(file => `/blog_gallery/${file.filename}`);
+      }
 
-            const blog = await Blog.findByIdAndUpdate(id, updateData, { new: true });
+      // Update the blog
+      const updateData = {
+        title: title || existingBlog.title,
+        description: description || existingBlog.description,
+        author: author || existingBlog.author,
+        thumbnailImage: thumbnailImagePath || existingBlog.thumbnailImage,
+        galleryImages: galleryImagePaths.length > 0 ? galleryImagePaths : existingBlog.galleryImages,
+        status: status || existingBlog.status,
+      };
 
-            // Delete old files if new ones are uploaded
-            if (req.files?.img && existingBlog.img) {
-                await deleteFile(existingBlog.img);
-            }
-            if (req.files?.icon && existingBlog.icon) {
-                await deleteFile(existingBlog.icon);
-            }
+      const blog = await Blog.findByIdAndUpdate(id, updateData, { new: true });
 
-            return res.status(200).json({
-                success: true,
-                message: 'Blog updated successfully',
-                data: blog,
-            });
-        });
-    } catch (error) {
-        // Delete uploaded files if an error occurs
-        if (imgPath) await deleteFile(imgPath);
-        if (iconPath) await deleteFile(iconPath);
+      // Delete old files if new ones are uploaded
+      if (req.files?.thumbnailImage && existingBlog.thumbnailImage) {
+        await deleteFile(existingBlog.thumbnailImage);
+      }
+      if (req.files?.galleryImages && existingBlog.galleryImages.length > 0) {
+        await Promise.all(existingBlog.galleryImages.map(path => deleteFile(path)));
+      }
 
-        next(error);
+      return res.status(200).json({
+        success: true,
+        message: 'Blog updated successfully',
+        data: blog,
+      });
+    });
+  } catch (error) {
+    // Delete uploaded files if an error occurs
+    if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
+    if (galleryImagePaths.length > 0) {
+      await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
     }
+
+    next(error);
+  }
 };
 
 const deleteBlog = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        // Find and delete the blog
-        const blog = await Blog.findByIdAndDelete(id);
-        if (!blog) {
-            throw new ApiError('Blog not found', 404);
-        }
-
-        // Delete associated files
-        if (blog.img) {
-            await deleteFile(blog.img);
-        }
-        if (blog.icon) {
-            await deleteFile(blog.icon);
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: 'Blog deleted successfully',
-        });
-    } catch (error) {
-        next(error);
+    // Find and delete the blog
+    const blog = await Blog.findByIdAndDelete(id);
+    if (!blog) {
+      throw new ApiError('Blog not found', 404);
     }
+
+    // Delete associated files
+    if (blog.thumbnailImage) {
+      await deleteFile(blog.thumbnailImage);
+    }
+    if (blog.galleryImages.length > 0) {
+      await Promise.all(blog.galleryImages.map(path => deleteFile(path)));
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Blog deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getAllBlogs = async (req, res, next) => {
-    try {
-        const blogs = await Blog.find({});
+  try {
+    const blogs = await Blog.find({});
 
-        return res.status(200).json({
-            success: true,
-            message: 'Blogs fetched successfully',
-            data: blogs,
-        });
-    } catch (error) {
-        next(error);
-    }
+    return res.status(200).json({
+      success: true,
+      message: 'Blogs fetched successfully',
+      data: blogs,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getBlogById = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        const blog = await Blog.findById(id);
-        if (!blog) {
-            throw new ApiError('Blog not found', 404);
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: 'Blog fetched successfully',
-            data: blog,
-        });
-    } catch (error) {
-        next(error);
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      throw new ApiError('Blog not found', 404);
     }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Blog fetched successfully',
+      data: blog,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
-    createBlog,
-    updateBlog,
-    deleteBlog,
-    getAllBlogs,
-    getBlogById,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  getAllBlogs,
+  getBlogById,
 };

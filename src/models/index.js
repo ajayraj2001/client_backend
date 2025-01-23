@@ -11,6 +11,9 @@ const AstrologerWalletHistory = require("./astrologerWallet");
 const UserWalletHistory = require("./userWallet");
 const Rating = require("./rating");
 const PendingTransaction = require("./userPendingTransaction");
+const Language = require("./language");
+const Skill = require("./skill");
+const Puja = require("./puja");
 
 module.exports = {
   Admin,
@@ -26,5 +29,8 @@ module.exports = {
   UserWalletHistory,
   Rating,
   PendingTransaction,
+  Language,
+  Skill,
+  Puja
 };
 

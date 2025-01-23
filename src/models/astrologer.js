@@ -21,7 +21,8 @@ const astrologerSchema = new Schema({
   about: { type: String, default: '' },
   experience: { type: Number, default: 0 },
   address: { type: String, default: '' },
-  language: { type: String, default: '' },
+  languages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Language' }], // Multiple languages
+  skills: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }], // Multiple skills
   state: { type: String, default: '' },
   city: { type: String, default: '' },
 

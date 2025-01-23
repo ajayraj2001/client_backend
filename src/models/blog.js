@@ -1,47 +1,42 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const { getCurrentIST } = require('../utils/timeUtils'); 
+const { getCurrentIST } = require('../utils/timeUtils');
 
 const blogSchema = new Schema({
-//   category_id: {
-//     type: mongoose.Schema.Types.ObjectId, // Use ObjectId for referencing categories
-//     ref: 'Category', // Reference to the Category model
-//     required: true,
-//   },
   title: {
     type: String,
-    required: [true, 'Title is required'], // Validation message
-    trim: true, // Remove extra spaces
+    required: [true, 'Title is required'],
+    trim: true,
   },
   description: {
     type: String,
     required: [true, 'Description is required'],
     trim: true,
   },
-  author: { // Corrected spelling from "auther" to "author"
+  author: {
     type: String,
     required: [true, 'Author is required'],
     trim: true,
   },
-  img: {
+  thumbnailImage: {
     type: String,
     default: '', // Default empty string
   },
-  icon: {
-    type: String,
-    default: '', // Default empty string
+  galleryImages: {
+    type: [String], // Array of image paths
+    default: [], // Default empty array
   },
   status: {
     type: String,
-    enum: ['Active', 'Inactive'], // Only allow 'Active' or 'Inactive'
+    enum: ['Active', 'Inactive'],
     default: 'Inactive',
   },
 }, {
-    timestamps: { 
-      createdAt: 'created_at', 
-      updatedAt: 'updated_at', 
-      currentTime: getCurrentIST, // Use IST for timestamps
-    },
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    currentTime: getCurrentIST, // Use IST for timestamps
+  },
 });
 
 module.exports = mongoose.model('Blog', blogSchema);

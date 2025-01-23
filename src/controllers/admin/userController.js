@@ -1,0 +1,63 @@
+const { ApiError } = require('../../errorHandler');
+const { User } = require('../../models');
+
+const getUsers = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+        const search = req.query.search || '';
+        const statusFilter = req.query.status || { $exists: true }; // Default: no filter
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+        const sortBy = req.query.sortBy || 'created_at';
+        const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+
+        // Build the search query
+        const searchQuery = {
+            $and: [
+                { status: statusFilter },
+                {
+                    $or: [
+                        { name: { $regex: search, $options: 'i' } }, // Case-insensitive search by name
+                        { number: { $regex: search, $options: 'i' } }, // Case-insensitive search by number
+                    ]
+                }
+            ]
+        };
+
+        // Add date filter if provided
+        if (startDate || endDate) {
+            searchQuery.$and.push({
+                created_at: {
+                    $gte: startDate || new Date(0), // If startDate is not provided, use the earliest possible date
+                    $lte: endDate || new Date() // If endDate is not provided, use the current date
+                }
+            });
+        }
+
+        // Fetch users with search, date filter, and pagination
+        const users = await User.find(searchQuery)
+            .sort({ [sortBy]: sortOrder }) // Dynamic sorting
+            .skip(skip)
+            .limit(limit)
+            .select('name email number status wallet profile_img dob created_at'); // Select required fields
+
+        // Count total users matching the search query
+        const total = await User.countDocuments(searchQuery);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                users,
+                total,
+                page,
+                limit
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { getUsers }

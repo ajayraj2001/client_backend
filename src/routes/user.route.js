@@ -1,65 +1,20 @@
-const authenticateUser = require("../middlewares/authenticateUser");
-const bodyParser = require("body-parser");
+const express = require("express");
+const userRoute = express.Router();
 
-const {
-  login,
-  verifyOTP,
-  getProfile,
-  updateProfile,
-  logout,
-} = require("../controllers//user/authContoller");
+const { authenticateUser } = require("../middlewares");
 
-const {
-  getDashboardData
-} = require("../controllers//user/dashboardController");
+// Import the separate route files
+const authRoutes = require("./userRoutes/authRoute");
+const dashboardRoutes = require("./userRoutes/dashboardRoute");
+const astrologerRoutes = require("./userRoutes/astrologerRoute");
+const transactionRoutes = require("./userRoutes/transactionRoute");
+const chatRoutes = require("./userRoutes/chatRoutes");
 
-const {
-  getActiveAstrologers,
-  addRatingAndReview,
-  getAstrologerProfileWithReviews,
-  getAstrologerReviews
-} = require("../controllers//user/astrologerController");
-
-const {
-  initiateRecharge,
-  getWalletHistory
-} = require("../controllers/user/transactionController");
-
-const {
-  handleRazorpayWebhook
-} = require("../controllers/paymentGateway/paymentWebhook");
-
-const {
-  getCallHistory,
-  getLastChats
-} = require("../controllers/user/chatController");
-
-const userRoute = require("express").Router();
-
-//auth
-userRoute.post('/login', login);
-userRoute.post('/verify_otp', verifyOTP);
-userRoute.get("/profile", authenticateUser, getProfile);
-userRoute.put('/update_profile', authenticateUser, updateProfile);
-userRoute.post('/logout', authenticateUser, logout)
-
-//dashboard
-userRoute.get("/dashboard", authenticateUser, getDashboardData);
-
-//astrologers
-userRoute.get("/getAstrologers", authenticateUser, getActiveAstrologers);
-userRoute.get("/getAstrologerReviews", authenticateUser, getAstrologerReviews);
-userRoute.post("/addRatingAndReview", authenticateUser, addRatingAndReview);
-userRoute.get("/getAstrologerProfileWithReviews", authenticateUser, getAstrologerProfileWithReviews);
-
-//transactions
-userRoute.post('/recharge', authenticateUser, initiateRecharge);
-// Razorpay webhook
-userRoute.post('/razorpay_webhook', handleRazorpayWebhook);
-userRoute.post('/getWalletHistory', authenticateUser, getWalletHistory);
-
-// Get call history
-userRoute.post('/call_history', authenticateUser, getCallHistory);
-
+// Use the routes
+userRoute.use("/auth", authRoutes); // For authentication routes
+userRoute.use("/dashboard", dashboardRoutes); // For dashboard routes
+userRoute.use("/astrologers", astrologerRoutes); // For astrologer routes
+userRoute.use("/transactions", transactionRoutes); // For transaction routes
+userRoute.use("/chat", chatRoutes); // For chat routes
 
 module.exports = userRoute;
