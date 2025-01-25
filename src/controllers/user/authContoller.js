@@ -80,10 +80,8 @@ const verifyOTP = async (req, res, next) => {
         //     throw new ApiError(' deviceToken, and deviceId are required', 400);
         // }
 
-        console.log('otp', otp)
-        console.log('otpType', typeof(otp))
         // Static OTP for testing purposes
-        const staticOTP = 696969; // Define your static OTP here
+        const staticOTP = "696969"; // Define your static OTP here
 
         // Check if the user exists
         const user = await User.findOne({ number });

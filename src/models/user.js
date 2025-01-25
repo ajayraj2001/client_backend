@@ -16,7 +16,7 @@ const UserSchema = new Schema({
     default: '',
   },
   number: {
-    type: Number,
+    type: String,
     unique: true,
     required: true
   },
@@ -83,19 +83,10 @@ const UserSchema = new Schema({
     default: '',
   },
   otp: {
-    type: Number,
-    default: null,
-  },
-  otp: {
-    type: Number,
-    default: null,
-    validate: {
-      validator: function(v) {
-        // Validate that OTP is a 6-digit number (if provided)
-        return v === null || (v >= 100000 && v <= 999999);
-      },
-      message: 'OTP must be a 6-digit number',
-    },
+    type: String,
+    required: true, // Ensure OTP is always provided
+    match: /^[0-9]{6}$/, // Validate it’s exactly 6 digits
+    default: "", // Default value
   },
   otpExpiresAt: {
     type: Date, // Field to store OTP expiration time
