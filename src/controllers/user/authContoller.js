@@ -72,9 +72,13 @@ const verifyOTP = async (req, res, next) => {
     try {
         const { number, otp, deviceToken, deviceId } = req.body;
 
-        if (!number || !otp || !deviceToken || !deviceId) {
-            throw new ApiError('Number, OTP, deviceToken, and deviceId are required', 400);
+        if (!number || !otp) {
+            throw new ApiError('Number and OTP are required', 400);
         }
+
+        // if (!deviceToken || !deviceId) {
+        //     throw new ApiError(' deviceToken, and deviceId are required', 400);
+        // }
 
         // Static OTP for testing purposes
         const staticOTP = 696969; // Define your static OTP here
