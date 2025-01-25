@@ -6,7 +6,7 @@ const {
     getUsers
 } = require("../../controllers/admin/userController");
 
-router.post('/', authenticateAdmin, getUsers);
+router.get('/', authenticateAdmin, getUsers);
 // router.put('/:id', authenticateAdmin, updateAstrologer);
 
 module.exports = router;
