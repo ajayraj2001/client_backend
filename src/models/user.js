@@ -56,13 +56,6 @@ const UserSchema = new Schema({
   dob: {
     type: String, // Store as String
     default: '',  // Default to empty string
-    validate: {
-      validator: function(v) {
-        // Validate the format (dd-mm-yyyy)
-        return /^\d{2}-\d{2}-\d{4}$/.test(v);
-      },
-      message: 'Date of birth must be in dd-mm-yyyy format!',
-    },
   },
   tob: {
     type: String,
