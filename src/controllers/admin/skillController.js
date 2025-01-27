@@ -6,6 +6,12 @@ const createSkill = async (req, res, next) => {
   try {
     const { name } = req.body;
 
+      // Check if the skill already exists
+        const existingSkill = await Skill.findOne({ name });
+        if (existingSkill) {
+          throw new ApiError('Skill already exists', 400); // 400 for bad request
+        }
+
     const skill = new Skill({ name });
     await skill.save();
 
@@ -24,6 +30,11 @@ const updateSkill = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
+
+     const existingSkill = await Skill.findOne({ name, _id: { $ne: id } });
+        if (existingSkill) {
+          throw new ApiError('Skill already exists', 400); // 400 for bad request
+        }
 
     const skill = await Skill.findByIdAndUpdate(
       id,
@@ -67,7 +78,7 @@ const deleteSkill = async (req, res, next) => {
 // Get all skills
 const getAllSkills = async (req, res, next) => {
   try {
-    const skills = await Skill.find({});
+    const skills = await Skill.find({}).sort({_id:-1});
 
     return res.status(200).json({
       success: true,
