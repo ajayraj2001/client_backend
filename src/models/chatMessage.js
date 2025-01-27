@@ -10,6 +10,6 @@ const chatMessageSchema = new Schema({
 });
 
 // Indexing for faster retrieval of chat history
-chatMessageSchema.index({ user_id: 1, astrologer_id: 1, timestamp: 1 });
+chatMessageSchema.index({ user_id: 1, astrologer_id: 1, timestamp: -1 });
 
 module.exports = mongoose.model('ChatMessage', chatMessageSchema);

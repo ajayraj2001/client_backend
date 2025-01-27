@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const { getCurrentIST } = require('../utils/timeUtils');
 
 const pujaSchema = new Schema({
     title: {
@@ -14,15 +13,23 @@ const pujaSchema = new Schema({
     },
     slug: {
         type: String,
-        default: ""
+        default: '',
+    },
+    displayedPrice: {
+        type: Number,
+        required: [true, 'Displayed price is required'],
+    },
+    actualPrice: {
+        type: Number,
+        required: [true, 'Actual price is required'],
     },
     bannerImages: {
         type: [String],
         default: [],
     },
     pujaDate: {
-        type: Date, // Changed to Date format
-        default: null, // Null for recurring pujas
+        type: Date,
+        default: null,
     },
     aboutPuja: {
         type: String,
@@ -32,18 +39,6 @@ const pujaSchema = new Schema({
         type: [String],
         default: [],
     },
-    packages: [
-        {
-            packageName: { type: String, required: true },
-            packageType: {
-                type: String,
-                enum: ['Individual', 'Group', 'Family', 'Others'],
-                default: 'Individual',
-            },
-            packagePrice: { type: Number, required: true },
-            packageDescription: { type: [String], required: true },
-        },
-    ],
     faq: [
         {
             question: { type: String, required: true },
@@ -57,14 +52,28 @@ const pujaSchema = new Schema({
     },
     isRecurring: {
         type: Boolean,
-        default: false, // True for pujas that show every time
+        default: false,
     },
+    compulsoryProducts: [
+        {
+            productId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Product',
+                required: true,
+            },
+        },
+    ],
+    optionalProducts: [
+        {
+            productId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Product',
+                required: true,
+            },
+        },
+    ],
 }, {
-    timestamps: {
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
-        currentTime: getCurrentIST, // Use IST for timestamps
-    },
+    timestamps: true,
 });
 
 module.exports = mongoose.model('Puja', pujaSchema);

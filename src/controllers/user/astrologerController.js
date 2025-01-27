@@ -3,16 +3,72 @@ const { Astrologer, Rating } = require('../../models');
 
 const getActiveAstrologers = async (req, res, next) => {
     try {
-        // Fetch all active astrologers and exclude the password field
-        const activeAstrologers = await Astrologer.find({ status: 'Active' })
-        .select('-password -aadhar_card_img -pan_card_img') // Exclude sensitive fields
-        .populate('languages', 'name')
-        .populate('skills', 'name'); 
+        const { serviceType } = req.query; // 'chat', 'voice', 'video', or undefined for all
+
+        let query = { status: 'Active' };
+        let sortCriteria = {};
+
+        // Adjust query based on service type
+        if (serviceType === 'chat') {
+            query.is_chat = 'on';
+            sortCriteria.is_chat_online = -1; // Online first
+        } else if (serviceType === 'voice') {
+            query.is_voice_call = 'on';
+            sortCriteria.is_voice_online = -1; // Online first
+        } else if (serviceType === 'video') {
+            query.is_video_call = 'on';
+            sortCriteria.is_video_online = -1; // Online first
+        }
+
+        // Custom sorting: Online and not busy first, online but busy next, offline last
+        sortCriteria = {
+            ...sortCriteria,
+            busy: 1, // Not busy first
+            rating: -1, // Higher-rated first
+        };
+
+        const activeAstrologers = await Astrologer.find(query)
+            .select('-password -aadhar_card_img -pan_card_img') // Exclude sensitive fields
+            .populate('languages', 'name')
+            .populate('skills', 'name')
+            .sort(sortCriteria); // Apply sorting
 
         return res.status(200).json({
             success: true,
             message: 'Active astrologers fetched successfully',
             data: activeAstrologers,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAstroById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch the astrologer's profile
+        const astrologer = await Astrologer.findById(id).select('-password -aadhar_card_img -pan_card_img')
+            .populate('languages', 'name')
+            .populate('skills', 'name');
+
+        if (!astrologer) {
+            throw new ApiError('Astrologer not found', 404);
+        }
+
+        // Fetch the latest 5 reviews for the astrologer
+        const latestReviews = await Rating.find({ astrologer_id: id })
+            .sort({ _id: -1 }) // Sort by _id in descending order (latest first)
+            .limit(5) // Limit to 5 reviews
+            .populate('user_id', 'name email profile_img'); // Include user details
+
+        return res.status(200).json({
+            success: true,
+            message: 'Astrologer profile fetched successfully',
+            data: {
+                astrologer,
+                latestReviews,
+            },
         });
     } catch (error) {
         next(error);
@@ -64,37 +120,6 @@ const addRatingAndReview = async (req, res, next) => {
     }
 };
 
-const getAstrologerProfileWithReviews = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-
-        // Fetch the astrologer's profile
-        const astrologer = await Astrologer.findById(id).select('-password -aadhar_card_img -pan_card_img')
-        .populate('languages', 'name')
-        .populate('skills', 'name'); 
-        
-        if (!astrologer) {
-            throw new ApiError('Astrologer not found', 404);
-        }
-
-        // Fetch the latest 5 reviews for the astrologer
-        const latestReviews = await Rating.find({ astrologer_id: id })
-            .sort({ _id: -1 }) // Sort by _id in descending order (latest first)
-            .limit(5) // Limit to 5 reviews
-            .populate('user_id', 'name email profile_img'); // Include user details
-
-        return res.status(200).json({
-            success: true,
-            message: 'Astrologer profile fetched successfully',
-            data: {
-                astrologer,
-                latestReviews,
-            },
-        });
-    } catch (error) {
-        next(error);
-    }
-};
 
 const getAstrologerReviews = async (req, res, next) => {
     try {
@@ -129,4 +154,4 @@ const getAstrologerReviews = async (req, res, next) => {
     }
 };
 
-module.exports = { getActiveAstrologers, addRatingAndReview, getAstrologerProfileWithReviews, getAstrologerReviews };
+module.exports = { getActiveAstrologers, addRatingAndReview, getAstroById, getAstrologerReviews };

@@ -80,7 +80,7 @@ const deleteLanguage = async (req, res, next) => {
 // Get all languages
 const getAllLanguages = async (req, res, next) => {
   try {
-    const languages = await Language.find({});
+    const languages = await Language.find({}).sort({_id:-1});
 
     return res.status(200).json({
       success: true,
