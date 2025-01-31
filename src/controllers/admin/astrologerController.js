@@ -170,6 +170,11 @@ const updateAstrologer = async (req, res, next) => {
           new mongoose.Types.ObjectId(id)
         );
       }
+      if (updateData.account_details) {
+        updateData.account_details = JSON.parse(updateData.account_details).map((id) =>
+          new mongoose.Types.ObjectId(id)
+        );
+      }
 
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
