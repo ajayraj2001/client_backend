@@ -260,67 +260,87 @@ const deleteAstrologer = async (req, res, next) => {
 // Get All Astrologers
 const getAllAstrologers = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-    const search = req.query.search || '';
-    const statusFilter = req.query.status || { $exists: true }; // Default: no filter
-    const minRating = parseFloat(req.query.minRating) || 0;
-    const maxRating = parseFloat(req.query.maxRating) || 5;
-    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
-    const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
-    const sortBy = req.query.sortBy || 'created_at';
-    const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
-
-    // Build the search query
-    const searchQuery = {
-      $and: [
-        { status: statusFilter },
-        { rating: { $gte: minRating, $lte: maxRating } },
-        {
-          $or: [
-            { name: { $regex: search, $options: 'i' } }, // Case-insensitive search by name
-            { number: { $regex: search, $options: 'i' } }, // Case-insensitive search by number
-            { email: { $regex: search, $options: 'i' } } // Case-insensitive search by email
-          ]
-        }
-      ]
-    };
-
-    // Add date filter if provided
-    if (startDate || endDate) {
-      searchQuery.$and.push({
-        created_at: {
-          $gte: startDate || new Date(0), // If startDate is not provided, use the earliest possible date
-          $lte: endDate || new Date() // If endDate is not provided, use the current date
-        }
-      });
-    }
-
-    // Fetch astrologers with search, filters, and pagination
-    const astrologers = await Astrologer.find(searchQuery)
-      .sort({ [sortBy]: sortOrder }) // Dynamic sorting
-      .skip(skip)
-      .limit(limit)
-      .select('-password'); // Exclude password field
-
-    // Count total astrologers matching the search query
-    const total = await Astrologer.countDocuments(searchQuery);
+    const astrologers = await Astrologer.find()
+      .sort({ created_at: -1 }) // Sort by latest
+      .select('-password') // Exclude password
+      .populate('languages', 'name')
+      .populate('skills', 'name');
 
     return res.status(200).json({
       success: true,
       message: 'Astrologers fetched successfully',
-      data: {
-        astrologers,
-        total,
-        page,
-        limit
-      }
+      data: astrologers
     });
   } catch (error) {
     next(error);
   }
 };
+
+// const getAllAstrologers = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 20;
+//     const skip = (page - 1) * limit;
+//     const search = req.query.search || '';
+//     const statusFilter = req.query.status || { $exists: true }; // Default: no filter
+//     const minRating = parseFloat(req.query.minRating) || 0;
+//     const maxRating = parseFloat(req.query.maxRating) || 5;
+//     const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+//     const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+//     const sortBy = req.query.sortBy || 'created_at';
+//     const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+
+//     // Build the search query
+//     const searchQuery = {
+//       $and: [
+//         { status: statusFilter },
+//         { rating: { $gte: minRating, $lte: maxRating } },
+//         {
+//           $or: [
+//             { name: { $regex: search, $options: 'i' } }, // Case-insensitive search by name
+//             { number: { $regex: search, $options: 'i' } }, // Case-insensitive search by number
+//             { email: { $regex: search, $options: 'i' } } // Case-insensitive search by email
+//           ]
+//         }
+//       ]
+//     };
+
+//     // Add date filter if provided
+//     if (startDate || endDate) {
+//       searchQuery.$and.push({
+//         created_at: {
+//           $gte: startDate || new Date(0), // If startDate is not provided, use the earliest possible date
+//           $lte: endDate || new Date() // If endDate is not provided, use the current date
+//         }
+//       });
+//     }
+
+//     // Fetch astrologers with search, filters, and pagination
+//     const astrologers = await Astrologer.find(searchQuery)
+//       .sort({ [sortBy]: sortOrder }) // Dynamic sorting
+//       .skip(skip)
+//       .limit(limit)
+//       .select('-password') // Exclude password field
+//       .populate('languages', 'name')
+//       .populate('skills', 'name');
+
+//     // Count total astrologers matching the search query
+//     const total = await Astrologer.countDocuments(searchQuery);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Astrologers fetched successfully',
+//       data: {
+//         astrologers,
+//         total,
+//         page,
+//         limit
+//       }
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 // Get Astrologer by ID
 const getAstrologerById = async (req, res, next) => {
