@@ -20,7 +20,7 @@ const astrologerSchema = new Schema({
   password: { type: String, default: '' },
   about: { type: String, default: '' },
   experience: { type: Number, default: 0 },
-  dob: { type: String, default: '' },
+  dob: { type: Date, default: null },
   gender: { type: String, default: '' },
   address: { type: String, default: '' },
   languages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Language' }], // Multiple languages

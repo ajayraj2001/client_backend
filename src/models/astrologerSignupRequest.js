@@ -11,7 +11,7 @@ const astrologerSignupRequestSchema = new mongoose.Schema({
   languages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Language' }],
   skills: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
   state: { type: String, default: '' },
-  dob: { type: String, default: '' },
+  dob: { type: Date, default: null },
   gender: { type: String, default: '' },
   city: { type: String, default: '' },
   contact_no2: { type: String, default: '' },

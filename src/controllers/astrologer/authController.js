@@ -160,7 +160,7 @@ const signup = async (req, res, next) => {
         return next(new ApiError(err.message, 400));
       }
 
-      const { name, number, email, about, experience, address, languages, state, city, skills } = req.body;
+      const { name, number, email,dob, about, experience, address, languages, state, city, skills } = req.body;
 
       // Validate required fields
       if (!name || !number || !email) {
@@ -191,6 +191,7 @@ const signup = async (req, res, next) => {
             about,
             experience,
             address,
+            dob,
             languages: JSON.parse(languages || '[]').map((id) => new mongoose.Types.ObjectId(id)),
             skills: JSON.parse(skills || '[]').map((id) => new mongoose.Types.ObjectId(id)),
             state,
@@ -218,6 +219,7 @@ const signup = async (req, res, next) => {
         number,
         email,
         about,
+        dob,
         experience,
         address,
         languages: JSON.parse(languages || '[]').map((id) => new mongoose.Types.ObjectId(id)),
