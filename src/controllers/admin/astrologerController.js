@@ -175,7 +175,7 @@ const updateAstrologer = async (req, res, next) => {
           ...account,
           _id: account._id ? new mongoose.Types.ObjectId(account._id) : new mongoose.Types.ObjectId(),
         }));
-      }      
+      }
 
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
@@ -192,7 +192,11 @@ const updateAstrologer = async (req, res, next) => {
       }
 
       // Update the astrologer
-      const astrologer = await Astrologer.findByIdAndUpdate(id, updateData, { new: true });
+      // const astrologer = await Astrologer.findByIdAndUpdate(id, updateData, { new: true });
+
+      const astrologer = await Astrologer.findByIdAndUpdate(id, updateData, { new: true })
+        .populate('languages', 'name')
+        .populate('skills', 'name');
 
       // Delete old files if new files are uploaded
       if (req.files?.profile_img && existingAstrologer.profile_img) {
