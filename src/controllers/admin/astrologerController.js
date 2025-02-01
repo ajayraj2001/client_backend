@@ -69,7 +69,7 @@ const createAstrologer = async (req, res, next) => {
       // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
       const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
       const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
-      const parsedAccountDetails = account_details ? JSON.parse(account_details) : [];
+      const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
 
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
@@ -179,12 +179,8 @@ const updateAstrologer = async (req, res, next) => {
         );
       }
       if (updateData.account_details) {
-        updateData.account_details = JSON.parse(updateData.account_details).map((account) => ({
-          ...account,
-          _id: account._id ? new mongoose.Types.ObjectId(account._id) : new mongoose.Types.ObjectId(),
-        }));
+        updateData.account_details = JSON.parse(updateData.account_details);
       }
-
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
@@ -511,13 +507,14 @@ const approveOrRejectRequest = async (req, res, next) => {
         throw new ApiError('Astrologer not found', 404);
       }
 
-      astrologer.account_details.push({
+      // Assign the new bank account details as a single object
+      astrologer.account_details = {
         account_type: bankAccountRequest.account_type,
         account_holder_name: bankAccountRequest.account_holder_name,
         account_no: bankAccountRequest.account_no,
         bank: bankAccountRequest.bank,
         ifsc: bankAccountRequest.ifsc,
-      });
+      };
 
       await astrologer.save();
     }

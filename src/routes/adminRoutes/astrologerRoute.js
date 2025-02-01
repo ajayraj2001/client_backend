@@ -23,6 +23,7 @@ router.get('/', authenticateAdmin, getAllAstrologers);
 router.get('/:id', authenticateAdmin, getAstrologerById);
 router.put('/:id/status', authenticateAdmin, updateAstrologerStatus);
 router.get('/bank_request', authenticateAdmin, getAllRequests);
+router.put('/bank_request_status', authenticateAdmin, approveOrRejectRequest);
 router.post('/getSignupRequests', authenticateAdmin, getSignupRequests);
 router.post('/getSignupRequestDetails/:requestId', authenticateAdmin, getSignupRequestDetails);
 router.post('/approveAstrologerSignup', authenticateAdmin, approveAstrologerSignup);

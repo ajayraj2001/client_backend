@@ -9,7 +9,7 @@ const accountDetailsSchema = new Schema({
   account_holder_name: { type: String, default: '' },
   account_no: { type: String, default: '' },
   bank: { type: String, default: '' },
-  ifsc: { type: String, default: '' }
+  ifsc: { type: String, default: '' },
 });
 
 const astrologerSchema = new Schema({
@@ -29,7 +29,7 @@ const astrologerSchema = new Schema({
   city: { type: String, default: '' },
 
   // Account Details (Array for multiple accounts)
-  account_details: [accountDetailsSchema],
+  account_details: accountDetailsSchema,
 
   // Wallet and Pricing
   wallet: { type: Number, default: 0 },
@@ -86,5 +86,6 @@ const astrologerSchema = new Schema({
 
 astrologerSchema.index({ number: 1 });  // Index on `email` for fast lookups
 astrologerSchema.index({ email: 1 });  // Index on `email` for fast lookups
+
 
 module.exports = mongoose.model('Astrologer', astrologerSchema);

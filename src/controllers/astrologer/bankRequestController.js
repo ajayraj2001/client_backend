@@ -68,55 +68,8 @@ const cancelBankAccountRequest = async (req, res, next) => {
     }
 };
 
-// Admin approves or rejects a bank account request
-const approveOrRejectBankAccountRequest = async (req, res, next) => {
-    try {
-        const { request_id, status } = req.body;
-
-        if (!request_id || !status) {
-            throw new ApiError('Request ID and status are required', 400);
-        }
-
-        // Find the bank account request
-        const bankAccountRequest = await BankAccountRequest.findById(request_id);
-        if (!bankAccountRequest) {
-            throw new ApiError('Bank account request not found', 404);
-        }
-
-        // Update the status of the request
-        bankAccountRequest.status = status;
-        await bankAccountRequest.save();
-
-        // If approved, add the bank account to the astrologer's account_details
-        if (status === 'Approved') {
-            const astrologer = await Astrologer.findById(bankAccountRequest.astrologer_id);
-            if (!astrologer) {
-                throw new ApiError('Astrologer not found', 404);
-            }
-
-            astrologer.account_details.push({
-                account_type: bankAccountRequest.account_type,
-                account_holder_name: bankAccountRequest.account_holder_name,
-                account_no: bankAccountRequest.account_no,
-                bank: bankAccountRequest.bank,
-                ifsc: bankAccountRequest.ifsc,
-            });
-
-            await astrologer.save();
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: `Bank account request ${status.toLowerCase()} successfully`,
-            bankAccountRequest,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
 
 module.exports = {
     requestAddBankAccount,
     cancelBankAccountRequest,
-    approveOrRejectBankAccountRequest,
 };
