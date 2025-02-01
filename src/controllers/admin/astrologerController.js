@@ -69,6 +69,7 @@ const createAstrologer = async (req, res, next) => {
       // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
       const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
       const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
+      const parsedAccountDetails = account_details ? JSON.parse(account_details).map((id) => new mongoose.Types.ObjectId(id)) : [];
 
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
@@ -95,7 +96,7 @@ const createAstrologer = async (req, res, next) => {
         skills: parsedSkills,
         state,
         city,
-        account_details,
+        account_details:parsedAccountDetails,
         wallet,
         commission,
         per_min_chat,
@@ -141,6 +142,8 @@ const createAstrologer = async (req, res, next) => {
 const updateAstrologer = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
   try {
+
+    console.log('budydy one ')
 
     // Handle multiple file uploads
     uploadAstrologerFiles(req, res, async (err) => {
