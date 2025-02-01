@@ -96,7 +96,7 @@ const createAstrologer = async (req, res, next) => {
         skills: parsedSkills,
         state,
         city,
-        account_details:parsedAccountDetails,
+        account_details: parsedAccountDetails,
         wallet,
         commission,
         per_min_chat,
@@ -118,8 +118,13 @@ const createAstrologer = async (req, res, next) => {
 
       await astrologer.save();
 
+      // Populate languages and skills before sending response
+      const populatedAstrologer = await Astrologer.findById(astrologer._id)
+        .populate('languages', 'name')
+        .populate('skills', 'name');
+
       // Exclude password from the response
-      const astrologerData = astrologer.toObject();
+      const astrologerData = populatedAstrologer.toObject();
       delete astrologerData.password;
 
       return res.status(201).json({
