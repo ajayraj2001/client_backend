@@ -4,7 +4,7 @@ const { User } = require('../../models');
 const getUsers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
         const statusFilter = req.query.status || { $exists: true }; // Default: no filter
