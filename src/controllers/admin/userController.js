@@ -60,4 +60,30 @@ const getUsers = async (req, res, next) => {
     }
 };
 
-module.exports = { getUsers }
+const updateUserStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['Active', 'Inactive'].includes(status)) {
+      throw new ApiError('Invalid status', 400);
+    }
+
+    // Find and update the astrologer status
+    const user = await User.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'User status updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getUsers,updateUserStatus }

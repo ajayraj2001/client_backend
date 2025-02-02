@@ -3,10 +3,11 @@ const router = express.Router();
 const { authenticateAdmin } = require("../../middlewares");
 
 const {
-    getUsers
+    getUsers,
+    updateUserStatus
 } = require("../../controllers/admin/userController");
 
 router.get('/', authenticateAdmin, getUsers);
-// router.put('/:id', authenticateAdmin, updateAstrologer);
+router.put('/:id/status', authenticateAdmin, updateUserStatus);
 
 module.exports = router;
