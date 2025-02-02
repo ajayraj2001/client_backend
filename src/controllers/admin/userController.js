@@ -36,6 +36,8 @@ const getUsers = async (req, res, next) => {
             });
         }
 
+        console.log('seaech0',searchQuery)
+
         // Fetch users with search, date filter, and pagination
         const users = await User.find(searchQuery)
             .sort({ [sortBy]: sortOrder }) // Dynamic sorting
