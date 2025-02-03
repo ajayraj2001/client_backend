@@ -33,8 +33,8 @@ const getUsers = async (req, res, next) => {
         if (startDate || endDate) {
             searchQuery.$and.push({
                 created_at: {
-                    $gte: startDate || new Date(0), // If startDate is not provided, use the earliest possible date
-                    $lte: endDate || new Date() // If endDate is not provided, use the current date
+                    $gte: startDate || new Date(0), 
+                    $lte: endDate ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)) : new Date()
                 }
             });
         }
