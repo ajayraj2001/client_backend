@@ -26,6 +26,9 @@ const getUsers = async (req, res, next) => {
             ]
         };
 
+        console.log('start date',startDate)
+        console.log('end date',endDate)
+
         // Add date filter if provided
         if (startDate || endDate) {
             searchQuery.$and.push({
