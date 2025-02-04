@@ -177,14 +177,20 @@ const updateAstrologer = async (req, res, next) => {
       const { id } = req.params;
       const { email, number } = req.body
       const updateData = req.body;
-      console.log('updaye', updateData)
 
-      const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+      const existingAstrologer = await Astrologer.findOne({
+        $or: [{ email }, { number }],
+        _id: { $ne: id }, // Exclude specific ID if provided
+      });
+      
       if (existingAstrologer) {
-        console.log('yes meial esxiots')
-        throw new ApiError('Astrologer with this email or number already exists', 400);
+        console.log('Email or number already exists');
+        return res.status(400).json({
+          success: false,
+          message: 'Astrologer with this email or number already exists',
+        });
       }
-
+      
 
       // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
