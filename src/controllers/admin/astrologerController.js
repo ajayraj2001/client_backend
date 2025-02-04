@@ -23,11 +23,10 @@ try {
 console.log('Received astrologer creation request');
 
 // Check if astrologer exists before handling file uploads
-const { email, number } = req.body;
-console.log('email',email,  'num',number)
+// const { email, number } = req.body;
+console.log('email',email)
 const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
 if (existingAstrologer) {
-  console.log('does it exist ')
 throw new ApiError('Astrologer with this email or number already exists', 400);
 }
 
@@ -41,6 +40,8 @@ throw new ApiError(err.message, 400);
 try {
   const {
     name,
+    number,
+    email,
     password,
     status,
     about,
@@ -68,6 +69,14 @@ try {
     gst,
     call_type,
   } = req.body;
+
+
+  console.log('email',email)
+const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+if (existingAstrologer) {
+  console.log('yes meial esxiots')
+throw new ApiError('Astrologer with this email or number already exists', 400);
+}
 
 const hashedPassword = await bcrypt.hash(password, 10);
 
