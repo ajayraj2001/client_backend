@@ -10,7 +10,7 @@ const OTPSchema = new Schema({
   otp: {
     type: String,
     required: true, // Ensure OTP is always provided
-    match: /^[0-9]{6}$/, // Validate it’s exactly 6 digits
+    match: /^[0-9]{4}$/, // Validate it’s exactly 6 digits
     default: "", // Default value
   },
   createdAt: {
