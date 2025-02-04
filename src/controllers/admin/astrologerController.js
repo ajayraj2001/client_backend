@@ -17,147 +17,147 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
 );
 
 const createAstrologer = async (req, res, next) => {
-let profileImgPath, aadharImgPath, panImgPath;
+  let profileImgPath, aadharImgPath, panImgPath;
 
-try {
-console.log('Received astrologer creation request');
+  try {
+    console.log('Received astrologer creation request');
 
-// Handle file uploads
-uploadAstrologerFiles(req, res, async (err) => {
-if (err) {
-console.error('Multer error by AJay raj:', err);
-// throw new ApiError(err.message, 400);
-return res.status(400).json({
-  success: false,
-  message:  'File upload error',
-});
-console.log('kya hua re')
-}
-
-
-console.log('chutiuya is ere')
-try {
-  const {
-    name,
-    number,
-    email,
-    password,
-    status,
-    about,
-    dob,
-    gender,
-    experience,
-    address,
-    languages,
-    skills,
-    state,
-    city,
-    account_details,
-    wallet,
-    commission,
-    per_min_chat,
-    per_min_voice_call,
-    per_min_video_call,
-    is_chat,
-    is_voice_call,
-    is_video_call,
-    contact_no2,
-    pincode,
-    pan_card,
-    aadhar_card_no,
-    gst,
-    call_type,
-  } = req.body;
+    // Handle file uploads
+    uploadAstrologerFiles(req, res, async (err) => {
+      if (err) {
+        console.error('Multer error by AJay raj:', err);
+        // throw new ApiError(err.message, 400);
+        return res.status(400).json({
+          success: false,
+          message: 'File upload error',
+        });
+        console.log('kya hua re')
+      }
 
 
-  console.log('email',email)
-const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
-if (existingAstrologer) {
-  console.log('yes meial esxiots')
-throw new ApiError('Astrologer with this email or number already exists', 400);
-}
+      console.log('chutiuya is ere')
+      try {
+        const {
+          name,
+          number,
+          email,
+          password,
+          status,
+          about,
+          dob,
+          gender,
+          experience,
+          address,
+          languages,
+          skills,
+          state,
+          city,
+          account_details,
+          wallet,
+          commission,
+          per_min_chat,
+          per_min_voice_call,
+          per_min_video_call,
+          is_chat,
+          is_voice_call,
+          is_video_call,
+          contact_no2,
+          pincode,
+          pan_card,
+          aadhar_card_no,
+          gst,
+          call_type,
+        } = req.body;
 
-const hashedPassword = await bcrypt.hash(password, 10);
 
-// Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
-const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
-const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
-const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
+        console.log('email', email)
+        const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+        if (existingAstrologer) {
+          console.log('yes meial esxiots')
+          throw new ApiError('Astrologer with this email or number already exists', 400);
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
+        const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
+        const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
+        const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
 
 
-// Store file paths
-if (req.files?.profile_img) {
-profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
-}
-if (req.files?.aadhar_card_img) {
-aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
-}
-if (req.files?.pan_card_img) {
-panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
-}
+        // Store file paths
+        if (req.files?.profile_img) {
+          profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
+        }
+        if (req.files?.aadhar_card_img) {
+          aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
+        }
+        if (req.files?.pan_card_img) {
+          panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
+        }
 
-  // Create new astrologer
-  const astrologer = new Astrologer({
-    name,
-    number,
-    email,
-    dob,
-    gender,
-    password: hashedPassword,
-    status,
-    about,
-    experience,
-    address,
-    languages: parsedLanguages,
-    skills: parsedSkills,
-    state,
-    city,
-    account_details: parsedAccountDetails,
-    wallet,
-    commission,
-    per_min_chat,
-    per_min_voice_call,
-    per_min_video_call,
-    is_chat,
-    is_voice_call,
-    is_video_call,
-    profile_img: profileImgPath || '',
-    aadhar_card_img: aadharImgPath || '',
-    pan_card_img: panImgPath || '',
-    contact_no2,
-    pincode,
-    pan_card,
-    aadhar_card_no,
-    gst,
-    call_type,
-  });
+        // Create new astrologer
+        const astrologer = new Astrologer({
+          name,
+          number,
+          email,
+          dob,
+          gender,
+          password: hashedPassword,
+          status,
+          about,
+          experience,
+          address,
+          languages: parsedLanguages,
+          skills: parsedSkills,
+          state,
+          city,
+          account_details: parsedAccountDetails,
+          wallet,
+          commission,
+          per_min_chat,
+          per_min_voice_call,
+          per_min_video_call,
+          is_chat,
+          is_voice_call,
+          is_video_call,
+          profile_img: profileImgPath || '',
+          aadhar_card_img: aadharImgPath || '',
+          pan_card_img: panImgPath || '',
+          contact_no2,
+          pincode,
+          pan_card,
+          aadhar_card_no,
+          gst,
+          call_type,
+        });
 
-await astrologer.save();
+        await astrologer.save();
 
-const populatedAstrologer = await Astrologer.findById(astrologer._id)
-.populate('languages', 'name')
-.populate('skills', 'name')
-.lean();
+        const populatedAstrologer = await Astrologer.findById(astrologer._id)
+          .populate('languages', 'name')
+          .populate('skills', 'name')
+          .lean();
 
-delete populatedAstrologer.password;
-res.status(201).json({ success: true, message: 'Astrologer created', data: populatedAstrologer });
+        delete populatedAstrologer.password;
+        res.status(201).json({ success: true, message: 'Astrologer created', data: populatedAstrologer });
 
-} catch (error) {
-console.error('Error saving astrologer:', error);
+      } catch (error) {
+        console.error('Error saving astrologer:', error);
 
-// Delete uploaded files in case of error
-if (profileImgPath) await deleteFile(profileImgPath);
-if (aadharImgPath) await deleteFile(aadharImgPath);
-if (panImgPath) await deleteFile(panImgPath);
+        // Delete uploaded files in case of error
+        if (profileImgPath) await deleteFile(profileImgPath);
+        if (aadharImgPath) await deleteFile(aadharImgPath);
+        if (panImgPath) await deleteFile(panImgPath);
 
-return next(new ApiError('Error saving astrologer', 500));
-}
-});
+        return next(new ApiError('Error saving astrologer', 500));
+      }
+    });
 
-} catch (error) {
-console.error('Unexpected error:', error);
-next(new ApiError('Unexpected error', 500));
-}
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    next(new ApiError('Unexpected error', 500));
+  }
 };
 
 // Update Astrologer
@@ -175,14 +175,16 @@ const updateAstrologer = async (req, res, next) => {
       }
 
       const { id } = req.params;
+      const { email, number } = req.body
       const updateData = req.body;
       console.log('updaye', updateData)
 
-      // Find the existing astrologer
-      const existingAstrologer = await Astrologer.findById(id);
-      if (!existingAstrologer) {
-        throw new ApiError('Astrologer not found', 404);
+      const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+      if (existingAstrologer) {
+        console.log('yes meial esxiots')
+        throw new ApiError('Astrologer with this email or number already exists', 400);
       }
+
 
       // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
