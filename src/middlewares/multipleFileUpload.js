@@ -1,106 +1,49 @@
-// const multer = require('multer');
-// const fs = require('fs');
-// const { ApiError } = require("../errorHandler");
-
-
-// function getMultipleFilesUploader(fieldNames, publicDirName = '', mimetypes) {
-//   console.log('finallay kin the code')
-//   if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-// console.log('makahan',mimetypes)
-//   const storage = multer.diskStorage({
-//     destination: function (req, file, cb) {
-//       if (!fs.existsSync(`public/${publicDirName}`)) {
-//         fs.mkdirSync(`public/${publicDirName}`, { recursive: true });
-//       }
-//       cb(null, `public/${publicDirName}`);
-//     },
-//     filename: function (req, file, cb) {
-//       const { originalname } = file;
-//       let fileExt = '.jpeg';
-//       const extI = originalname.lastIndexOf('.');
-//       if (extI !== -1) {
-//         fileExt = originalname.substring(extI).toLowerCase();
-//       }
-//       const fileName = `${Date.now()}${fileExt}`;
-//       cb(null, fileName);
-//     },
-//   });
-
-//   const fieldsArray = fieldNames.map(name => ({ name }));
-
-//   const upload = multer({
-//     storage: storage,
-//     fileFilter: (req, file, cb) => {
-//       mimetypes.includes(file.mimetype) ? cb(null, true) : cb(new ApiError('Invalid image type', 400));
-//     },
-//     limits: {
-//       fileSize: 10 * 1024 * 1024 // 5 MB size limit
-//     }
-//   }).fields(fieldsArray);
-
-//   return upload;
-// }
-
-// module.exports = {getMultipleFilesUploader};
-
-
 const multer = require('multer');
-const fs = require('fs');
+const fs = require('fs').promises;
+const path = require('path');
 const { ApiError } = require('../errorHandler');
 
-function getMultipleFilesUploader(fieldConfigs, mimetypes) {
-  console.log('now in the get multi file uplozder code',mimetypes)
-  if (!mimetypes) mimetypes = ['image/png', 'image/jpg', 'image/webp', 'image/jfif', 'application/octet-stream'];
-console.log('her my son')
-  // Create a storage engine that dynamically sets the destination folder
-  const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      console.log("Destination function called for:", file.fieldname);
-      // Get the destination folder for the current file field
-      const fieldConfig = fieldConfigs.find((config) => config.name === file.fieldname);
-      const destinationFolder = fieldConfig ? `public/${fieldConfig.folder}` : 'public/uploads';
+const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
-      // Create the folder if it doesn't exist
-      if (!fs.existsSync(destinationFolder)) {
-        console.log("Creating folder:", destinationFolder);
-        fs.mkdirSync(destinationFolder, { recursive: true });
+async function ensureDirectoryExists(directory) {
+  try {
+    await fs.mkdir(directory, { recursive: true });
+  } catch (err) {
+    console.error('Error creating directory:', err);
+    throw new ApiError('Server error while creating directory', 500);
+  }
+}
+
+function getMultipleFilesUploader(fieldConfigs) {
+  const storage = multer.diskStorage({
+    destination: async function (req, file, cb) {
+      try {
+        const fieldConfig = fieldConfigs.find(config => config.name === file.fieldname);
+        const uploadDir = fieldConfig ? `public/${fieldConfig.folder}` : 'public/uploads';
+
+        await ensureDirectoryExists(uploadDir);
+        cb(null, uploadDir);
+      } catch (err) {
+        cb(err);
       }
-      console.log("Destination folder:", destinationFolder);
-      cb(null, destinationFolder);
     },
     filename: function (req, file, cb) {
-      console.log("Filename function called for:", file.fieldname);
-      const { originalname } = file;
-      let fileExt = '.jpeg';
-      const extI = originalname.lastIndexOf('.');
-      if (extI !== -1) {
-        fileExt = originalname.substring(extI).toLowerCase();
-      }
+      const fileExt = path.extname(file.originalname).toLowerCase() || '.jpg';
       const fileName = `${Date.now()}${fileExt}`;
-      console.log("Generated filename:", fileName);
       cb(null, fileName);
     },
   });
 
-  
-  const fieldsArray = fieldConfigs.map(name => ({ name }));
-
-  console.log("Now in getMultipleFilesUploader");
-  // Create the Multer instance
-  const upload = multer({
-    storage: storage,
+  return multer({
+    storage,
     fileFilter: (req, file, cb) => {
-      console.log("Filtering file:", file.originalname, file.mimetype);
-      mimetypes.includes(file.mimetype) ? cb(null, true) : cb(new ApiError('Invalid image type', 400));
+      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+        return cb(new ApiError('Invalid file type', 400));
+      }
+      cb(null, true);
     },
-    limits: {
-      fileSize: 10 * 1024 * 1024, // 10 MB size limit
-    },
-  }).fields(fieldsArray); // Use .fields() for multiple files
-
-  console.log("getMultipleFilesUploader function is running");
-
-  return upload;
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+  }).fields(fieldConfigs);
 }
 
 module.exports = { getMultipleFilesUploader };

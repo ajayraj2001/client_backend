@@ -1,7 +1,7 @@
-const { ApiError } = require('../../errorHandler');
-const { Astrologer, BankAccountRequest, AstrologerSignupRequest } = require('../../models');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const { ApiError } = require('../../errorHandler');
+const { Astrologer, BankAccountRequest, AstrologerSignupRequest } = require('../../models');
 
 const { sendLoginCredentials, notifyAstrologer } = require('../../utils/sendEmail')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
@@ -16,150 +16,286 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
   ]
 );
 
+// const createAstrologer = async (req, res, next) => {
+//   let profileImgPath, aadharImgPath, panImgPath;
+// console.log("what this bruh ")
+//   try {
+//     // Handle multiple file uploads
+//     uploadAstrologerFiles(req, res, async (err) => {
+//       if (err) {
+//         console.error('Multer Error:', err); // Log Multer errors
+//         return next(new ApiError(err.message, 400));
+//       }
+
+//       console.log('nice copying of me')
+//       const {
+//         name,
+//         number,
+//         email,
+//         password,
+//         status,
+//         about,
+//         dob,
+//         gender,
+//         experience,
+//         address,
+//         languages,
+//         skills,
+//         state,
+//         city,
+//         account_details,
+//         wallet,
+//         commission,
+//         per_min_chat,
+//         per_min_voice_call,
+//         per_min_video_call,
+//         is_chat,
+//         is_voice_call,
+//         is_video_call,
+//         contact_no2,
+//         pincode,
+//         pan_card,
+//         aadhar_card_no,
+//         gst,
+//         call_type,
+//       } = req.body;
+
+//       // Check if astrologer already exists
+//       const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+//       if (existingAstrologer) {
+//         throw new ApiError('Astrologer with this email or number already exists', 400);
+//       }
+
+//       console.log('hey buddy')
+//       // Hash the password
+//       const hashedPassword = await bcrypt.hash(password, 10);
+      
+//       console.log('hey buddy 2')
+//       // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
+//       const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
+//       const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
+//       const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
+
+
+//       console.log('heybuddy3 ')
+//       // Save file paths if files are uploaded
+//       if (req.files?.profile_img) {
+//         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
+//       }
+//       if (req.files?.aadhar_card_img) {
+//         aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
+//       }
+//       if (req.files?.pan_card_img) {
+//         panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
+//       }
+
+//       // Create new astrologer
+//       const astrologer = new Astrologer({
+//         name,
+//         number,
+//         email,
+//         dob,
+//         gender,
+//         password: hashedPassword,
+//         status,
+//         about,
+//         experience,
+//         address,
+//         languages: parsedLanguages,
+//         skills: parsedSkills,
+//         state,
+//         city,
+//         account_details: parsedAccountDetails,
+//         wallet,
+//         commission,
+//         per_min_chat,
+//         per_min_voice_call,
+//         per_min_video_call,
+//         is_chat,
+//         is_voice_call,
+//         is_video_call,
+//         profile_img: profileImgPath || '',
+//         aadhar_card_img: aadharImgPath || '',
+//         pan_card_img: panImgPath || '',
+//         contact_no2,
+//         pincode,
+//         pan_card,
+//         aadhar_card_no,
+//         gst,
+//         call_type,
+//       });
+
+//       console.log('khan jsr oin hte way')
+
+//       await astrologer.save();
+
+//       console.log('buddy chutiya hai')
+//       // Populate languages and skills before sending response
+//       const populatedAstrologer = await Astrologer.findById(astrologer._id)
+//       .populate('languages', 'name')
+//       .populate('skills', 'name');
+      
+//       console.log('buddy chutiya hai tu hi hai kya')
+//       // Exclude password from the response
+//       const astrologerData = populatedAstrologer.toObject();
+//       delete astrologerData.password;
+
+
+//       console.log('whathappens here')
+//       return res.status(201).json({
+//         success: true,
+//         message: 'Astrologer created successfully',
+//         data: astrologerData,
+//       });
+//     });
+//   } catch (error) {
+//     console.log('error', error)
+//     // Delete uploaded files if an error occurs
+//     if (profileImgPath) await deleteFile(profileImgPath);
+//     if (aadharImgPath) await deleteFile(aadharImgPath);
+//     if (panImgPath) await deleteFile(panImgPath);
+
+//     next(error);
+//   }
+// };
+
 const createAstrologer = async (req, res, next) => {
-  let profileImgPath, aadharImgPath, panImgPath;
-console.log("what this bruh ")
-  try {
-    // Handle multiple file uploads
-    console.log("Before calling uploadAstrologerFiles");
-    uploadAstrologerFiles(req, res, async (err) => {
-      console.log("Inside Multer upload callback"); 
-      if (err) {
-        console.error('Multer Error:', err); // Log Multer errors
-        return next(new ApiError(err.message, 400));
-      }
+let profileImgPath, aadharImgPath, panImgPath;
 
-      console.log('nice copying of me')
-      const {
-        name,
-        number,
-        email,
-        password,
-        status,
-        about,
-        dob,
-        gender,
-        experience,
-        address,
-        languages,
-        skills,
-        state,
-        city,
-        account_details,
-        wallet,
-        commission,
-        per_min_chat,
-        per_min_voice_call,
-        per_min_video_call,
-        is_chat,
-        is_voice_call,
-        is_video_call,
-        contact_no2,
-        pincode,
-        pan_card,
-        aadhar_card_no,
-        gst,
-        call_type,
-      } = req.body;
+try {
+console.log('Received astrologer creation request');
 
-      // Check if astrologer already exists
-      const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
-      if (existingAstrologer) {
-        throw new ApiError('Astrologer with this email or number already exists', 400);
-      }
+// Check if astrologer exists before handling file uploads
+const { email, number } = req.body;
+const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
+if (existingAstrologer) {
+return next(new ApiError('Astrologer with this email or number already exists', 400));
+}
 
-      console.log('hey buddy')
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      console.log('hey buddy 2')
-      // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
-      const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
-      const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
-      const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
+// Handle file uploads
+uploadAstrologerFiles(req, res, async (err) => {
+if (err) {
+console.error('Multer error:', err);
+return next(new ApiError(err.message, 400));
+}
+
+try {
+  const {
+    name,
+    number,
+    email,
+    password,
+    status,
+    about,
+    dob,
+    gender,
+    experience,
+    address,
+    languages,
+    skills,
+    state,
+    city,
+    account_details,
+    wallet,
+    commission,
+    per_min_chat,
+    per_min_voice_call,
+    per_min_video_call,
+    is_chat,
+    is_voice_call,
+    is_video_call,
+    contact_no2,
+    pincode,
+    pan_card,
+    aadhar_card_no,
+    gst,
+    call_type,
+  } = req.body;
+
+const hashedPassword = await bcrypt.hash(password, 10);
+
+// Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
+const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
+const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
+const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
 
 
-      console.log('heybuddy3 ')
-      // Save file paths if files are uploaded
-      if (req.files?.profile_img) {
-        profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
-      }
-      if (req.files?.aadhar_card_img) {
-        aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
-      }
-      if (req.files?.pan_card_img) {
-        panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
-      }
+// Store file paths
+if (req.files?.profile_img) {
+profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
+}
+if (req.files?.aadhar_card_img) {
+aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
+}
+if (req.files?.pan_card_img) {
+panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
+}
 
-      // Create new astrologer
-      const astrologer = new Astrologer({
-        name,
-        number,
-        email,
-        dob,
-        gender,
-        password: hashedPassword,
-        status,
-        about,
-        experience,
-        address,
-        languages: parsedLanguages,
-        skills: parsedSkills,
-        state,
-        city,
-        account_details: parsedAccountDetails,
-        wallet,
-        commission,
-        per_min_chat,
-        per_min_voice_call,
-        per_min_video_call,
-        is_chat,
-        is_voice_call,
-        is_video_call,
-        profile_img: profileImgPath || '',
-        aadhar_card_img: aadharImgPath || '',
-        pan_card_img: panImgPath || '',
-        contact_no2,
-        pincode,
-        pan_card,
-        aadhar_card_no,
-        gst,
-        call_type,
-      });
+  // Create new astrologer
+  const astrologer = new Astrologer({
+    name,
+    number,
+    email,
+    dob,
+    gender,
+    password: hashedPassword,
+    status,
+    about,
+    experience,
+    address,
+    languages: parsedLanguages,
+    skills: parsedSkills,
+    state,
+    city,
+    account_details: parsedAccountDetails,
+    wallet,
+    commission,
+    per_min_chat,
+    per_min_voice_call,
+    per_min_video_call,
+    is_chat,
+    is_voice_call,
+    is_video_call,
+    profile_img: profileImgPath || '',
+    aadhar_card_img: aadharImgPath || '',
+    pan_card_img: panImgPath || '',
+    contact_no2,
+    pincode,
+    pan_card,
+    aadhar_card_no,
+    gst,
+    call_type,
+  });
 
-      console.log('khan jsr oin hte way')
+await astrologer.save();
 
-      await astrologer.save();
+const populatedAstrologer = await Astrologer.findById(astrologer._id)
+.populate('languages', 'name')
+.populate('skills', 'name')
+.lean();
 
-      console.log('buddy chutiya hai')
-      // Populate languages and skills before sending response
-      const populatedAstrologer = await Astrologer.findById(astrologer._id)
-      .populate('languages', 'name')
-      .populate('skills', 'name');
-      
-      console.log('buddy chutiya hai tu hi hai kya')
-      // Exclude password from the response
-      const astrologerData = populatedAstrologer.toObject();
-      delete astrologerData.password;
+delete populatedAstrologer.password;
+res.status(201).json({ success: true, message: 'Astrologer created', data: populatedAstrologer });
 
+} catch (error) {
+console.error('Error saving astrologer:', error);
 
-      console.log('whathappens here')
-      return res.status(201).json({
-        success: true,
-        message: 'Astrologer created successfully',
-        data: astrologerData,
-      });
-    });
-  } catch (error) {
-    console.log('error', error)
-    // Delete uploaded files if an error occurs
-    if (profileImgPath) await deleteFile(profileImgPath);
-    if (aadharImgPath) await deleteFile(aadharImgPath);
-    if (panImgPath) await deleteFile(panImgPath);
+// Delete uploaded files in case of error
+if (profileImgPath) await deleteFile(profileImgPath);
+if (aadharImgPath) await deleteFile(aadharImgPath);
+if (panImgPath) await deleteFile(panImgPath);
 
-    next(error);
-  }
+return next(new ApiError('Error saving astrologer', 500));
+}
+});
+
+} catch (error) {
+console.error('Unexpected error:', error);
+next(new ApiError('Unexpected error', 500));
+}
 };
+
+module.exports = { createAstrologer };
 
 // Update Astrologer
 const updateAstrologer = async (req, res, next) => {
