@@ -18,7 +18,7 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
 
 const createAstrologer = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
-
+console.log("what this bruh ")
   try {
     // Handle multiple file uploads
     uploadAstrologerFiles(req, res, async (err) => {
@@ -64,14 +64,18 @@ const createAstrologer = async (req, res, next) => {
         throw new ApiError('Astrologer with this email or number already exists', 400);
       }
 
+      console.log('hey buddy')
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
-
+      
+      console.log('hey buddy 2')
       // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
       const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
       const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
       const parsedAccountDetails = account_details ? JSON.parse(account_details) : {};
 
+
+      console.log('heybuddy3 ')
       // Save file paths if files are uploaded
       if (req.files?.profile_img) {
         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
@@ -118,17 +122,23 @@ const createAstrologer = async (req, res, next) => {
         call_type,
       });
 
+      console.log('khan jsr oin hte way')
+
       await astrologer.save();
 
+      console.log('buddy chutiya hai')
       // Populate languages and skills before sending response
       const populatedAstrologer = await Astrologer.findById(astrologer._id)
-        .populate('languages', 'name')
-        .populate('skills', 'name');
-
+      .populate('languages', 'name')
+      .populate('skills', 'name');
+      
+      console.log('buddy chutiya hai tu hi hai kya')
       // Exclude password from the response
       const astrologerData = populatedAstrologer.toObject();
       delete astrologerData.password;
 
+
+      console.log('whathappens here')
       return res.status(201).json({
         success: true,
         message: 'Astrologer created successfully',

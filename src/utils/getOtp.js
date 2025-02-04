@@ -1,6 +1,5 @@
 const getOtp = () => {
-  const max = 999999;
-  return String((Math.random() * max) | 0).padStart(6, '0');
+  return String(Math.floor(1000 + Math.random() * 9000));
 };
 
 module.exports = getOtp;
