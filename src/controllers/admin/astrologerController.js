@@ -25,14 +25,17 @@ console.log('Received astrologer creation request');
 // Handle file uploads
 uploadAstrologerFiles(req, res, async (err) => {
 if (err) {
-console.error('Multer error:', err);
+console.error('Multer error by AJay raj:', err);
 // throw new ApiError(err.message, 400);
-return res.status(err.statusCode || 400).json({
+return res.status(400).json({
   success: false,
-  message: err.message || 'File upload error',
+  message:  'File upload error',
 });
+console.log('kya hua re')
 }
 
+
+console.log('chutiuya is ere')
 try {
   const {
     name,
