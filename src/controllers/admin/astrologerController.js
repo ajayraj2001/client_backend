@@ -21,7 +21,9 @@ const createAstrologer = async (req, res, next) => {
 console.log("what this bruh ")
   try {
     // Handle multiple file uploads
+    console.log("Before calling uploadAstrologerFiles");
     uploadAstrologerFiles(req, res, async (err) => {
+      console.log("Inside Multer upload callback"); 
       if (err) {
         console.error('Multer Error:', err); // Log Multer errors
         return next(new ApiError(err.message, 400));

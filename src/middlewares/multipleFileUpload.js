@@ -32,11 +32,12 @@ console.log('her my son')
     },
   });
 
-  console.log('her myh osn2 2222222222222')
+  console.log("Now in getMultipleFilesUploader");
   // Create the Multer instance
   const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
+      console.log("Filtering file:", file.originalname, file.mimetype);
       mimetypes.includes(file.mimetype) ? cb(null, true) : cb(new ApiError('Invalid image type', 400));
     },
     limits: {
