@@ -49,6 +49,7 @@ const fs = require('fs');
 const { ApiError } = require('../errorHandler');
 
 function getMultipleFilesUploader(fieldConfigs, mimetypes) {
+  console.log('now in the get multi file uplozder code')
   if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/jfif', 'application/octet-stream'];
 console.log('her my son')
   // Create a storage engine that dynamically sets the destination folder
