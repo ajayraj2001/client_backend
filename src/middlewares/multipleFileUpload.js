@@ -4,8 +4,9 @@ const { ApiError } = require("../errorHandler");
 
 
 function getMultipleFilesUploader(fieldNames, publicDirName = '', mimetypes) {
+  console.log('finallay kin the code')
   if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-console.log('makahan')
+console.log('makahan',mimetypes)
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
       if (!fs.existsSync(`public/${publicDirName}`)) {
