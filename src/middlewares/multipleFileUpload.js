@@ -50,7 +50,7 @@ const { ApiError } = require('../errorHandler');
 
 function getMultipleFilesUploader(fieldConfigs, mimetypes) {
   if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/jfif', 'application/octet-stream'];
-
+console.log('her my son')
   // Create a storage engine that dynamically sets the destination folder
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -77,6 +77,7 @@ function getMultipleFilesUploader(fieldConfigs, mimetypes) {
     },
   });
 
+  console.log('her myh osn2 2222222222222')
   // Create the Multer instance
   const upload = multer({
     storage: storage,
