@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { ApiError } = require('../errorHandler');
 
-const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const ALLOWED_MIME_TYPES = ['image/png', 'image/jpg', 'image/webp'];
 
 async function ensureDirectoryExists(directory) {
   try {
