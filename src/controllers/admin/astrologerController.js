@@ -26,7 +26,11 @@ console.log('Received astrologer creation request');
 uploadAstrologerFiles(req, res, async (err) => {
 if (err) {
 console.error('Multer error:', err);
-throw new ApiError(err.message, 400);
+// throw new ApiError(err.message, 400);
+return res.status(err.statusCode || 400).json({
+  success: false,
+  message: err.message || 'File upload error',
+});
 }
 
 try {
