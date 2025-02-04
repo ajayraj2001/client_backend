@@ -22,14 +22,6 @@ let profileImgPath, aadharImgPath, panImgPath;
 try {
 console.log('Received astrologer creation request');
 
-// Check if astrologer exists before handling file uploads
-// const { email, number } = req.body;
-console.log('email',email)
-const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
-if (existingAstrologer) {
-throw new ApiError('Astrologer with this email or number already exists', 400);
-}
-
 // Handle file uploads
 uploadAstrologerFiles(req, res, async (err) => {
 if (err) {
