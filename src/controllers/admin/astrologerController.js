@@ -26,15 +26,8 @@ const createAstrologer = async (req, res, next) => {
     uploadAstrologerFiles(req, res, async (err) => {
       if (err) {
         console.error('Multer error by AJay raj:', err);
-        // throw new ApiError(err.message, 400);
-        return res.status(400).json({
-          success: false,
-          message: 'File upload error',
-        });
-        console.log('kya hua re')
+        return next(new ApiError(err.message, 400));
       }
-
-
       console.log('chutiuya is ere')
       try {
         const {
