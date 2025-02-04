@@ -9,18 +9,21 @@ console.log('her my son')
   // Create a storage engine that dynamically sets the destination folder
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
+      console.log("Destination function called for:", file.fieldname);
       // Get the destination folder for the current file field
       const fieldConfig = fieldConfigs.find((config) => config.name === file.fieldname);
       const destinationFolder = fieldConfig ? `public/${fieldConfig.folder}` : 'public/uploads';
 
       // Create the folder if it doesn't exist
       if (!fs.existsSync(destinationFolder)) {
+        console.log("Creating folder:", destinationFolder);
         fs.mkdirSync(destinationFolder, { recursive: true });
       }
-
+      console.log("Destination folder:", destinationFolder);
       cb(null, destinationFolder);
     },
     filename: function (req, file, cb) {
+      console.log("Filename function called for:", file.fieldname);
       const { originalname } = file;
       let fileExt = '.jpeg';
       const extI = originalname.lastIndexOf('.');
@@ -28,6 +31,7 @@ console.log('her my son')
         fileExt = originalname.substring(extI).toLowerCase();
       }
       const fileName = `${Date.now()}${fileExt}`;
+      console.log("Generated filename:", fileName);
       cb(null, fileName);
     },
   });
@@ -44,6 +48,8 @@ console.log('her my son')
       fileSize: 10 * 1024 * 1024, // 10 MB size limit
     },
   }).fields(fieldConfigs); // Use .fields() for multiple files
+
+  console.log("getMultipleFilesUploader function is running");
 
   return upload;
 }
