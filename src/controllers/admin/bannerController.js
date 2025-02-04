@@ -167,10 +167,37 @@ const getBannerById = async (req, res, next) => {
   }
 };
 
+const updateBannerStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['Active', 'Inactive'].includes(status)) {
+      throw new ApiError('Invalid status', 400);
+    }
+
+    // Find and update the astrologer status
+    const banner = await Banner.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!banner) {
+      throw new ApiError('Banner not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Banner status updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBanner,
   updateBanner,
   deleteBanner,
   getAllBanners,
   getBannerById,
+  updateBannerStatus,
 };

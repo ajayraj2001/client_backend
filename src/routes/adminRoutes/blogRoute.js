@@ -7,6 +7,7 @@ const {
   deleteBlog,
   getAllBlogs,
   getBlogById,
+  updateBlogStatus,
 } = require("../../controllers/admin/blogController");
 
 // Blog management routes
@@ -15,5 +16,6 @@ router.put('/:id', authenticateAdmin, updateBlog);
 router.delete('/:id', authenticateAdmin, deleteBlog);
 router.get('/', authenticateAdmin, getAllBlogs);
 router.get('/:id', authenticateAdmin, getBlogById);
+router.put('/status/:id', authenticateAdmin, updateBlogStatus);
 
 module.exports = router;

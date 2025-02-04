@@ -185,10 +185,37 @@ const getBlogById = async (req, res, next) => {
   }
 };
 
+const updateBlogStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['Active', 'Inactive'].includes(status)) {
+      throw new ApiError('Invalid status', 400);
+    }
+
+    // Find and update the astrologer status
+    const blog = await Blog.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!blog) {
+      throw new ApiError('Blog not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Blog status updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBlog,
   updateBlog,
   deleteBlog,
   getAllBlogs,
   getBlogById,
+  updateBlogStatus,
 };
