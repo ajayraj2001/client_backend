@@ -27,6 +27,7 @@ const { email, number } = req.body;
 console.log('email',email,  'num',number)
 const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
 if (existingAstrologer) {
+  console.log('does it exist ')
 throw new ApiError('Astrologer with this email or number already exists', 400);
 }
 
