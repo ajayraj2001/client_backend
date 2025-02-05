@@ -9,17 +9,16 @@ const uploadBlogFiles = getMultipleFilesUploader([
 ]);
 
 const createBlog = async (req, res, next) => {
-  let thumbnailImagePath = '';
-  let galleryImagePaths = [];
+  uploadBlogFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
 
-  try {
-    // Handle multiple file uploads
-    uploadBlogFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err);
-        return next(new ApiError(err.message, 400));
-      }
+    let thumbnailImagePath = '';
+    let galleryImagePaths = [];
 
+    try {
       const { title, description, author, status } = req.body;
 
       // Save file paths if files are uploaded
@@ -35,8 +34,8 @@ const createBlog = async (req, res, next) => {
         title,
         description,
         author,
-        thumbnailImage: thumbnailImagePath || '', // Save thumbnail path or empty string
-        galleryImages: galleryImagePaths, // Save gallery image paths
+        thumbnailImage: thumbnailImagePath || '',
+        galleryImages: galleryImagePaths,
         status,
       });
 
@@ -47,30 +46,30 @@ const createBlog = async (req, res, next) => {
         message: 'Blog created successfully',
         data: blog,
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
-    if (galleryImagePaths.length > 0) {
-      await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
-    }
 
-    next(error);
-  }
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
+      if (galleryImagePaths.length > 0) {
+        await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
+      }
+
+      next(error);
+    }
+  });
 };
 
 const updateBlog = async (req, res, next) => {
-  let thumbnailImagePath = '';
-  let galleryImagePaths = [];
+  uploadBlogFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
 
-  try {
-    // Handle multiple file uploads
-    uploadBlogFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err);
-        return next(new ApiError(err.message, 400));
-      }
+    let thumbnailImagePath = '';
+    let galleryImagePaths = [];
 
+    try {
       const { id } = req.params;
       const { title, description, author, status } = req.body;
 
@@ -100,6 +99,10 @@ const updateBlog = async (req, res, next) => {
 
       const blog = await Blog.findByIdAndUpdate(id, updateData, { new: true });
 
+      if (!blog) {
+        throw new ApiError('Error updating blog', 500);
+      }
+
       // Delete old files if new ones are uploaded
       if (req.files?.thumbnailImage && existingBlog.thumbnailImage) {
         await deleteFile(existingBlog.thumbnailImage);
@@ -113,17 +116,19 @@ const updateBlog = async (req, res, next) => {
         message: 'Blog updated successfully',
         data: blog,
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
-    if (galleryImagePaths.length > 0) {
-      await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
-    }
 
-    next(error);
-  }
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (thumbnailImagePath) await deleteFile(thumbnailImagePath);
+      if (galleryImagePaths.length > 0) {
+        await Promise.all(galleryImagePaths.map(path => deleteFile(path)));
+      }
+
+      next(error);
+    }
+  });
 };
+
 
 const deleteBlog = async (req, res, next) => {
   try {

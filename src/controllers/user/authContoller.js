@@ -181,14 +181,13 @@ const uploadProfileImage = getFileUploader('profile_img', 'profile_images');
 const updateProfile = async (req, res, next) => {
     let profileImgPath = '';
 
-    try {
-        // Handle file upload
-        uploadProfileImage(req, res, async (err) => {
-            if (err) {
-                console.error('Multer Error:', err); // Log Multer errors
-                return next(new ApiError(err.message, 400));
-            }
+    uploadProfileImage(req, res, async (err) => {
+        if (err) {
+            console.error('Multer Error:', err); // Log Multer errors
+            return next(new ApiError(err.message, 400)); // Return the error through next middleware
+        }
 
+        try {
             const updateData = req.body;
 
             // Find the user
@@ -213,21 +212,21 @@ const updateProfile = async (req, res, next) => {
                 await deleteFile(user.profile_img);
             }
 
-
             return res.status(200).json({
                 success: true,
                 message: 'Profile updated successfully',
                 data: updatedUser,
             });
-        });
-    } catch (error) {
-        // Delete uploaded file if an error occurs
-        if (profileImgPath) {
-            await deleteFile(profileImgPath);
-        }
+        } catch (error) {
+            // Delete uploaded file if an error occurs
+            if (profileImgPath) {
+                await deleteFile(profileImgPath);
+            }
 
-        next(error);
-    }
+            console.error('Error here:', error); // Log the error
+            return next(error); // Pass the error to the global error handler
+        }
+    });
 };
 
 const logout = async (req, res, next) => {

@@ -153,14 +153,15 @@ const resetPassword = async (req, res, next) => {
 const signup = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
 
-  try {
-    uploadAstrologerFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err);
-        return next(new ApiError(err.message, 400));
-      }
+  // Handle file uploads within the Multer callback
+  uploadAstrologerFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400)); // Pass Multer error to the next middleware
+    }
 
-      const { name, number, email,dob, about, experience, address, languages, state, city, skills } = req.body;
+    try {
+      const { name, number, email, dob, about, experience, address, languages, state, city, skills } = req.body;
 
       // Validate required fields
       if (!name || !number || !email) {
@@ -238,29 +239,30 @@ const signup = async (req, res, next) => {
         success: true,
         message: 'Signup request submitted successfully. Waiting for admin approval.',
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (profileImgPath) await deleteFile(profileImgPath);
-    if (aadharImgPath) await deleteFile(aadharImgPath);
-    if (panImgPath) await deleteFile(panImgPath);
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (profileImgPath) await deleteFile(profileImgPath);
+      if (aadharImgPath) await deleteFile(aadharImgPath);
+      if (panImgPath) await deleteFile(panImgPath);
 
-    next(error);
-  }
+      console.error('Error during signup:', error);
+      next(error); // Pass the error to the global error handler
+    }
+  });
 };
 
 // Update Astrologer Profile
 const updateAstrologerProfile = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
 
-  try {
-    // Handle multiple file uploads
-    uploadAstrologerFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err); // Log Multer errors
-        return next(new ApiError(err.message, 400));
-      }
+  // Handle multiple file uploads
+  uploadAstrologerFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err); // Log Multer errors
+      return next(new ApiError(err.message, 400)); // Pass the error to the global error handler
+    }
 
+    try {
       const { id } = req.params; // Astrologer ID from the request
       const updateData = req.body;
 
@@ -319,16 +321,18 @@ const updateAstrologerProfile = async (req, res, next) => {
         message: 'Profile updated successfully',
         data: astrologerData,
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (profileImgPath) await deleteFile(profileImgPath);
-    if (aadharImgPath) await deleteFile(aadharImgPath);
-    if (panImgPath) await deleteFile(panImgPath);
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (profileImgPath) await deleteFile(profileImgPath);
+      if (aadharImgPath) await deleteFile(aadharImgPath);
+      if (panImgPath) await deleteFile(panImgPath);
 
-    next(error);
-  }
+      console.error('Error here:', error); // Log the error
+      return next(error); // Pass the error to the global error handler
+    }
+  });
 };
+
 
 // Get Astrologer Profile
 const getAstrologerProfile = async (req, res, next) => {

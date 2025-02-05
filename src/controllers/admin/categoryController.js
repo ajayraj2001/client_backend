@@ -7,15 +7,15 @@ const uploadCategoryImage = getFileUploader('img', 'category_images');
 
 // Create Category
 const createCategory = async (req, res, next) => {
-    let categoryImgPath = '';
+    uploadCategoryImage(req, res, async (err) => {
+        if (err) {
+            console.error('Multer Error:', err);
+            return next(new ApiError(err.message, 400));
+        }
 
-    try {
-        uploadCategoryImage(req, res, async (err) => {
-            if (err) {
-                console.error('Multer Error:', err);
-                return next(new ApiError(err.message, 400));
-            }
+        let categoryImgPath = '';
 
+        try {
             const { name, description, status } = req.body;
 
             if (req.file) {
@@ -36,26 +36,28 @@ const createCategory = async (req, res, next) => {
                 message: 'Category created successfully',
                 data: category,
             });
-        });
-    } catch (error) {
-        if (categoryImgPath) {
-            await deleteFile(categoryImgPath);
+
+        } catch (error) {
+            if (categoryImgPath) {
+                await deleteFile(categoryImgPath);
+            }
+            next(error);
         }
-        next(error);
-    }
+    });
 };
+
 
 // Update Category
 const updateCategory = async (req, res, next) => {
-    let categoryImgPath = '';
+    uploadCategoryImage(req, res, async (err) => {
+        if (err) {
+            console.error('Multer Error:', err);
+            return next(new ApiError(err.message, 400));
+        }
 
-    try {
-        uploadCategoryImage(req, res, async (err) => {
-            if (err) {
-                console.error('Multer Error:', err);
-                return next(new ApiError(err.message, 400));
-            }
+        let categoryImgPath = '';
 
+        try {
             const { id } = req.params;
             const { name, description, status } = req.body;
 
@@ -77,6 +79,11 @@ const updateCategory = async (req, res, next) => {
 
             const category = await Category.findByIdAndUpdate(id, updateData, { new: true });
 
+            if (!category) {
+                throw new ApiError('Error updating category', 500);
+            }
+
+            // Delete old image if a new one is uploaded
             if (req.file && existingCategory.image) {
                 await deleteFile(existingCategory.image);
             }
@@ -86,13 +93,14 @@ const updateCategory = async (req, res, next) => {
                 message: 'Category updated successfully',
                 data: category,
             });
-        });
-    } catch (error) {
-        if (categoryImgPath) {
-            await deleteFile(categoryImgPath);
+
+        } catch (error) {
+            if (categoryImgPath) {
+                await deleteFile(categoryImgPath);
+            }
+            next(error);
         }
-        next(error);
-    }
+    });
 };
 
 // Delete Category

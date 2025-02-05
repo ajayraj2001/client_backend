@@ -17,15 +17,15 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
 );
 
 const createAstrologer = async (req, res, next) => {
-  let profileImgPath, aadharImgPath, panImgPath;
-  try {
-    // Handle multiple file uploads
-    uploadAstrologerFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err); // Log Multer errors
-        return next(new ApiError(err.message, 400));
-      }
+  uploadAstrologerFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
 
+    let profileImgPath, aadharImgPath, panImgPath;
+
+    try {
       const {
         name,
         number,
@@ -71,7 +71,7 @@ const createAstrologer = async (req, res, next) => {
 
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       // Parse `languages` and `skills` into arrays of ObjectIds or default to empty arrays
       const parsedLanguages = languages ? JSON.parse(languages).map((id) => new mongoose.Types.ObjectId(id)) : [];
       const parsedSkills = skills ? JSON.parse(skills).map((id) => new mongoose.Types.ObjectId(id)) : [];
@@ -128,75 +128,73 @@ const createAstrologer = async (req, res, next) => {
 
       // Populate languages and skills before sending response
       const populatedAstrologer = await Astrologer.findById(astrologer._id)
-      .populate('languages', 'name')
-      .populate('skills', 'name');
-      
+        .populate('languages', 'name')
+        .populate('skills', 'name');
+
       // Exclude password from the response
       const astrologerData = populatedAstrologer.toObject();
       delete astrologerData.password;
-
 
       return res.status(201).json({
         success: true,
         message: 'Astrologer created successfully',
         data: astrologerData,
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (profileImgPath) await deleteFile(profileImgPath);
-    if (aadharImgPath) await deleteFile(aadharImgPath);
-    if (panImgPath) await deleteFile(panImgPath);
 
-    next(error);
-  }
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (profileImgPath) await deleteFile(profileImgPath);
+      if (aadharImgPath) await deleteFile(aadharImgPath);
+      if (panImgPath) await deleteFile(panImgPath);
+
+      console.error('Error in createAstrologer:', error);
+      return next(error);
+    }
+  });
 };
+
 
 // Update Astrologer
 const updateAstrologer = async (req, res, next) => {
-  let profileImgPath, aadharImgPath, panImgPath;
-  try {
+  uploadAstrologerFiles(req, res, async (err) => {
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
 
-    // Handle multiple file uploads
-    uploadAstrologerFiles(req, res, async (err) => {
-      if (err) {
-        console.error('Multer Error:', err); // Log Multer errors
-        return next(new ApiError(err.message, 400));
-      }
+    let profileImgPath, aadharImgPath, panImgPath;
 
+    try {
       const { id } = req.params;
-      const { email, number } = req.body
+      const { email, number } = req.body;
       const updateData = req.body;
 
+      // Check if another astrologer with the same email or number exists
       const existingAstrologer = await Astrologer.findOne({
         $or: [{ email }, { number }],
-        _id: { $ne: id }, // Exclude specific ID if provided
-      }); 
-      
+        _id: { $ne: id }, // Exclude the astrologer being updated
+      });
+
       if (existingAstrologer) {
         if (existingAstrologer.email === email) {
           return res.status(400).json({ success: false, message: "Astrologer with this email already exists" });
-        } 
+        }
         if (existingAstrologer.number === number) {
           return res.status(400).json({ success: false, message: "Astrologer with this number already exists" });
         }
       }
 
-
-      // Parse `languages` and `skills` into arrays of ObjectIds if present
+      // Parse `languages`, `skills`, and `account_details` into correct formats
       if (updateData.languages) {
-        updateData.languages = JSON.parse(updateData.languages).map((id) =>
-          new mongoose.Types.ObjectId(id)
-        );
+        updateData.languages = JSON.parse(updateData.languages).map(id => new mongoose.Types.ObjectId(id));
       }
       if (updateData.skills) {
-        updateData.skills = JSON.parse(updateData.skills).map((id) =>
-          new mongoose.Types.ObjectId(id)
-        );
+        updateData.skills = JSON.parse(updateData.skills).map(id => new mongoose.Types.ObjectId(id));
       }
       if (updateData.account_details) {
         updateData.account_details = JSON.parse(updateData.account_details);
       }
+
       // Save new file paths if files are uploaded
       if (req.files?.profile_img) {
         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
@@ -211,22 +209,24 @@ const updateAstrologer = async (req, res, next) => {
         updateData.pan_card_img = panImgPath;
       }
 
-      // Update the astrologer
-      // const astrologer = await Astrologer.findByIdAndUpdate(id, updateData, { new: true });
-
+      // Find the astrologer to get existing file paths
       const astrologer = await Astrologer.findByIdAndUpdate(id, updateData, { new: true })
         .populate('languages', 'name')
         .populate('skills', 'name');
 
-      // Delete old files if new files are uploaded
-      if (req.files?.profile_img && existingAstrologer.profile_img) {
-        await deleteFile(existingAstrologer.profile_img);
+      if (!astrologer) {
+        throw new ApiError("Astrologer not found", 404);
       }
-      if (req.files?.aadhar_card_img && existingAstrologer.aadhar_card_img) {
-        await deleteFile(existingAstrologer.aadhar_card_img);
+
+      // Delete old files if new files were uploaded
+      if (req.files?.profile_img && astrologer.profile_img) {
+        await deleteFile(astrologer.profile_img);
       }
-      if (req.files?.pan_card_img && existingAstrologer.pan_card_img) {
-        await deleteFile(existingAstrologer.pan_card_img);
+      if (req.files?.aadhar_card_img && astrologer.aadhar_card_img) {
+        await deleteFile(astrologer.aadhar_card_img);
+      }
+      if (req.files?.pan_card_img && astrologer.pan_card_img) {
+        await deleteFile(astrologer.pan_card_img);
       }
 
       // Exclude password from the response
@@ -235,18 +235,20 @@ const updateAstrologer = async (req, res, next) => {
 
       return res.status(200).json({
         success: true,
-        message: 'Astrologer updated successfully',
+        message: "Astrologer updated successfully",
         data: astrologerData,
       });
-    });
-  } catch (error) {
-    // Delete uploaded files if an error occurs
-    if (profileImgPath) await deleteFile(profileImgPath);
-    if (aadharImgPath) await deleteFile(aadharImgPath);
-    if (panImgPath) await deleteFile(panImgPath);
 
-    next(error);
-  }
+    } catch (error) {
+      // Delete newly uploaded files if an error occurs
+      if (profileImgPath) await deleteFile(profileImgPath);
+      if (aadharImgPath) await deleteFile(aadharImgPath);
+      if (panImgPath) await deleteFile(panImgPath);
+
+      console.error("Error in updateAstrologer:", error);
+      return next(error);
+    }
+  });
 };
 
 // Delete Astrologer
