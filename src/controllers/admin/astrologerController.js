@@ -154,7 +154,7 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
 // };
 
 
-const createAstrologer2 = async (req, res, next) => {
+const updateAstrologer = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
   try {
 
@@ -809,7 +809,7 @@ const generatePassword = (dob, aadharNumber) => {
 
 module.exports = {
   createAstrologer,
-  // updateAstrologer,
+  updateAstrologer,
   deleteAstrologer,
   getAllAstrologers,
   getAstrologerById,
