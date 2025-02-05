@@ -61,9 +61,12 @@ const createAstrologer = async (req, res, next) => {
       // Check if astrologer already exists
       const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
       if (existingAstrologer) {
-        console.log('astro exist already')
-        // throw new ApiError('Astrologer with this email or number already exists', 400);
-        return res.status(400).send({success: true, message: "astro already exist"})
+        if (existingAstrologer.email === email) {
+          return res.status(400).json({ success: false, message: "Astrologer with this email already exists" });
+        } 
+        if (existingAstrologer.number === number) {
+          return res.status(400).json({ success: false, message: "Astrologer with this number already exists" });
+        }
       }
 
       // Hash the password
@@ -169,11 +172,16 @@ const updateAstrologer = async (req, res, next) => {
       const existingAstrologer = await Astrologer.findOne({
         $or: [{ email }, { number }],
         _id: { $ne: id }, // Exclude specific ID if provided
-      });
-
+      }); 
+      
       if (existingAstrologer) {
-        throw new ApiError('Astrologer with this email or number already exists', 400);
-      }     
+        if (existingAstrologer.email === email) {
+          throw new ApiError('Astrologer with this email already exists', 400);
+        } 
+        if (existingAstrologer.number === number) {
+          throw new ApiError('Astrologer with this number already exists', 400);
+        }
+      }
 
       // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
