@@ -176,12 +176,13 @@ const updateAstrologer = async (req, res, next) => {
       
       if (existingAstrologer) {
         if (existingAstrologer.email === email) {
-          throw new ApiError('Astrologer with this email already exists', 400);
+          return res.status(400).json({ success: false, message: "Astrologer with this email already exists" });
         } 
         if (existingAstrologer.number === number) {
-          throw new ApiError('Astrologer with this number already exists', 400);
+          return res.status(400).json({ success: false, message: "Astrologer with this number already exists" });
         }
       }
+
 
       // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
