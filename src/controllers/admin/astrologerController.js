@@ -154,7 +154,7 @@ const uploadAstrologerFiles = getMultipleFilesUploader(
 // };
 
 
-const createAstrologer = async (req, res, next) => {
+const createAstrologer2 = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
   try {
 
@@ -167,7 +167,7 @@ const createAstrologer = async (req, res, next) => {
         return next(new ApiError(err.message, 400));
       }
 
-      const { id } = req.params;
+      // const { id } = req.params;
       const {
         name,
         number,
@@ -287,7 +287,7 @@ const createAstrologer = async (req, res, next) => {
 };
 
 // Update Astrologer
-const updateAstrologer = async (req, res, next) => {
+const createAstrologer = async (req, res, next) => {
   let profileImgPath, aadharImgPath, panImgPath;
   try {
 
