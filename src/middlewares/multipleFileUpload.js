@@ -15,6 +15,7 @@ async function ensureDirectoryExists(directory) {
 }
 
 function getMultipleFilesUploader(fieldConfigs) {
+  console.log('ANI IS BEWAKOOF')
   const storage = multer.diskStorage({
     destination: async function (req, file, cb) {
       try {
@@ -38,7 +39,7 @@ function getMultipleFilesUploader(fieldConfigs) {
     storage,
     fileFilter: (req, file, cb) => {
       if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        return cb(new ApiError('Invalid file type', 400));
+        return cb(new ApiError('Invalid file type BY aJAY rAJ', 400));
       }
       cb(null, true);
     },
