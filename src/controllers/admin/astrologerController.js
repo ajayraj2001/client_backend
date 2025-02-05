@@ -22,13 +22,13 @@ const createAstrologer = async (req, res, next) => {
   try {
     console.log('Received astrologer creation request');
 
-    // Handle file uploads
     uploadAstrologerFiles(req, res, async (err) => {
       if (err) {
         console.error('Multer error by AJay raj:', err);
-        return next(new ApiError(err.message, 400));
+        return res.status(400).json({ success: false, message: err.message }); // FIXED: Properly return the error
       }
-      console.log('chutiuya is ere')
+
+      console.log('File upload successful');
       try {
         const {
           name,
