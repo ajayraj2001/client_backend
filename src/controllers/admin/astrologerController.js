@@ -143,7 +143,6 @@ const createAstrologer = async (req, res, next) => {
       });
     });
   } catch (error) {
-    console.log('error', error)
     // Delete uploaded files if an error occurs
     if (profileImgPath) await deleteFile(profileImgPath);
     if (aadharImgPath) await deleteFile(aadharImgPath);

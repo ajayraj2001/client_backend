@@ -45,7 +45,7 @@ const createBanner = async (req, res, next) => {
     if (bannerImgPath) {
         await deleteFile(bannerImgPath);
       }
-  
+      console.log('error here', error)
       next(error);
   }
 };
