@@ -62,7 +62,8 @@ const createAstrologer = async (req, res, next) => {
       const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
       if (existingAstrologer) {
         console.log('astro exist already')
-        throw new ApiError('Astrologer with this email or number already exists', 400);
+        // throw new ApiError('Astrologer with this email or number already exists', 400);
+        return res.status(400).send({success: true, message: "astro already exist"})
       }
 
       // Hash the password
