@@ -53,7 +53,7 @@ const fs = require('fs');
 const { ApiError } = require('../errorHandler');
 
 function getMultipleFilesUploader(fieldConfigs, mimetypes) {
-  if (!mimetypes) mimetypes = ['image/png', 'image/jpg', 'image/webp', 'image/jfif', 'application/octet-stream'];
+  if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/jfif', 'application/octet-stream'];
 
   // Create a storage engine that dynamically sets the destination folder
   const storage = multer.diskStorage({
