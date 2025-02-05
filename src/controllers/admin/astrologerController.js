@@ -809,7 +809,7 @@ const generatePassword = (dob, aadharNumber) => {
 
 module.exports = {
   createAstrologer,
-  updateAstrologer,
+  // updateAstrologer,
   deleteAstrologer,
   getAllAstrologers,
   getAstrologerById,
