@@ -130,7 +130,7 @@ const createAstrologer = async (req, res, next) => {
       const astrologerData = populatedAstrologer.toObject();
       delete astrologerData.password;
 
-      
+
       return res.status(201).json({
         success: true,
         message: 'Astrologer created successfully',
@@ -168,15 +168,10 @@ const updateAstrologer = async (req, res, next) => {
         $or: [{ email }, { number }],
         _id: { $ne: id }, // Exclude specific ID if provided
       });
-      
+
       if (existingAstrologer) {
-        console.log('Email or number already exists');
-        return res.status(400).json({
-          success: false,
-          message: 'Astrologer with this email or number already exists',
-        });
-      }
-      
+        throw new ApiError('Astrologer with this email or number already exists', 400);
+      }     
 
       // Parse `languages` and `skills` into arrays of ObjectIds if present
       if (updateData.languages) {
