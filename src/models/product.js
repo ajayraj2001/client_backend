@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const { getCurrentIST } = require('../utils/timeUtils');
 
 const productSchema = new Schema({
     name: {
@@ -24,17 +25,21 @@ const productSchema = new Schema({
         type: Number,
         required: [true, 'Actual price is required'],
     },
-    productImage: {
+    img: {
         type: [String], // Array of image paths
         default: [], // Default empty array
       },
     status: {
         type: String,
         enum: ['Active', 'Inactive'],
-        default: 'Active',
-    },
+        default: 'Inactive',
+      },
 }, {
-    timestamps: true,
+    timestamps: { 
+        createdAt: 'created_at', 
+        updatedAt: 'updated_at', 
+        currentTime: getCurrentIST, // Use IST for timestamps
+      },
 });
 
 module.exports = mongoose.model('Product', productSchema);

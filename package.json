@@ -19,7 +19,6 @@
   },
   "homepage": "https://github.com/rajat-kumar-dev/LiveAarti#readme",
   "dependencies": {
-    "@faker-js/faker": "^9.4.0",
     "@google-cloud/translate": "^8.1.0",
     "axios": "^1.5.1",
     "bcrypt": "^5.1.1",

@@ -16,7 +16,7 @@ const createCategory = async (req, res, next) => {
                 return next(new ApiError(err.message, 400));
             }
 
-            const { name, description } = req.body;
+            const { name, description, status } = req.body;
 
             if (req.file) {
                 categoryImgPath = `/category_images/${req.file.filename}`;
@@ -25,6 +25,7 @@ const createCategory = async (req, res, next) => {
             const category = new Category({
                 name,
                 description,
+                status,
                 image: categoryImgPath,
             });
 
@@ -56,7 +57,7 @@ const updateCategory = async (req, res, next) => {
             }
 
             const { id } = req.params;
-            const { name, description } = req.body;
+            const { name, description, status } = req.body;
 
             const existingCategory = await Category.findById(id);
             if (!existingCategory) {
@@ -70,6 +71,7 @@ const updateCategory = async (req, res, next) => {
             const updateData = {
                 name: name || existingCategory.name,
                 description: description || existingCategory.description,
+                status: status || existingCategory.status,
                 image: categoryImgPath || existingCategory.image,
             };
 
