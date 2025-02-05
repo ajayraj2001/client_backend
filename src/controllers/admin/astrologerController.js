@@ -61,6 +61,7 @@ const createAstrologer = async (req, res, next) => {
       // Check if astrologer already exists
       const existingAstrologer = await Astrologer.findOne({ $or: [{ email }, { number }] });
       if (existingAstrologer) {
+        console.log('astro exist already')
         throw new ApiError('Astrologer with this email or number already exists', 400);
       }
 
