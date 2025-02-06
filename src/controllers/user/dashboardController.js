@@ -10,7 +10,7 @@ const getDashboardData = async (req, res, next) => {
     delete userProfile.otp;
 
     // Fetch active banners
-    const activeBanners = await Banner.find({ status: 'Active' });
+    const activeBanners = await Banner.find({ status: 'Active', type: 'app' });
 
     // Fetch active blogs
     const activeBlogs = await Blog.find({ status: 'Active' });
