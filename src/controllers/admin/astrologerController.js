@@ -259,6 +259,8 @@ const deleteAstrologer = async (req, res, next) => {
     // Find and delete the astrologer
     const astrologer = await Astrologer.findByIdAndDelete(id);
 
+
+    console.log('astrolger_raha',astrologer)
     if (!astrologer) {
       throw new ApiError('Astrologer not found', 404);
     }
