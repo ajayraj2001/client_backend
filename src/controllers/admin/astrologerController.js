@@ -262,6 +262,7 @@ const deleteAstrologer = async (req, res, next) => {
 
     console.log('astrolger_raha',astrologer)
     if (!astrologer) {
+      console.log('why tus hapoaneing')
       throw new ApiError('Astrologer not found', 404);
     }
 
