@@ -159,7 +159,7 @@ const deleteBlog = async (req, res, next) => {
 
 const getAllBlogs = async (req, res, next) => {
   try {
-    const blogs = await Blog.find({});
+    const blogs = await Blog.find({}).sort({_id:-1});
 
     return res.status(200).json({
       success: true,
