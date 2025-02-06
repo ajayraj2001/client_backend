@@ -19,7 +19,8 @@ const login = async (req, res, next) => {
         const user = await User.findOne({ number });
         if (user) {
             // If user exists, generate OTP and save it in the user document
-            const otp = Math.floor(100000 + Math.random() * 9000).toString(); // 4-digit OTP
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
             user.otp = otp;
             user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
             await user.save();
@@ -35,9 +36,10 @@ const login = async (req, res, next) => {
         } else {
             // If user does not exist, check if an OTP document already exists for this number
             let otpDoc = await Otp.findOne({ number });
-
+            
             // Generate a new OTP
-            const otp = Math.floor(100000 + Math.random() * 9000).toString(); // 4-digit OTP
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
 
             if (otpDoc) {
                 // If OTP document exists, update the OTP and expiration time
