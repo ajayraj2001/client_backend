@@ -11,6 +11,7 @@ const blogSchema = new Schema({
   description: {
     type: String,
     trim: true,
+    default: ""
   },
   author: {
     type: String,
