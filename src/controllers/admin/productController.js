@@ -18,7 +18,7 @@ const createProduct = async (req, res, next) => {
     let productImagePaths = [];
 
     try {
-      const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
+      const { name, description, categoryId, displayedPrice, actualPrice, status, details, } = req.body;
 
       // Save file paths if files are uploaded
       if (req.files?.img) {
@@ -34,6 +34,7 @@ const createProduct = async (req, res, next) => {
         actualPrice,
         img: productImagePaths,
         status,
+        details: details ? JSON.parse(details) : [], // New key
       });
 
       await product.save();
@@ -69,7 +70,7 @@ const updateProduct = async (req, res, next) => {
 
     try {
       const { id } = req.params;
-      const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
+      const { name, description, categoryId, displayedPrice, actualPrice, status, details, } = req.body;
 
       // Find the existing product
       const existingProduct = await Product.findById(id);
@@ -91,6 +92,7 @@ const updateProduct = async (req, res, next) => {
         actualPrice: actualPrice || existingProduct.actualPrice,
         img: productImagePaths.length > 0 ? productImagePaths : existingProduct.img,
         status: status || existingProduct.status,
+        details: details ? JSON.parse(details) : existingPuja.details, // New key
       };
 
       const product = await Product.findByIdAndUpdate(id, updateData, { new: true })

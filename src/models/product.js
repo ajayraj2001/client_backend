@@ -28,8 +28,8 @@ const productSchema = new Schema({
     img: {
         type: [String], // Array of image paths
         default: [], // Default empty array
-      },
-      details: {
+    },
+    details: {
         type: [{ key: String, value: String }], // Array of key-value pairs
         default: [],
     },
@@ -37,13 +37,13 @@ const productSchema = new Schema({
         type: String,
         enum: ['Active', 'Inactive'],
         default: 'Inactive',
-      },
+    },
 }, {
-    timestamps: { 
-        createdAt: 'created_at', 
-        updatedAt: 'updated_at', 
+    timestamps: {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
         currentTime: getCurrentIST, // Use IST for timestamps
-      },
+    },
 });
 
 module.exports = mongoose.model('Product', productSchema);
