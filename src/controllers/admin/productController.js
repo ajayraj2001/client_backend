@@ -10,108 +10,114 @@ const uploadProductFiles = getMultipleFilesUploader([
 // Create Product
 const createProduct = async (req, res, next) => {
   uploadProductFiles(req, res, async (err) => {
-      if (err) {
-          console.error('Multer Error:', err);
-          return next(new ApiError(err.message, 400));
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
+
+    let productImagePaths = [];
+
+    try {
+      const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
+
+      // Save file paths if files are uploaded
+      if (req.files?.img) {
+        productImagePaths = req.files.img.map(file => `/product_images/${file.filename}`);
       }
 
-      let productImagePaths = [];
+      // Create new product
+      const product = new Product({
+        name,
+        description,
+        categoryId,
+        displayedPrice,
+        actualPrice,
+        img: productImagePaths,
+        status,
+      });
 
-      try {
-          const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
+      await product.save();
 
-          // Save file paths if files are uploaded
-          if (req.files?.img) {
-              productImagePaths = req.files.img.map(file => `/product_images/${file.filename}`);
-          }
+      // Populate languages and skills before sending response
+      const populatedProduct = await Product.findById(product._id)
+        .populate('categoryId', 'name image')
 
-          // Create new product
-          const product = new Product({
-              name,
-              description,
-              categoryId,
-              displayedPrice,
-              actualPrice,
-              img: productImagePaths,
-              status,
-          });
+      return res.status(201).json({
+        success: true,
+        message: 'Product created successfully',
+        data: populatedProduct,
+      });
 
-          await product.save();
-
-          return res.status(201).json({
-              success: true,
-              message: 'Product created successfully',
-              data: product,
-          });
-
-      } catch (error) {
-          if (productImagePaths.length > 0) {
-              await Promise.all(productImagePaths.map(path => deleteFile(path)));
-          }
-          next(error);
+    } catch (error) {
+      if (productImagePaths.length > 0) {
+        await Promise.all(productImagePaths.map(path => deleteFile(path)));
       }
+      next(error);
+    }
   });
 };
 
 // Update Product
 const updateProduct = async (req, res, next) => {
   uploadProductFiles(req, res, async (err) => {
-      if (err) {
-          console.error('Multer Error:', err);
-          return next(new ApiError(err.message, 400));
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
+
+    let productImagePaths = [];
+
+    try {
+      const { id } = req.params;
+      const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
+
+      // Find the existing product
+      const existingProduct = await Product.findById(id);
+      if (!existingProduct) {
+        throw new ApiError('Product not found', 404);
       }
 
-      let productImagePaths = [];
-
-      try {
-          const { id } = req.params;
-          const { name, description, categoryId, displayedPrice, actualPrice, status } = req.body;
-
-          // Find the existing product
-          const existingProduct = await Product.findById(id);
-          if (!existingProduct) {
-              throw new ApiError('Product not found', 404);
-          }
-
-          // Save new file paths if files are uploaded
-          if (req.files?.img) {
-              productImagePaths = req.files.img.map(file => `/product_images/${file.filename}`);
-          }
-
-          // Update the product
-          const updateData = {
-              name: name || existingProduct.name,
-              description: description || existingProduct.description,
-              categoryId: categoryId || existingProduct.categoryId,
-              displayedPrice: displayedPrice || existingProduct.displayedPrice,
-              actualPrice: actualPrice || existingProduct.actualPrice,
-              img: productImagePaths.length > 0 ? productImagePaths : existingProduct.img,
-              status: status || existingProduct.status,
-          };
-
-          const product = await Product.findByIdAndUpdate(id, updateData, { new: true });
-
-          if (!product) {
-              throw new ApiError('Error updating product', 500);
-          }
-
-          // Delete old images if new ones are uploaded
-          if (req.files?.img && existingProduct.img.length > 0) {
-              await Promise.all(existingProduct.img.map(path => deleteFile(path)));
-          }
-
-          return res.status(200).json({
-              success: true,
-              message: 'Product updated successfully',
-              data: product,
-          });
-
-      } catch (error) {
-          if (productImagePaths.length > 0) {
-              await Promise.all(productImagePaths.map(path => deleteFile(path)));
-          }
-          next(error);
+      // Save new file paths if files are uploaded
+      if (req.files?.img) {
+        productImagePaths = req.files.img.map(file => `/product_images/${file.filename}`);
       }
+
+      // Update the product
+      const updateData = {
+        name: name || existingProduct.name,
+        description: description || existingProduct.description,
+        categoryId: categoryId || existingProduct.categoryId,
+        displayedPrice: displayedPrice || existingProduct.displayedPrice,
+        actualPrice: actualPrice || existingProduct.actualPrice,
+        img: productImagePaths.length > 0 ? productImagePaths : existingProduct.img,
+        status: status || existingProduct.status,
+      };
+
+      const product = await Product.findByIdAndUpdate(id, updateData, { new: true })
+        .populate('categoryId', 'name image')
+
+
+      if (!product) {
+        throw new ApiError('Error updating product', 500);
+      }
+
+      // Delete old images if new ones are uploaded
+      if (req.files?.img && existingProduct.img.length > 0) {
+        await Promise.all(existingProduct.img.map(path => deleteFile(path)));
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Product updated successfully',
+        data: product,
+      });
+
+    } catch (error) {
+      if (productImagePaths.length > 0) {
+        await Promise.all(productImagePaths.map(path => deleteFile(path)));
+      }
+      next(error);
+    }
   });
 };
 
@@ -144,8 +150,8 @@ const deleteProduct = async (req, res, next) => {
 const getAllProducts = async (req, res, next) => {
   try {
     const products = await Product.find({})
-    .sort({_id:-1})
-    .populate('categoryId', 'name image');  
+      .sort({ _id: -1 })
+      .populate('categoryId', 'name image');
 
     return res.status(200).json({
       success: true,
@@ -162,7 +168,7 @@ const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const product = await Product.findById(id).populate('categoryId', 'name image');  
+    const product = await Product.findById(id).populate('categoryId', 'name image');
     if (!product) {
       throw new ApiError('Product not found', 404);
     }
