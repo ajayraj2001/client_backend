@@ -144,6 +144,7 @@ const deleteProduct = async (req, res, next) => {
 const getAllProducts = async (req, res, next) => {
   try {
     const products = await Product.find({})
+    .sort({_id:-1})
     .populate('categoryId', 'name image');  
 
     return res.status(200).json({

@@ -3,7 +3,7 @@ const { Category } = require('../../models');
 const { getFileUploader, deleteFile } = require('../../middlewares');
 
 // Multer setup for category image upload
-const uploadCategoryImage = getFileUploader('img', 'category_images');
+const uploadCategoryImage = getFileUploader('image', 'category_images');
 
 // Create Category
 const createCategory = async (req, res, next) => {
@@ -129,7 +129,7 @@ const deleteCategory = async (req, res, next) => {
 // Get All Categories
 const getAllCategories = async (req, res, next) => {
     try {
-        const categories = await Category.find({});
+        const categories = await Category.find({}).sort({_id:-1})
 
         return res.status(200).json({
             success: true,
