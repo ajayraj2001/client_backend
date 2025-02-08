@@ -6,6 +6,7 @@ const {
   deletePuja,
   getAllPujas,
   getPujaById,
+  updatePujaStatus
 } = require('../../controllers/admin/pujaController');
 const { authenticateAdmin } = require('../../middlewares');
 
@@ -23,5 +24,7 @@ router.get('/', authenticateAdmin, getAllPujas);
 
 // Get a specific puja by ID
 router.get('/:id', authenticateAdmin, getPujaById);
+
+router.put('/status/:id', authenticateAdmin, updatePujaStatus);
 
 module.exports = router;

@@ -161,10 +161,38 @@ const getCategoryById = async (req, res, next) => {
     }
 };
 
+const updateCategoryStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['Active', 'Inactive'].includes(status)) {
+      throw new ApiError('Invalid status', 400);
+    }
+
+    // Find and update the astrologer status
+    const category = await Category.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!category) {
+      throw new ApiError('Category not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Category status updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
     createCategory,
     updateCategory,
     deleteCategory,
     getAllCategories,
     getCategoryById,
+    updateCategoryStatus,
 };

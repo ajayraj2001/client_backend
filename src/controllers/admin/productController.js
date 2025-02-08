@@ -177,10 +177,37 @@ const getProductById = async (req, res, next) => {
   }
 };
 
+const updateProductStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['Active', 'Inactive'].includes(status)) {
+      throw new ApiError('Invalid status', 400);
+    }
+
+    // Find and update the astrologer status
+    const product = await Product.findByIdAndUpdate(id, { status }, { new: true });
+
+    if (!product) {
+      throw new ApiError('Product not found', 404);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Product status updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
   getAllProducts,
   getProductById,
+  updateProductStatus,
 };
