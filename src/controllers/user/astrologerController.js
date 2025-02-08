@@ -27,11 +27,18 @@ const getActiveAstrologers = async (req, res, next) => {
             rating: -1, // Higher-rated first
         };
 
+        // const activeAstrologers = await Astrologer.find(query)
+        //     .select('-password -aadhar_card_img -pan_card_img') // Exclude sensitive fields
+        //     .populate('languages', 'name')
+        //     .populate('skills', 'name')
+        //     .sort(sortCriteria); // Apply sorting
+
         const activeAstrologers = await Astrologer.find(query)
-            .select('-password -aadhar_card_img -pan_card_img') // Exclude sensitive fields
+            .select('_id number name skills languages profile_img busy') // Include only required fields
             .populate('languages', 'name')
             .populate('skills', 'name')
             .sort(sortCriteria); // Apply sorting
+
 
         return res.status(200).json({
             success: true,
