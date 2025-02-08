@@ -55,24 +55,8 @@ const pujaSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    compulsoryProducts: [
-        {
-            productId: {
-                type: Schema.Types.ObjectId,
-                ref: 'Product',
-                required: true,
-            },
-        },
-    ],
-    optionalProducts: [
-        {
-            productId: {
-                type: Schema.Types.ObjectId,
-                ref: 'Product',
-                required: true,
-            },
-        },
-    ],
+    compulsoryProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }], 
+    optionalProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }], 
 }, {
     timestamps: { 
         createdAt: 'created_at', 
