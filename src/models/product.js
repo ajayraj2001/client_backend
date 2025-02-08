@@ -29,6 +29,10 @@ const productSchema = new Schema({
         type: [String], // Array of image paths
         default: [], // Default empty array
       },
+      details: {
+        type: [{ key: String, value: String }], // Array of key-value pairs
+        default: [],
+    },
     status: {
         type: String,
         enum: ['Active', 'Inactive'],

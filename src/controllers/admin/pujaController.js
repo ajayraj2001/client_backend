@@ -33,6 +33,7 @@ const createPuja = async (req, res, next) => {
               isRecurring,
               compulsoryProducts,
               optionalProducts,
+              details,
           } = req.body;
 
           // Save file paths if files are uploaded
@@ -59,6 +60,7 @@ const createPuja = async (req, res, next) => {
               faq: faq ? JSON.parse(faq) : [],
               compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : [],
               optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : [],
+              details: details ? JSON.parse(details) : [], // New key
           });
 
           await puja.save();
@@ -106,6 +108,7 @@ const updatePuja = async (req, res, next) => {
               isRecurring,
               compulsoryProducts,
               optionalProducts,
+              details,
           } = req.body;
 
           // Find the existing puja
@@ -138,6 +141,7 @@ const updatePuja = async (req, res, next) => {
               faq: faq ? JSON.parse(faq) : existingPuja.faq,
               compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : existingPuja.compulsoryProducts,
               optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : existingPuja.optionalProducts,
+              details: details ? JSON.parse(details) : existingPuja.details, // New key
           };
 
           const puja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
