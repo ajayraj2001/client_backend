@@ -190,7 +190,7 @@ const updateProfile = async (req, res, next) => {
     //     }
 
         try {
-            // const updateData = req.body;
+            const updateData = {}
 
             // // Find the user
             // const user = await User.findById(req.user._id);
@@ -204,10 +204,10 @@ const updateProfile = async (req, res, next) => {
             //     updateData.profile_img = profileImgPath;
             // }
 
-            // updateData.is_profile_complete = true;
+            updateData.is_profile_complete = true;
 
             // // Update the user profile
-            // const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
+            const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
 
             // // Delete old profile image if a new one is uploaded
             // if (req.file && user.profile_img) {
