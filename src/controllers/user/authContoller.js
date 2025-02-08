@@ -228,7 +228,7 @@ const updateProfile = async (req, res, next) => {
             console.error('Error here:', error); // Log the error
             return next(error); // Pass the error to the global error handler
         }
-    });
+    // });
 };
 
 const logout = async (req, res, next) => {
