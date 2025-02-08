@@ -183,41 +183,41 @@ const uploadProfileImage = getFileUploader('profile_img', 'profile_images');
 const updateProfile = async (req, res, next) => {
     let profileImgPath = '';
 
-    // uploadProfileImage(req, res, async (err) => {
-    //     if (err) {
-    //         console.error('Multer Error:', err); // Log Multer errors
-    //         return next(new ApiError(err.message, 400)); // Return the error through next middleware
-    //     }
+    uploadProfileImage(req, res, async (err) => {
+        if (err) {
+            console.error('Multer Error:', err); // Log Multer errors
+            return next(new ApiError(err.message, 400)); // Return the error through next middleware
+        }
 
         try {
-            const updateData = {}
+            const updateData = req.body;
 
-            // // Find the user
-            // const user = await User.findById(req.user._id);
-            // if (!user) {
-            //     throw new ApiError('User not found', 404);
-            // }
+            // Find the user
+            const user = await User.findById(req.user._id);
+            if (!user) {
+                throw new ApiError('User not found', 404);
+            }
 
-            // // Save new file path if a file is uploaded
-            // if (req.file) {
-            //     profileImgPath = `/profile_images/${req.file.filename}`;
-            //     updateData.profile_img = profileImgPath;
-            // }
+            // Save new file path if a file is uploaded
+            if (req.file) {
+                profileImgPath = `/profile_images/${req.file.filename}`;
+                updateData.profile_img = profileImgPath;
+            }
 
             updateData.is_profile_complete = true;
 
-            // // Update the user profile
+            // Update the user profile
             const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
 
-            // // Delete old profile image if a new one is uploaded
-            // if (req.file && user.profile_img) {
-            //     await deleteFile(user.profile_img);
-            // }
+            // Delete old profile image if a new one is uploaded
+            if (req.file && user.profile_img) {
+                await deleteFile(user.profile_img);
+            }
 
             return res.status(200).json({
                 success: true,
                 message: 'Profile updated successfully',
-                // data: updatedUser,
+                data: updatedUser,
             });
         } catch (error) {
             // Delete uploaded file if an error occurs
@@ -228,7 +228,7 @@ const updateProfile = async (req, res, next) => {
             console.error('Error here:', error); // Log the error
             return next(error); // Pass the error to the global error handler
         }
-    // });
+    });
 };
 
 const logout = async (req, res, next) => {
