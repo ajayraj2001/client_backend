@@ -23,17 +23,19 @@ const createPuja = async (req, res, next) => {
           const {
               title,
               slug,
-              pujaDate,
               aboutPuja,
               benifits,
               faq,
               status,
               displayedPrice,
               actualPrice,
-              isRecurring,
               compulsoryProducts,
               optionalProducts,
           } = req.body;
+
+          const isRecurring = req.body.isRecurring === 'true'; // Convert string to boolean
+
+          const pujaDate = isRecurring ? null : req.body.pujaDate;
 
           // Save file paths if files are uploaded
           if (req.files?.pujaImage) {
@@ -96,23 +98,27 @@ const updatePuja = async (req, res, next) => {
           const {
               title,
               slug,
-              pujaDate,
               aboutPuja,
               benifits,
               faq,
               status,
               displayedPrice,
               actualPrice,
-              isRecurring,
               compulsoryProducts,
               optionalProducts,
           } = req.body;
+
+           // Convert `isRecurring` to a boolean
+           const isRecurring = req.body.isRecurring === 'true';
 
           // Find the existing puja
           const existingPuja = await Puja.findById(id);
           if (!existingPuja) {
               throw new ApiError('Puja not found', 404);
           }
+
+           // Set `pujaDate` based on `isRecurring`
+           const pujaDate = isRecurring ? null : req.body.pujaDate || existingPuja.pujaDate;
 
           // Save new file paths if files are uploaded
           if (req.files?.pujaImage) {
@@ -126,12 +132,12 @@ const updatePuja = async (req, res, next) => {
           const updateData = {
               title: title || existingPuja.title,
               slug: slug || existingPuja.slug,
-              pujaDate: pujaDate || existingPuja.pujaDate,
+              pujaDate,
               aboutPuja: aboutPuja || existingPuja.aboutPuja,
               displayedPrice: displayedPrice || existingPuja.displayedPrice,
               actualPrice: actualPrice || existingPuja.actualPrice,
               status: status || existingPuja.status,
-              isRecurring: isRecurring ?? existingPuja.isRecurring,
+              isRecurring,
               pujaImage: pujaImagePath || existingPuja.pujaImage,
               bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
               benifits: benifits ? JSON.parse(benifits) : existingPuja.benifits,
