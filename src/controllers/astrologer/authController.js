@@ -265,7 +265,8 @@ const updateAstrologerProfile = async (req, res, next) => {
     }
 
     try {
-      const { id } = req.params; // Astrologer ID from the request
+      const { id } =  req.astrologer._id; // Astrologer ID from the request
+
       const updateData = req.body;
 
       // Find the existing astrologer
@@ -339,7 +340,7 @@ const updateAstrologerProfile = async (req, res, next) => {
 // Get Astrologer Profile
 const getAstrologerProfile = async (req, res, next) => {
   try {
-    const { id } = req.params; // Astrologer ID from the request
+    const { id } = req.astrologer._id; // Astrologer ID from the request
 
     // Fetch the astrologer's profile with populated languages and skills
     const astrologer = await Astrologer.findById(id)
@@ -371,7 +372,7 @@ const notifyAdmin = (astrologer) => {
 const logout = async (req, res, next) => {
   try {
     // Clear device information (optional)
-    const astrologerId = req.astrologer.id; // Assuming the user ID is stored in req.user after JWT verification
+    const astrologerId = req.astrologer._id; // Assuming the user ID is stored in req.user after JWT verification
     await Astrologer.findByIdAndUpdate(astrologerId, {
       deviceId: '',
       deviceToken: '',
