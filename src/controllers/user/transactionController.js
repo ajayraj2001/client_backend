@@ -42,12 +42,18 @@ const initiateRecharge = async (req, res, next) => {
 
 const getWalletHistory = async (req, res, next) => {
   try {
-    const user_id = req.user._id; // User ID from middleware
+    const user_id = req.user._id;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Fetch the user's wallet history
     const walletHistory = await UserWalletHistory.find({ user_id })
-      .sort({ timestamp: -1 }); // Sort by latest first
+    .sort({ timestamp: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
 
+     // Fetch total count for pagination
+     const totalRecords = await UserWalletHistory.countDocuments({ user_id: id });
 
     // Fetch the user's current wallet balance from the User model (if stored separately)
     // const user = await User.findById(user_id).select('wallet');
@@ -58,6 +64,11 @@ const getWalletHistory = async (req, res, next) => {
       data: {
         currentBalance: req.user.wallet,
         walletHistory,
+      },
+      pagination: {
+        totalRecords,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalRecords / parseInt(limit)),
       },
     });
   } catch (error) {

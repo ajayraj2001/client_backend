@@ -88,28 +88,39 @@ const updateUserStatus = async (req, res, next) => {
 
 const getWalletHistory = async (req, res, next) => {
     try {
-        const { id } = req.params; // User ID from middleware
-
-        // Fetch the user's wallet history
-        const walletHistory = await UserWalletHistory.find({ id })
-            .sort({ timestamp: -1 }); // Sort by latest first
-
-
-        // Fetch the user's current wallet balance from the User model (if stored separately)
-        const user = await User.findById(id).select('wallet');
-
-        return res.status(200).json({
-            success: true,
-            message: 'Wallet history fetched successfully',
-            data: {
-                currentBalance: user.wallet,
-                walletHistory,
-            },
-        });
+      const { id } = req.params; // User ID from params
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+      // Fetch the user's wallet history with pagination
+      const walletHistory = await UserWalletHistory.find({ user_id: id })
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+  
+      // Fetch total count for pagination
+      const totalRecords = await UserWalletHistory.countDocuments({ user_id: id });
+  
+      // Fetch the user's current wallet balance
+      const user = await User.findById(id).select('wallet');
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Wallet history fetched successfully',
+        data: {
+          currentBalance: user.wallet,
+          walletHistory,
+        },
+        pagination: {
+          totalRecords,
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalRecords / parseInt(limit)),
+        },
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  };
 
 module.exports = {
     getUsers,

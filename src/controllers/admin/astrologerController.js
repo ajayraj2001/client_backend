@@ -653,14 +653,20 @@ const generatePassword = (dob, aadharNumber) => {
 
 const getWalletHistory = async (req, res, next) => {
   try {
-    const {id} = req.params; // User ID from middleware
+    const { id } = req.params; // Astrologer ID from params
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch the user's wallet history
-    const walletHistory = await AstrologerWalletHistory.find({ id })
-      .sort({ timestamp: -1 }); // Sort by latest first
+    // Fetch the user's wallet history with pagination
+    const walletHistory = await AstrologerWalletHistory.find({ astrologer_id: id })
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
+    // Fetch total count for pagination
+    const totalRecords = await AstrologerWalletHistory.countDocuments({ astrologer_id: id });
 
-    // Fetch the user's current wallet balance from the User model (if stored separately)
+    // Fetch the user's current wallet balance
     const astrologer = await Astrologer.findById(id).select('wallet');
 
     return res.status(200).json({
@@ -670,11 +676,17 @@ const getWalletHistory = async (req, res, next) => {
         currentBalance: astrologer.wallet,
         walletHistory,
       },
+      pagination: {
+        totalRecords,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalRecords / parseInt(limit)),
+      },
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 module.exports = {
   createAstrologer,
