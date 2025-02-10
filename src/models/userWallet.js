@@ -3,10 +3,11 @@ const Schema = mongoose.Schema;
 
 const userWalletHistorySchema = new Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    call_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CallChatHistory', required: true },
+    // call_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CallChatHistory', required: true },
+    call_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CallChatHistory', default: null }, // Always included, default null
     transaction_type: { type: String, enum: ['debit', 'credit'], required: true },
     amount: { type: Number, required: true },
-    call_type: { type: String, enum: ['chat', 'voice', 'video'] }, // Added call_type
+    call_type: { type: String, enum: ['chat', 'voice', 'video', ''], default: '' },
     description: { type: String, required: true }, // e.g., "Recharge", "Chat with Astrologer John"
     
     razorpay_order_id: { type: String }, // Razorpay order ID
