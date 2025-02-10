@@ -9,7 +9,7 @@ const authenticateAstrologer = async (req, res, next) => {
 
     const legit = verifyAccessToken(token);
     const astrologer = await Astrologer.findById(legit.id);
-    if (admin) {
+    if (astrologer) {
       req.astrologer = astrologer;
       req.token = token;
       return next();
