@@ -654,17 +654,32 @@ const generatePassword = (dob, aadharNumber) => {
 const getWalletHistory = async (req, res, next) => {
   try {
     const { id } = req.params; // Astrologer ID from params
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, startDate, endDate } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch the user's wallet history with pagination
-    const walletHistory = await AstrologerWalletHistory.find({ astrologer_id: id })
+    // Construct date filter
+    let dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter.timestamp = {
+        ...(startDate ? { $gte: new Date(startDate) } : {}),
+        ...(endDate ? { $lte: new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)) } : {}),
+      };
+    }
+
+    // Fetch the user's wallet history with pagination and date filter
+    const walletHistory = await AstrologerWalletHistory.find({
+      astrologer_id: id,
+      ...dateFilter,
+    })
       .sort({ timestamp: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Fetch total count for pagination
-    const totalRecords = await AstrologerWalletHistory.countDocuments({ astrologer_id: id });
+    const totalRecords = await AstrologerWalletHistory.countDocuments({
+      astrologer_id: id,
+      ...dateFilter,
+    });
 
     // Fetch the user's current wallet balance
     const astrologer = await Astrologer.findById(id).select('wallet');
@@ -673,7 +688,7 @@ const getWalletHistory = async (req, res, next) => {
       success: true,
       message: 'Wallet history fetched successfully',
       data: {
-        currentBalance: astrologer.wallet,
+        currentBalance: astrologer?.wallet || 0, // Handle case where astrologer not found
         walletHistory,
       },
       pagination: {
