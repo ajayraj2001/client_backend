@@ -104,7 +104,10 @@ const addRatingAndReview = async (req, res, next) => {
         // Calculate new average rating
         const totalRating = astrologer.rating * astrologer.total_reviews + rating;
         const totalReviews = astrologer.total_reviews + 1;
-        const newAverageRating = totalRating / totalReviews;
+        let newAverageRating = totalRating / totalReviews;
+
+        // Round to one decimal place (e.g., 4.45 -> 4.4, 4.49 -> 4.4)
+        newAverageRating = Math.floor(newAverageRating * 10) / 10;
 
         // Update the astrologer
         astrologer.rating = newAverageRating;
