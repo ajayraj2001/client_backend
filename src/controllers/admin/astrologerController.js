@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const { ApiError } = require('../../errorHandler');
-const { Astrologer, BankAccountRequest, AstrologerSignupRequest, AstrologerWalletHistory } = require('../../models');
+const { Astrologer, BankAccountRequest, AstrologerSignupRequest, AstrologerWalletHistory, Rating } = require('../../models');
 
 const { sendLoginCredentials, notifyAstrologer } = require('../../utils/sendEmail')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
