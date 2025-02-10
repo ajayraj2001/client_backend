@@ -15,6 +15,7 @@ const {
   getSignupRequestDetails,
   approveAstrologerSignup,
   getWalletHistory,
+  getAstrologerReviews,
 } = require("../../controllers/admin/astrologerController");
 
 router.post('/', authenticateAdmin, createAstrologer);
@@ -29,5 +30,6 @@ router.post('/getSignupRequests', authenticateAdmin, getSignupRequests);
 router.post('/getSignupRequestDetails/:requestId', authenticateAdmin, getSignupRequestDetails);
 router.post('/approveAstrologerSignup', authenticateAdmin, approveAstrologerSignup);
 router.get('/getWalletHistory/:id', authenticateAdmin, getWalletHistory);
+router.get("/getReviews/:id", authenticateAdmin, getAstrologerReviews);
 
 module.exports = router;

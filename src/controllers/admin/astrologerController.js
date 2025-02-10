@@ -687,6 +687,39 @@ const getWalletHistory = async (req, res, next) => {
   }
 };
 
+const getAstrologerReviews = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = 10; // 10 reviews per page
+
+        // Fetch paginated reviews for the astrologer
+        const reviews = await Rating.find({ astrologer_id: id })
+            .sort({ _id: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .populate('user_id', 'name email profile_img');
+
+        // Get total number of reviews for pagination metadata
+        const totalReviews = await Rating.countDocuments({ astrologer_id: id });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Astrologer reviews fetched successfully',
+            data: {
+                reviews,
+                pagination: {
+                    currentPage: page,
+                    totalPages: Math.ceil(totalReviews / limit),
+                    totalReviews,
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
   createAstrologer,
@@ -701,4 +734,5 @@ module.exports = {
   getSignupRequestDetails,
   approveAstrologerSignup,
   getWalletHistory,
+  getAstrologerReviews,
 };
