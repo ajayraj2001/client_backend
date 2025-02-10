@@ -265,7 +265,7 @@ const updateAstrologerProfile = async (req, res, next) => {
     }
 
     try {
-      const { id } =  req.astrologer._id; // Astrologer ID from the request
+      const  id =  req.astrologer._id; // Astrologer ID from the request
 
       const updateData = req.body;
 
@@ -340,7 +340,7 @@ const updateAstrologerProfile = async (req, res, next) => {
 // Get Astrologer Profile
 const getAstrologerProfile = async (req, res, next) => {
   try {
-    const { id } = req.astrologer._id; // Astrologer ID from the request
+    const  id  = req.astrologer._id; // Astrologer ID from the request
 
     // Fetch the astrologer's profile with populated languages and skills
     const astrologer = await Astrologer.findById(id)
