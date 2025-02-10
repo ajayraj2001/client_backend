@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { User } = require('../../models');
+const { User, UserWalletHistory } = require('../../models');
 
 const getUsers = async (req, res, next) => {
     try {
@@ -30,7 +30,7 @@ const getUsers = async (req, res, next) => {
         if (startDate || endDate) {
             searchQuery.$and.push({
                 created_at: {
-                    $gte: startDate || new Date(0), 
+                    $gte: startDate || new Date(0),
                     $lte: endDate ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)) : new Date()
                 }
             });
@@ -61,29 +61,58 @@ const getUsers = async (req, res, next) => {
 };
 
 const updateUserStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
 
-    // Validate status
-    if (!['Active', 'Inactive'].includes(status)) {
-      throw new ApiError('Invalid status', 400);
+        // Validate status
+        if (!['Active', 'Inactive'].includes(status)) {
+            throw new ApiError('Invalid status', 400);
+        }
+
+        // Find and update the astrologer status
+        const user = await User.findByIdAndUpdate(id, { status }, { new: true });
+
+        if (!user) {
+            throw new ApiError('User not found', 404);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'User status updated successfully'
+        });
+    } catch (error) {
+        next(error);
     }
-
-    // Find and update the astrologer status
-    const user = await User.findByIdAndUpdate(id, { status }, { new: true });
-
-    if (!user) {
-      throw new ApiError('User not found', 404);
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'User status updated successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
-module.exports = { getUsers,updateUserStatus }
+const getWalletHistory = async (req, res, next) => {
+    try {
+        const { id } = req.params; // User ID from middleware
+
+        // Fetch the user's wallet history
+        const walletHistory = await UserWalletHistory.find({ id })
+            .sort({ timestamp: -1 }); // Sort by latest first
+
+
+        // Fetch the user's current wallet balance from the User model (if stored separately)
+        const user = await User.findById(id).select('wallet');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Wallet history fetched successfully',
+            data: {
+                currentBalance: user.wallet,
+                walletHistory,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    getUsers,
+    updateUserStatus,
+    getWalletHistory
+}

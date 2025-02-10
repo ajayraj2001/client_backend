@@ -14,6 +14,7 @@ const skillRoutes = require("./adminRoutes/skillRoute");
 const pujaRoutes = require("./adminRoutes/pujaRoute");
 const categoryRoutes = require("./adminRoutes/categoryRoute");
 const productRoutes = require("./adminRoutes/productRoute");
+const transactionRoutes = require("./adminRoutes/transactionRoute");
 
 // Use the routes
 adminRoute.use("/auth", authRoutes);
@@ -26,5 +27,6 @@ adminRoute.use('/skills', skillRoutes);
 adminRoute.use('/category', categoryRoutes);
 adminRoute.use('/product', productRoutes);
 adminRoute.use('/puja', pujaRoutes);
+adminRoute.use('/transaction', transactionRoutes);
 
 module.exports = adminRoute;

@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const { ApiError } = require('../../errorHandler');
-const { Astrologer, BankAccountRequest, AstrologerSignupRequest } = require('../../models');
+const { Astrologer, BankAccountRequest, AstrologerSignupRequest, AstrologerWalletHistory } = require('../../models');
 
 const { sendLoginCredentials, notifyAstrologer } = require('../../utils/sendEmail')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares'); // Import the updated Multer function
@@ -424,35 +424,6 @@ const updateAstrologerStatus = async (req, res, next) => {
   }
 };
 
-// const getAllRequests = async (req, res, next) => {
-//   try {
-//     // Get the status filter from query parameters (optional)
-//     const { status } = req.query;
-
-//     // Define the filter object
-//     const filter = {};
-//     if (status) {
-//       // Validate the status
-//       if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
-//         throw new ApiError('Invalid status. Status must be "Pending", "Approved", or "Rejected"', 400);
-//       }
-//       filter.status = status; // Add status to the filter
-//     }
-
-//     // Fetch all requests (filtered by status if provided)
-//     const requests = await BankAccountRequest.find(filter).populate('astrologer_id', 'name email number').sort({_id:-1});
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Bank account requests fetched successfully',
-//       requests,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-
 //bank approval requests
 const getAllRequests = async (req, res, next) => {
   try {
@@ -680,6 +651,31 @@ const generatePassword = (dob, aadharNumber) => {
   return password;
 };
 
+const getWalletHistory = async (req, res, next) => {
+  try {
+    const {id} = req.params; // User ID from middleware
+
+    // Fetch the user's wallet history
+    const walletHistory = await AstrologerWalletHistory.find({ id })
+      .sort({ timestamp: -1 }); // Sort by latest first
+
+
+    // Fetch the user's current wallet balance from the User model (if stored separately)
+    const astrologer = await Astrologer.findById(id).select('wallet');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Wallet history fetched successfully',
+      data: {
+        currentBalance: astrologer.wallet,
+        walletHistory,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAstrologer,
   updateAstrologer,
@@ -692,4 +688,5 @@ module.exports = {
   getSignupRequests,
   getSignupRequestDetails,
   approveAstrologerSignup,
+  getWalletHistory,
 };
