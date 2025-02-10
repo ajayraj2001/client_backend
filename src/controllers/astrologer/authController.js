@@ -336,7 +336,6 @@ const updateAstrologerProfile = async (req, res, next) => {
   });
 };
 
-
 // Get Astrologer Profile
 const getAstrologerProfile = async (req, res, next) => {
   try {
