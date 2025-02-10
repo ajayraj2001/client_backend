@@ -28,6 +28,6 @@ router.put('/bank_request_status', authenticateAdmin, approveOrRejectRequest);
 router.post('/getSignupRequests', authenticateAdmin, getSignupRequests);
 router.post('/getSignupRequestDetails/:requestId', authenticateAdmin, getSignupRequestDetails);
 router.post('/approveAstrologerSignup', authenticateAdmin, approveAstrologerSignup);
-router.post('/getWalletHistory/:id', authenticateAdmin, getWalletHistory);
+router.get('/getWalletHistory/:id', authenticateAdmin, getWalletHistory);
 
 module.exports = router;
