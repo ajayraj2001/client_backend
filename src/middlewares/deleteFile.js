@@ -10,7 +10,6 @@ const BASE_PATH = path.resolve(__dirname, '../..'); // Go up two levels from src
  * @returns {Promise<void>} A promise that resolves when the file is deleted.
  */
 const deleteFile = (filePath) => {
-  console.log('filePath:', filePath); // Log the provided file path
 
   return new Promise((resolve, reject) => {
     if (!filePath) return resolve(); // If no file path is provided, resolve without error.
@@ -18,8 +17,6 @@ const deleteFile = (filePath) => {
     // Normalize the path to ensure compatibility across different operating systems
     const normalizedFilePath = filePath.startsWith('/') ? filePath.slice(1) : filePath; // Remove leading slash
     const fullPath = path.join(BASE_PATH, 'public', normalizedFilePath); // Construct the full path based on the base path
-
-    console.log('fullPath:', fullPath); // Log the constructed full path
 
     fs.access(fullPath, fs.constants.F_OK, (err) => {
       if (err) {
