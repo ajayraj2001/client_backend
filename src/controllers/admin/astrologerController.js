@@ -222,6 +222,7 @@ const updateAstrologer = async (req, res, next) => {
 
       // Delete old files if new files were uploaded
       if (req.files?.profile_img && astrologer.profile_img) {
+        console.log('req.files',astrologer.profile_img)
         await deleteFile(astrologer.profile_img);
       }
       if (req.files?.aadhar_card_img && astrologer.aadhar_card_img) {
