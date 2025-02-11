@@ -63,7 +63,7 @@ const createAstrologer = async (req, res, next) => {
       if (existingAstrologer) {
         if (existingAstrologer.email === email) {
           return res.status(400).json({ success: false, message: "Astrologer with this email already exists" });
-        } 
+        }
         if (existingAstrologer.number === number) {
           return res.status(400).json({ success: false, message: "Astrologer with this number already exists" });
         }
@@ -157,6 +157,7 @@ const createAstrologer = async (req, res, next) => {
 // Update Astrologer
 const updateAstrologer = async (req, res, next) => {
   uploadAstrologerFiles(req, res, async (err) => {
+    console.log("Multer middleware triggered for updateAstrologer");
     if (err) {
       console.error('Multer Error:', err);
       return next(new ApiError(err.message, 400));
@@ -168,6 +169,11 @@ const updateAstrologer = async (req, res, next) => {
       const { id } = req.params;
       const { email, number } = req.body;
       const updateData = req.body;
+
+      const astroExist = await Astrologer.findById(id);
+      if (!astroExist) {
+        throw new ApiError('Asrtollger not found', 404);
+      }
 
       // Check if another astrologer with the same email or number exists
       const existingAstrologer = await Astrologer.findOne({
@@ -201,8 +207,6 @@ const updateAstrologer = async (req, res, next) => {
         updateData.profile_img = profileImgPath;
       }
       if (req.files?.aadhar_card_img) {
-        console.log('ajay raj',req.files)
-        console.log('ajay index 0 ',req.files.aadhar_card_img[0])
         aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
         updateData.aadhar_card_img = aadharImgPath;
       }
@@ -221,15 +225,14 @@ const updateAstrologer = async (req, res, next) => {
       }
 
       // Delete old files if new files were uploaded
-      if (req.files?.profile_img && astrologer.profile_img) {
-        console.log('req.files',astrologer.profile_img)
-        await deleteFile(astrologer.profile_img);
+      if (req.files?.profile_img && astroExist.profile_img) {
+        await deleteFile(astroExist.profile_img);
       }
-      if (req.files?.aadhar_card_img && astrologer.aadhar_card_img) {
-        await deleteFile(astrologer.aadhar_card_img);
+      if (req.files?.aadhar_card_img && astroExist.aadhar_card_img) {
+        await deleteFile(astroExist.aadhar_card_img);
       }
-      if (req.files?.pan_card_img && astrologer.pan_card_img) {
-        await deleteFile(astrologer.pan_card_img);
+      if (req.files?.pan_card_img && astroExist.pan_card_img) {
+        await deleteFile(astroExist.pan_card_img);
       }
 
       // Exclude password from the response
@@ -263,8 +266,8 @@ const deleteAstrologer = async (req, res, next) => {
     const astrologer = await Astrologer.findByIdAndDelete(id);
 
 
-    console.log('astrolger_raha',astrologer)
-    console.log('tur or false ',!astrologer)
+    console.log('astrolger_raha', astrologer)
+    console.log('tur or false ', !astrologer)
     if (!astrologer) {
       console.log('why tus hapoaneing')
       throw new ApiError('Astrologer not found', 404);
@@ -706,36 +709,36 @@ const getWalletHistory = async (req, res, next) => {
 };
 
 const getAstrologerReviews = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const page = parseInt(req.query.page) || 1; // Default to page 1
-        const limit = 10; // 10 reviews per page
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 10; // 10 reviews per page
 
-        // Fetch paginated reviews for the astrologer
-        const reviews = await Rating.find({ astrologer_id: id })
-            .sort({ _id: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .populate('user_id', 'name email profile_img');
+    // Fetch paginated reviews for the astrologer
+    const reviews = await Rating.find({ astrologer_id: id })
+      .sort({ _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('user_id', 'name email profile_img');
 
-        // Get total number of reviews for pagination metadata
-        const totalReviews = await Rating.countDocuments({ astrologer_id: id });
+    // Get total number of reviews for pagination metadata
+    const totalReviews = await Rating.countDocuments({ astrologer_id: id });
 
-        return res.status(200).json({
-            success: true,
-            message: 'Astrologer reviews fetched successfully',
-            data: {
-                reviews,
-                pagination: {
-                    currentPage: page,
-                    totalPages: Math.ceil(totalReviews / limit),
-                    totalReviews,
-                },
-            },
-        });
-    } catch (error) {
-        next(error);
-    }
+    return res.status(200).json({
+      success: true,
+      message: 'Astrologer reviews fetched successfully',
+      data: {
+        reviews,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalReviews / limit),
+          totalReviews,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 
