@@ -719,7 +719,7 @@ const getAstrologerReviews = async (req, res, next) => {
       .sort({ _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('user_id', 'name email profile_img');
+      .populate('user_id', 'name number profile_img');
 
     // Get total number of reviews for pagination metadata
     const totalReviews = await Rating.countDocuments({ astrologer_id: id });
