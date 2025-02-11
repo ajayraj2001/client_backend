@@ -82,8 +82,6 @@ const createAstrologer = async (req, res, next) => {
         profileImgPath = `/astro_profile_images/${req.files.profile_img[0].filename}`;
       }
       if (req.files?.aadhar_card_img) {
-        console.log('ajay raj',req.files)
-        console.log('ajay index 0 ',req.files.aadhar_card_img[0])
         aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
       }
       if (req.files?.pan_card_img) {
@@ -203,6 +201,8 @@ const updateAstrologer = async (req, res, next) => {
         updateData.profile_img = profileImgPath;
       }
       if (req.files?.aadhar_card_img) {
+        console.log('ajay raj',req.files)
+        console.log('ajay index 0 ',req.files.aadhar_card_img[0])
         aadharImgPath = `/aadhar_images/${req.files.aadhar_card_img[0].filename}`;
         updateData.aadhar_card_img = aadharImgPath;
       }
