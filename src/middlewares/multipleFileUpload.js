@@ -61,9 +61,10 @@ function getMultipleFilesUploader(fieldConfigs, mimetypes) {
       // Get the destination folder for the current file field
       const fieldConfig = fieldConfigs.find((config) => config.name === file.fieldname);
       const destinationFolder = fieldConfig ? `public/${fieldConfig.folder}` : 'public/uploads';
-
+      console.log('destinationFolder', destinationFolder)
       // Create the folder if it doesn't exist
       if (!fs.existsSync(destinationFolder)) {
+        console.log('folder doesnot exist')
         fs.mkdirSync(destinationFolder, { recursive: true });
       }
 
