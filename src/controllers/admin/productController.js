@@ -92,7 +92,7 @@ const updateProduct = async (req, res, next) => {
         actualPrice: actualPrice || existingProduct.actualPrice,
         img: productImagePaths.length > 0 ? productImagePaths : existingProduct.img,
         status: status || existingProduct.status,
-        details: details ? JSON.parse(details) : existingPuja.details, // New key
+        details: details ? JSON.parse(details) : existingProduct.details, // New key
       };
 
       const product = await Product.findByIdAndUpdate(id, updateData, { new: true })
