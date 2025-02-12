@@ -5,6 +5,7 @@ const { authenticateAdmin } = require("../middlewares");
 
 // Import the separate route files
 const authRoutes = require("./adminRoutes/authRoute");
+const roleRoutes = require("./adminRoutes/roleRoute");
 const astrologerRoutes = require("./adminRoutes/astrologerRoute");
 const userRoutes = require("./adminRoutes/userRoute");
 const blogRoutes = require("./adminRoutes/blogRoute");
@@ -20,6 +21,7 @@ const siteSettingRoutes = require("./adminRoutes/siteSettingRoute");
 
 // Use the routes
 adminRoute.use("/auth", authRoutes);
+adminRoute.use("/role", roleRoutes);
 adminRoute.use('/astrologers', astrologerRoutes);
 adminRoute.use('/users', userRoutes);
 adminRoute.use("/blogs", blogRoutes); 

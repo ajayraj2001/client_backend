@@ -146,7 +146,12 @@ const updatePuja = async (req, res, next) => {
               optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : existingPuja.optionalProducts,
           };
 
-          const puja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
+          const puja = await Puja.findByIdAndUpdate(
+            id, 
+            updateData, 
+            { new: true }
+        ).populate('compulsoryProducts', 'name')
+         .populate('optionalProducts', 'name');
 
           if (!puja) {
               throw new ApiError('Error updating puja', 500);

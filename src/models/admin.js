@@ -10,7 +10,13 @@ const adminSchema = new mongoose.Schema(
     otp: { type: String, default: null },
     otp_expiry: { type: Date, default: getCurrentIST }, // Set OTP expiry in IST
     profile_image: { type: String, default: null },
-    success: { type: Boolean, default: true },
+    role: { type: String, enum: ['admin', 'subadmin'], required: true }, // Role-based access
+    status: {
+      type: String,
+      enum: ['Active', 'Inactive'],
+      default: 'Inactive',
+    },
+    access_tabs: [{ type: String }], // Tabs that the user has access to
     created_at: {
       type: Date,
       default: getCurrentIST, // Use custom function for IST
