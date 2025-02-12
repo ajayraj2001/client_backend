@@ -153,7 +153,6 @@ const createAstrologer = async (req, res, next) => {
   });
 };
 
-
 // Update Astrologer
 const updateAstrologer = async (req, res, next) => {
   uploadAstrologerFiles(req, res, async (err) => {
@@ -530,7 +529,6 @@ const approveOrRejectRequest = async (req, res, next) => {
   }
 };
 
-
 //signup approval request
 const getSignupRequests = async (req, res, next) => {
   try {
@@ -740,7 +738,6 @@ const getAstrologerReviews = async (req, res, next) => {
     next(error);
   }
 };
-
 
 module.exports = {
   createAstrologer,
