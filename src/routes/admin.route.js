@@ -15,8 +15,7 @@ const pujaRoutes = require("./adminRoutes/pujaRoute");
 const categoryRoutes = require("./adminRoutes/categoryRoute");
 const productRoutes = require("./adminRoutes/productRoute");
 const transactionRoutes = require("./adminRoutes/transactionRoute");
-const callHistoryRoutes = require("./adminRoutes/callHistoryRoutes");
-const transactionRoutes = require("./adminRoutes/transactionRoute");
+const callHistoryRoutes = require("./adminRoutes/callHistoryRoute");
 
 // Use the routes
 adminRoute.use("/auth", authRoutes);
