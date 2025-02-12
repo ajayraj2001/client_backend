@@ -36,7 +36,7 @@ const login = async (req, res, next) => {
         } else {
             // If user does not exist, check if an OTP document already exists for this number
             let otpDoc = await Otp.findOne({ number });
-            
+
             // Generate a new OTP
             const otp = Math.floor(1000 + Math.random() * 9000).toString();
 

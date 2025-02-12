@@ -16,6 +16,7 @@ const categoryRoutes = require("./adminRoutes/categoryRoute");
 const productRoutes = require("./adminRoutes/productRoute");
 const transactionRoutes = require("./adminRoutes/transactionRoute");
 const callHistoryRoutes = require("./adminRoutes/callHistoryRoute");
+const siteSettingRoutes = require("./adminRoutes/siteSettingRoute");
 
 // Use the routes
 adminRoute.use("/auth", authRoutes);
@@ -30,5 +31,6 @@ adminRoute.use('/product', productRoutes);
 adminRoute.use('/puja', pujaRoutes);
 adminRoute.use('/callHistory', callHistoryRoutes);
 adminRoute.use('/transaction', transactionRoutes);
+adminRoute.use('/siteSetting', siteSettingRoutes );
 
 module.exports = adminRoute;
