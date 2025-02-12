@@ -65,10 +65,15 @@ const createPuja = async (req, res, next) => {
 
           await puja.save();
 
+          const populatedPuja = await Puja.findById(id)
+          .populate('compulsoryProducts', 'name')
+          .populate('optionalProducts', 'name');
+        
+
           return res.status(201).json({
               success: true,
               message: 'Puja created successfully',
-              data: puja,
+              data: populatedPuja,
           });
 
       } catch (error) {
