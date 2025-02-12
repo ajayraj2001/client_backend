@@ -18,6 +18,10 @@ const login = async (req, res, next) => {
         const admin = await Admin.findOne({ email: email });
         if (!admin) throw new ApiError('Invalid credentials', 403);
 
+        if (admin.status === 'Inactive') {
+            throw new ApiError('Your Account is Inactive, Contact to Admin', 403);
+        }
+
         const match = await bcrypt.compare(password, admin.password);
         if (!match) throw new ApiError('Invalid credentials', 403);
 
@@ -58,6 +62,10 @@ const changePassword = async (req, res, next) => {
             throw new ApiError('Admin not found', 404);
         }
 
+        if (admin.status === 'Inactive') {
+            throw new ApiError('Your Account is Inactive, Contact to Admin', 403);
+        }
+
         // Compare oldPassword with the current password
         const isMatch = await bcrypt.compare(oldPassword, admin.password);
         if (!isMatch) {
@@ -87,14 +95,13 @@ const forgotPassword = async (req, res, next) => {
         const { email } = req.body;
         if (!email) throw new ApiError('Email is required', 400);
 
-        // Find the admin by either phone or email
-        // const admin = await Admin.findOne({
-        //   $or: [{ phone: phone_or_email }, { email: phone_or_email }],
-        // });
-
         const admin = await Admin.findOne({ email: email });
 
         if (!admin) throw new ApiError('Admin not found with this email', 404);
+
+        if (admin.status === 'Inactive') {
+            throw new ApiError('Your Account is Inactive, Contact to Admin', 403);
+        }
 
         const otp = getOtp();
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);

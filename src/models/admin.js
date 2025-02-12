@@ -3,7 +3,6 @@ const { getCurrentIST } = require('../utils/timeUtils');
 
 const adminSchema = new mongoose.Schema(
   {
-    phone: { type: String, trim: true, required: true, unique: true },
     email: { type: String, trim: true, required: true, unique: true },
     name: { type: String, trim: true, default: '' },
     password: { type: String, required: true },

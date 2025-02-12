@@ -10,12 +10,11 @@ module.exports = scripts;
 async function createFirstAdmin() {
   const result = await Admin.findOne();
   if (result) return;
-  const salt = await bcrypt.genSalt(10);
+  // const salt = await bcrypt.genSalt(10);
   // console.log('salt is here', salt)
   const hashedPassword = await bcrypt.hash('Password@1', 10);
 
   const admin = new Admin({
-    phone: '8851780462',
     email: 'admin@gmail.com',
     name: 'Admin',
     role: 'admin',
