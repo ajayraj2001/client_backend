@@ -15,6 +15,8 @@ const createSubAdmin = async (req, res, next) => {
             return next(new ApiError(err.message, 400));
         }
 
+        let profileImgPath = '';
+
         try {
             const { email, name, password, access_tabs, status } = req.body;
 
@@ -27,7 +29,6 @@ const createSubAdmin = async (req, res, next) => {
             // Hash password before saving
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            let profileImgPath = '';
             if (req.file) {
                 profileImgPath = `/admin_profiles/${req.file.filename}`;
             }
@@ -39,7 +40,7 @@ const createSubAdmin = async (req, res, next) => {
                 password: hashedPassword,
                 profile_image: profileImgPath,
                 role: 'subadmin',
-                access_tabs,
+                access_tabs: access_tabs ? JSON.parse(access_tabs) : [],
                 created_at: getCurrentIST(),
                 updated_at: getCurrentIST()
             });
@@ -95,6 +96,10 @@ const updateSubAdmin = async (req, res, next) => {
             if (req.file) {
                 profileImgPath = `/admin_profiles/${req.file.filename}`;
                 updates.profile_image = profileImgPath
+            }
+
+            if (updates.access_tabs) {
+                updates.access_tabs = JSON.parse(updates.access_tabs);
             }
 
             const updatedSubadmin = await Admin.findByIdAndUpdate(id, updates, { new: true });

@@ -7,7 +7,7 @@ const callHistory = async (req, res, next) => {
     const { startDate, endDate, userSearch, astroSearch, page = 1, limit = 10 } = req.query;
 
     const query = {};
-    if (startDate || endDate) {
+    if (startDate && endDate) {
       query.created_at = {
         ...(startDate && { $gte: new Date(startDate) }),
         ...(endDate && { $lte: new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)) })
