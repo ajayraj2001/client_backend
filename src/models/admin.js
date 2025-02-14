@@ -1,6 +1,15 @@
 const mongoose = require('mongoose');
 const { getCurrentIST } = require('../utils/timeUtils'); 
 
+const submenuSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+}, { _id: false });
+
+const accessTabSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  submenu: [submenuSchema],
+}, { _id: false });
+
 const adminSchema = new mongoose.Schema(
   {
     email: { type: String, trim: true, required: true, unique: true },
@@ -15,7 +24,7 @@ const adminSchema = new mongoose.Schema(
       enum: ['Active', 'Inactive'],
       default: 'Inactive',
     },
-    access_tabs: [{ type: String }], // Tabs that the user has access to
+    access_tabs: [accessTabSchema], // Tabs that the user has access to
     created_at: {
       type: Date,
       default: getCurrentIST, // Use custom function for IST
@@ -32,3 +41,4 @@ const adminSchema = new mongoose.Schema(
 
 const Admin = mongoose.model('Admin', adminSchema);
 module.exports = Admin;
+
