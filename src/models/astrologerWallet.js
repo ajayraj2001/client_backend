@@ -5,6 +5,7 @@ const astrologerWalletHistorySchema = new Schema({
     astrologer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Astrologer', required: true },
     call_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CallChatHistory', required: true },
     transaction_type: { type: String, enum: ['debit', 'credit'], required: true },
+    is_free_call: { type: Boolean, default: false },
     amount: { type: Number, required: true },
     call_type: { type: String, enum: ['chat', 'voice', 'video'] }, // Added call_type
     description: { type: String, required: true }, // e.g., "Withdrawal", "Earnings from Chat"

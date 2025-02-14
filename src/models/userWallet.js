@@ -7,6 +7,7 @@ const userWalletHistorySchema = new Schema({
     call_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CallChatHistory', default: null }, // Always included, default null
     transaction_type: { type: String, enum: ['debit', 'credit'], required: true },
     amount: { type: Number, required: true },
+    is_free_call: { type: Boolean, default: false },
     call_type: { type: String, enum: ['chat', 'voice', 'video', ''], default: '' },
     description: { type: String, required: true }, // e.g., "Recharge", "Chat with Astrologer John"
     

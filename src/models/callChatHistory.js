@@ -5,6 +5,9 @@ const callChatHistorySchema = new Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     astrologer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Astrologer', required: true },
     call_type: { type: String, enum: ['chat', 'voice', 'video'], required: true },
+    // New fields for free calls
+    is_free_call: { type: Boolean, default: false },
+
     created_at: { type: Date, default: () => new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000) }, // IST (when call is initiated)
     start_time: { type: Date }, // IST (when astrologer accepts the call)
     end_time: { type: Date }, // IST (when call ends)

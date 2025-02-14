@@ -1,16 +1,9 @@
+// Constants and configurations
 const CONSTANTS = {
-  FREE_CALL_PER_MIN: 1,
-  FREE_CALL_LIMIT: 2,
+  FREE_CALL_PER_MIN: 1
 };
 
 const { User, Astrologer, LiveStream, ChatMessage, CallChatHistory, AdminCommissionHistory, AstrologerWalletHistory, UserWalletHistory } = require('./src/models');
-// const redis = require('redis');
-// const { promisify } = require('util');
-
-// Redis client for caching
-// const redisClient = redis.createClient();
-// const getAsync = promisify(redisClient.get).bind(redisClient);
-// const setAsync = promisify(redisClient.set).bind(redisClient);
 
 const initializeSocket = (server) => {
   const io = require('socket.io')(server, {
@@ -35,21 +28,21 @@ const initializeSocket = (server) => {
       const { user_id, astrologer_id, call_type } = data;
 
       try {
-        // Fetch user and astrologer data in parallel
+
+        // Get user and astrologer data
         const [user, astrologer] = await Promise.all([
-          User.findById(user_id).select('busy call_type wallet free_calls_used_today last_free_call_reset').lean(),
-          Astrologer.findById(astrologer_id).select('busy call_type is_chat_online is_voice_online is_video_online commission per_min_chat per_min_voice_call per_min_video_call').lean(),
+          User.findById(user_id),
+          Astrologer.findById(astrologer_id)
         ]);
 
-        // Check if astrologer is online and not busy
-        if (astrologer.busy || astrologer[`is_${call_type}_online`] === 'off') {
+        // Check if astrologer is online for the call type
+        if (astrologer[`is_${call_type}_online`] === 'off' || astrologer.busy) {
           socket.emit('call_rejected', {
-            message: astrologer.busy ? 'Astrologer is busy' : 'Astrologer is offline',
+            message: astrologer.busy ? 'Astrologer is busy' : 'Astrologer is offline'
           });
           return;
         }
 
-        // Check if user is busy
         if (user.busy) {
           socket.emit('call_rejected', { message: 'You are already in a call' });
           return;
@@ -59,11 +52,11 @@ const initializeSocket = (server) => {
         if (isNewDay(user.last_free_call_reset)) {
           user.free_calls_used_today = 0;
           user.last_free_call_reset = new Date();
-          await User.updateOne({ _id: user_id }, { $set: { free_calls_used_today: 0, last_free_call_reset: new Date() } });
+          await user.save();
         }
 
         // Check if user has free calls remaining
-        const isFreeCall = user.free_calls_used_today < CONSTANTS.FREE_CALL_LIMIT;
+        const isFreeCall = user.free_calls_used_today < 2; // Allow 2 free calls per day
 
         if (!isFreeCall) {
           // Check wallet balance for paid call
@@ -75,38 +68,52 @@ const initializeSocket = (server) => {
           }
         }
 
+        // Check if user has at least 2 minutes of balance
+        const rate = astrologer[`per_min_${call_type}`];
+        const minBalance = rate * 2; // 2 minutes balance
+        if (user.wallet < minBalance) {
+          socket.emit('call_rejected', { message: 'Insufficient balance for a 2-minute call' });
+          return;
+        }
+
         // Create call history entry
         const callHistory = new CallChatHistory({
           user_id,
           astrologer_id,
           call_type,
           status: 'call_initiate',
-          is_free: isFreeCall,
+          is_free_call: isFreeCall,
         });
         await callHistory.save();
 
         // Mark user and astrologer as busy
-        await Promise.all([
-          User.updateOne({ _id: user_id }, { $set: { busy: true, call_type } }),
-          Astrologer.updateOne({ _id: astrologer_id }, { $set: { busy: true, call_type } }),
-        ]);
+        user.busy = true;
+        user.call_type = call_type;
+        astrologer.busy = true;
+        astrologer.call_type = call_type;
+        await user.save();
+        await astrologer.save();
 
         // Add to active calls
         activeCalls.set(socket.id, { user_id, astrologer_id, callHistory });
 
-        // Notify astrologer via FCM (offload to background worker)
+        // Notify astrologer via FCM
         sendFCMNotification(astrologer.deviceToken, { title: 'Incoming Call', body: 'You have an incoming call' });
 
         // Start auto-cut timer (2 minutes)
         const autoCutTimer = setTimeout(async () => {
           socket.emit('call_auto_cut', { message: 'Call auto-cut due to no response' });
-          await CallChatHistory.updateOne({ _id: callHistory._id }, { $set: { status: 'auto_cut', end_time: getCurrentIST() } });
+          callHistory.status = 'auto_cut';
+          callHistory.end_time = getCurrentIST(); // IST
+          await callHistory.save();
 
           // Mark user and astrologer as free
-          await Promise.all([
-            User.updateOne({ _id: user_id }, { $set: { busy: false, call_type: '' } }),
-            Astrologer.updateOne({ _id: astrologer_id }, { $set: { busy: false, call_type: '' } }),
-          ]);
+          user.busy = false;
+          user.call_type = '';
+          astrologer.busy = false;
+          astrologer.call_type = '';
+          await user.save();
+          await astrologer.save();
 
           // Remove from active calls
           activeCalls.delete(socket.id);
@@ -117,11 +124,14 @@ const initializeSocket = (server) => {
           clearTimeout(autoCutTimer);
 
           // Update call history with start time
-          await CallChatHistory.updateOne({ _id: callHistory._id }, { $set: { status: 'accept_astro', start_time: getCurrentIST() } });
+          callHistory.status = 'accept_astro';
+          callHistory.start_time = getCurrentIST();
+          await callHistory.save();
 
           // Increment free call count only if the call is accepted
           if (isFreeCall) {
-            await User.updateOne({ _id: user_id }, { $inc: { free_calls_used_today: 1 } });
+            user.free_calls_used_today += 1;
+            await user.save();
           }
 
           // Start call duration timer
@@ -129,11 +139,13 @@ const initializeSocket = (server) => {
           socket.on('end_call', async (endedBy) => {
             const endTime = Date.now();
             const duration = Math.ceil((endTime - startTime) / 1000); // in seconds
+            // const cost = Math.ceil(duration / 60) * rate; // per-minute billing
             const cost = isFreeCall ? 0 : Math.ceil(duration / 60) * rate; // per-minute billing
 
             // Deduct user's wallet if not a free call
             if (!isFreeCall) {
-              await User.updateOne({ _id: user_id }, { $inc: { wallet: -cost } });
+              user.wallet -= cost;
+              await user.save();
             }
 
             // Calculate astrologer's commission and admin's share
@@ -141,28 +153,28 @@ const initializeSocket = (server) => {
             const adminCommission = isFreeCall ? 0 : cost - astrologerCommission;
 
             // Credit astrologer's wallet
-            await Astrologer.updateOne({ _id: astrologer_id }, { $inc: { wallet: astrologerCommission } });
+            astrologer.wallet += astrologerCommission;
+            await astrologer.save();
 
             // Update call history
-            await CallChatHistory.updateOne({ _id: callHistory._id }, {
-              $set: {
-                status: endedBy === 'user' ? 'end_user' : 'end_astro',
-                end_time: getCurrentIST(),
-                duration,
-                cost,
-                astro_cut: astrologerCommission,
-                admin_cut: adminCommission,
-              },
-            });
+            callHistory.status = endedBy === 'user' ? 'end_user' : 'end_astro'; // Who ended the call
+            callHistory.end_time = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000); // IST
+            callHistory.duration = duration;
+            callHistory.cost = cost;
+            callHistory.astro_cut = astrologerCommission;
+            callHistory.admin_cut = adminCommission;
+            await callHistory.save();
 
-            // Save to wallet histories (offload to background worker)
+            // Save to wallet histories
             await updateWalletHistories(callHistory._id, user_id, astrologer_id, cost, astrologerCommission, adminCommission, call_type, isFreeCall);
 
             // Mark user and astrologer as free
-            await Promise.all([
-              User.updateOne({ _id: user_id }, { $set: { busy: false, call_type: '' } }),
-              Astrologer.updateOne({ _id: astrologer_id }, { $set: { busy: false, call_type: '' } }),
-            ]);
+            user.busy = false;
+            user.call_type = '';
+            astrologer.busy = false;
+            astrologer.call_type = '';
+            await user.save();
+            await astrologer.save();
 
             // Remove from active calls
             activeCalls.delete(socket.id);
