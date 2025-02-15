@@ -32,6 +32,7 @@ const initializeSocket = (server) => {
 
     // Handle call initiation
     socket.on('initiate_call', async (data) => {
+      console.log("sunmit emitting initiane call", data)
       const { user_id, astrologer_id, call_type } = data;
 
       try {

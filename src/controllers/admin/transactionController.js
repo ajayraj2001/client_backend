@@ -4,7 +4,7 @@ const { CallChatHistory, Astrologer, User, UserWalletHistory } = require('../../
 // Admin API to get all recharge transactions with filters and pagination
 const getUserRecharge = async (req, res, next) => {
   try {
-    const { startDate, endDate, number, page = 1, limit = 10 } = req.query;
+    const { startDate, endDate, search, page = 1, limit = 10 } = req.query;
     
     const query = {
       transaction_type: 'credit',
@@ -17,8 +17,8 @@ const getUserRecharge = async (req, res, next) => {
       $lte: endDate ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)) : new Date(),
     };
 
-    if (number) {
-      const users = await User.find({ number: number }).select('_id');
+    if (search) {
+      const users = await User.find({ number: search }).select('_id');
       if (users.length > 0) {
         query.user_id = { $in: users.map(user => user._id) };
       }
