@@ -56,11 +56,11 @@ const callHistory = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Call history fetched successfully',
-      data: callHistory,
-      pagination: {
+      data: {
+        callHistory,
         total,
         page: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        limit
       },
     });
   } catch (error) {
