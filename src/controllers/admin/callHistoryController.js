@@ -17,10 +17,10 @@ const callHistory = async (req, res, next) => {
     if (userSearch) {
       const users = await User.find({ 
         $or: [
-          { name: { $regex: userSearch, $options: 'i' } }, 
-          { number: userSearch }
+          { name: { $regex: userSearch, $options: 'i' } },  
+          { number: { $regex: userSearch, $options: 'i' } }  // Apply regex to number too
         ] 
-      }).select('_id');
+      }).select('_id');      
 
       if (users.length > 0) {
         query.user_id = { $in: users.map(user => user._id) };
@@ -33,7 +33,7 @@ const callHistory = async (req, res, next) => {
         $or: [
           { name: { $regex: astroSearch, $options: 'i' } }, 
           { email: { $regex: astroSearch, $options: 'i' } }, 
-          { number: astroSearch }
+          { number: {$regex: astroSearch, $options: 'i' } }
         ] 
       }).select('_id');
 

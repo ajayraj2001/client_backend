@@ -3,10 +3,14 @@ const { Astrologer, Rating } = require('../../models');
 
 const getActiveAstrologers = async (req, res, next) => {
     try {
-        const { serviceType } = req.query; // 'chat', 'voice', 'video', or undefined for all
+        const { serviceType,search  } = req.query; // 'chat', 'voice', 'video', or undefined for all
 
         let query = { status: 'Active' };
         let sortCriteria = {};
+
+        if (search) {
+            query.name = { $regex: search, $options: 'i' };
+        }
 
         // Adjust query based on service type
         if (serviceType === 'chat') {

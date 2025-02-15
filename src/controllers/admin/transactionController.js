@@ -18,7 +18,13 @@ const getUserRecharge = async (req, res, next) => {
     };
 
     if (search) {
-      const users = await User.find({ number: search }).select('_id');
+      const users = await User.find({ 
+        $or: [
+          { name: { $regex: search, $options: 'i' } }, 
+          { number: { $regex: search, $options: 'i' } }  // Apply regex to number too
+        ] 
+      }).select('_id');
+
       if (users.length > 0) {
         query.user_id = { $in: users.map(user => user._id) };
       }
