@@ -34,7 +34,9 @@ const initializeSocket = (server) => {
     socket.on('initiate_call', async (data) => {
       console.log("sunmit emitting initiane call", data)
       const { user_id, astrologer_id, call_type } = data;
-
+      console.log('userid', user_id)
+      console.log('astrologer_id', astrologer_id)
+      console.log('call_type', call_type)
       try {
         // Fetch user and astrologer data in parallel
         const [user, astrologer] = await Promise.all([
