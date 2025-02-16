@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Admin, AdminCommissionHistory, User, AstrologerWalletHistory, UserWalletHistory } = require('../../models');
+const { Admin, AdminCommissionHistory, User, AstrologerWalletHistory, UserWalletHistory, CallChatHistory } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getOtp } = require('../../utils');
@@ -416,64 +416,64 @@ const getAdminDashboardChartData = async (req, res, next) => {
     }
 };
 
-const getAdminDashboardExtendedStats = async (req, res, next) => {
-    try {
-        const { type = 'today' } = req.query;
-        let  callRevenue, totalCalls, pujaRevenue, pujaUnits, productRevenue, productUnits;
-        let astrologerEarnings, astrologerTotal, userRecharges, userRechargeTotal;
+// const getAdminDashboardExtendedStats = async (req, res, next) => {
+//     try {
+//         const { type = 'today' } = req.query;
+//         let  callRevenue, totalCalls, pujaRevenue, pujaUnits, productRevenue, productUnits;
+//         let astrologerEarnings, astrologerTotal, userRecharges, userRechargeTotal;
 
-        const startDate = type === 'today' ? new Date().setUTCHours(0, 0, 0, 0) : null;
-        const endDate = type === 'today' ? new Date().setUTCHours(23, 59, 59, 999) : null;
+//         const startDate = type === 'today' ? new Date().setUTCHours(0, 0, 0, 0) : null;
+//         const endDate = type === 'today' ? new Date().setUTCHours(23, 59, 59, 999) : null;
 
-        const matchQuery = type === 'today' ? { timestamp: { $gte: startDate, $lte: endDate } } : {};
+//         const matchQuery = type === 'today' ? { timestamp: { $gte: startDate, $lte: endDate } } : {};
 
-        const callStats = await AdminCommissionHistory.aggregate([
-            { $match: matchQuery },
-            { $group: { _id: null, totalRevenue: { $sum: "$amount" }, totalCalls: { $sum: 1 } } }
-        ]);
+//         const callStats = await AdminCommissionHistory.aggregate([
+//             { $match: matchQuery },
+//             { $group: { _id: null, totalRevenue: { $sum: "$amount" }, totalCalls: { $sum: 1 } } }
+//         ]);
 
-        callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
-        totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
+//         callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
+//         totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
 
-        pujaRevenue = 2000;
-        pujaUnits = 200;
-        productRevenue = 45000;
-        productUnits = 1500;
+//         pujaRevenue = 2000;
+//         pujaUnits = 200;
+//         productRevenue = 45000;
+//         productUnits = 1500;
 
-        const astroStats = await AstrologerWalletHistory.aggregate([
-            { $match: { ...matchQuery, transaction_type: 'credit' } },
-            { $group: { _id: null, totalEarnings: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
-        ]);
+//         const astroStats = await AstrologerWalletHistory.aggregate([
+//             { $match: { ...matchQuery, transaction_type: 'credit' } },
+//             { $group: { _id: null, totalEarnings: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
+//         ]);
 
-        astrologerEarnings = astroStats.length > 0 ? astroStats[0].totalEarnings : 0;
-        astrologerTotal = astroStats.length > 0 ? astroStats[0].totalTransactions : 0;
+//         astrologerEarnings = astroStats.length > 0 ? astroStats[0].totalEarnings : 0;
+//         astrologerTotal = astroStats.length > 0 ? astroStats[0].totalTransactions : 0;
 
-        const userRechargeStats = await UserWalletHistory.aggregate([
-            { $match: { ...matchQuery, transaction_type: 'credit', status: 'success' } },
-            { $group: { _id: null, totalRecharges: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
-        ]);
+//         const userRechargeStats = await UserWalletHistory.aggregate([
+//             { $match: { ...matchQuery, transaction_type: 'credit', status: 'success' } },
+//             { $group: { _id: null, totalRecharges: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
+//         ]);
 
-        userRecharges = userRechargeStats.length > 0 ? userRechargeStats[0].totalRecharges : 0;
-        userRechargeTotal = userRechargeStats.length > 0 ? userRechargeStats[0].totalTransactions : 0;
+//         userRecharges = userRechargeStats.length > 0 ? userRechargeStats[0].totalRecharges : 0;
+//         userRechargeTotal = userRechargeStats.length > 0 ? userRechargeStats[0].totalTransactions : 0;
 
-        const totalRevenue = callRevenue + pujaRevenue + productRevenue;
+//         const totalRevenue = callRevenue + pujaRevenue + productRevenue;
 
-        return res.status(200).json({
-            success: true,
-            message: 'Extended admin dashboard stats fetched successfully',
-            data: {
-                call: { revenue: callRevenue, total: totalCalls },
-                puja: { revenue: pujaRevenue, total: pujaUnits },
-                product: { revenue: productRevenue, total: productUnits },
-                astrologerEarnings: { revenue: astrologerEarnings, total: astrologerTotal },
-                userRecharges: { revenue: userRecharges, total: userRechargeTotal },
-                totalRevenue: { revenue: totalRevenue, total: totalCalls + pujaUnits + productUnits },
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+//         return res.status(200).json({
+//             success: true,
+//             message: 'Extended admin dashboard stats fetched successfully',
+//             data: {
+//                 call: { revenue: callRevenue, total: totalCalls },
+//                 puja: { revenue: pujaRevenue, total: pujaUnits },
+//                 product: { revenue: productRevenue, total: productUnits },
+//                 astrologerEarnings: { revenue: astrologerEarnings, total: astrologerTotal },
+//                 userRecharges: { revenue: userRecharges, total: userRechargeTotal },
+//                 totalRevenue: { revenue: totalRevenue, total: totalCalls + pujaUnits + productUnits },
+//             }
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 
 module.exports = {
     login,
@@ -483,5 +483,4 @@ module.exports = {
     resetPassword,
     verifyOtp,
     getAdminDashboardStats,
-    getAdminDashboardExtendedStats
 };
