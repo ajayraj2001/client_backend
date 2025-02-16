@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Admin, AdminCommissionHistory, User } = require('../../models');
+const { Admin, AdminCommissionHistory, User, AstrologerWalletHistory, UserWalletHistory } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getOtp } = require('../../utils');
@@ -440,7 +440,7 @@ const getAdminDashboardExtendedStats = async (req, res, next) => {
         productRevenue = 45000;
         productUnits = 1500;
 
-        const astroStats = await AstrologerWallet.aggregate([
+        const astroStats = await AstrologerWalletHistory.aggregate([
             { $match: { ...matchQuery, transaction_type: 'credit' } },
             { $group: { _id: null, totalEarnings: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
         ]);
@@ -448,7 +448,7 @@ const getAdminDashboardExtendedStats = async (req, res, next) => {
         astrologerEarnings = astroStats.length > 0 ? astroStats[0].totalEarnings : 0;
         astrologerTotal = astroStats.length > 0 ? astroStats[0].totalTransactions : 0;
 
-        const userRechargeStats = await UserWallet.aggregate([
+        const userRechargeStats = await UserWalletHistory.aggregate([
             { $match: { ...matchQuery, transaction_type: 'credit', status: 'success' } },
             { $group: { _id: null, totalRecharges: { $sum: "$amount" }, totalTransactions: { $sum: 1 } } }
         ]);
@@ -474,10 +474,6 @@ const getAdminDashboardExtendedStats = async (req, res, next) => {
         next(error);
     }
 };
-
-
-
-
 
 module.exports = {
     login,
