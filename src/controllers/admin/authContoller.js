@@ -214,6 +214,9 @@ const getAdminDashboardStats = async (req, res, next) => {
             const todayIST = moment().startOf('day'); // Starting from 00:00 AM IST
             const tomorrowIST = moment(todayIST).add(1, 'day'); // Tomorrow's start of the day
 
+            console.log('today',todayIST)
+            console.log('tomorrowIST',tomorrowIST)
+
             // Fetch today's user count
             userCount = await User.countDocuments({
                 created_at: { $gte: todayIST.toDate(), $lt: tomorrowIST.toDate() }
