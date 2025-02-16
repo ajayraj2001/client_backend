@@ -315,36 +315,38 @@ const moment = require('moment');
 
 const getAdminDashboardChartData = async (req, res, next) => {
     try {
-        const { type = 'overall', timePeriod = 'this_week' } = req.query;
+        const { type = 'call', timePeriod = 'this_month' } = req.query;
 
-        let startDate, endDate;
+        let startDate, endDate, isYearly = false;
 
         const now = moment().utc(); // Current time in UTC
 
         switch (timePeriod) {
             case 'this_week':
-                startDate = now.startOf('isoWeek').toDate(); // Monday of this week
-                endDate = now.endOf('isoWeek').toDate(); // Sunday of this week
+                startDate = now.clone().startOf('isoWeek').toDate();
+                endDate = now.clone().endOf('isoWeek').toDate();
                 break;
             case 'last_week':
-                startDate = now.subtract(1, 'weeks').startOf('isoWeek').toDate();
-                endDate = now.endOf('isoWeek').toDate();
+                startDate = now.clone().subtract(1, 'weeks').startOf('isoWeek').toDate();
+                endDate = now.clone().subtract(1, 'weeks').endOf('isoWeek').toDate();
                 break;
             case 'this_month':
-                startDate = now.startOf('month').toDate(); // 1st of this month
-                endDate = now.endOf('month').toDate();
+                startDate = now.clone().startOf('month').toDate();
+                endDate = now.clone().endOf('month').toDate();
                 break;
             case 'last_month':
-                startDate = now.subtract(1, 'months').startOf('month').toDate();
-                endDate = now.endOf('month').toDate();
+                startDate = now.clone().subtract(1, 'months').startOf('month').toDate();
+                endDate = now.clone().subtract(1, 'months').endOf('month').toDate();
                 break;
             case 'this_year':
-                startDate = now.startOf('year').toDate(); // Jan 1st
-                endDate = now.endOf('year').toDate();
+                startDate = now.clone().startOf('year').toDate();
+                endDate = now.clone().endOf('year').toDate();
+                isYearly = true;
                 break;
             case 'last_year':
-                startDate = now.subtract(1, 'years').startOf('year').toDate();
-                endDate = now.endOf('year').toDate();
+                startDate = now.clone().subtract(1, 'years').startOf('year').toDate();
+                endDate = now.clone().subtract(1, 'years').endOf('year').toDate();
+                isYearly = true;
                 break;
             default:
                 return res.status(400).json({
@@ -363,27 +365,43 @@ const getAdminDashboardChartData = async (req, res, next) => {
         let responseData = {
             revenueBreakdown: {},
             totalRevenue: 0,
-            dailyRevenue: [],
+            revenueData: [],
         };
 
-        // Generate all dates in the range with revenue 0 initially
         let dateMap = {};
-        let currentDate = moment(startDate);
-        while (currentDate.isSameOrBefore(endDate, 'day')) {
-            dateMap[currentDate.format('YYYY-MM-DD')] = {
-                date: currentDate.format('YYYY-MM-DD'),
-                day: currentDate.format('dddd'),
-                revenue: 0,
-            };
-            currentDate.add(1, 'day');
+        
+        if (isYearly) {
+            // If it's yearly, initialize data month-wise
+            for (let i = 0; i < 12; i++) {
+                let month = moment().month(i).format('MMMM'); // January, February, etc.
+                dateMap[month] = {
+                    month: month,
+                    revenue: 0,
+                };
+            }
+        } else {
+            // If it's weekly or monthly, initialize data day-wise
+            let currentDate = moment(startDate);
+            while (currentDate.isBefore(moment(endDate), 'day')) {
+                dateMap[currentDate.format('YYYY-MM-DD')] = {
+                    date: currentDate.format('YYYY-MM-DD'),
+                    day: currentDate.format('dddd'),
+                    revenue: 0,
+                };
+                currentDate.add(1, 'day');
+            }
         }
 
         const aggregateData = async (collection, key) => {
+            const groupBy = isYearly
+                ? { format: '%Y-%m', date: '$timestamp' } // Group by Month (YYYY-MM)
+                : { format: '%Y-%m-%d', date: '$timestamp' }; // Group by Day (YYYY-MM-DD)
+
             const data = await collection.aggregate([
                 { $match: matchQuery },
                 {
                     $group: {
-                        _id: { date: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } } },
+                        _id: { timestamp: { $dateToString: groupBy } },
                         totalRevenue: { $sum: '$amount' },
                     },
                 },
@@ -391,8 +409,15 @@ const getAdminDashboardChartData = async (req, res, next) => {
             ]);
 
             data.forEach((item) => {
-                if (dateMap[item._id.date]) {
-                    dateMap[item._id.date].revenue += item.totalRevenue;
+                if (isYearly) {
+                    let month = moment(item._id.date, 'YYYY-MM').format('MMMM');
+                    if (dateMap[month]) {
+                        dateMap[month].revenue += item.totalRevenue;
+                    }
+                } else {
+                    if (dateMap[item._id.date]) {
+                        dateMap[item._id.date].revenue += item.totalRevenue;
+                    }
                 }
             });
 
@@ -404,7 +429,7 @@ const getAdminDashboardChartData = async (req, res, next) => {
         if (type === 'overall' || type === 'puja') await aggregateData(PujaBookings, 'puja');
         if (type === 'overall' || type === 'product') await aggregateData(Orders, 'product');
 
-        responseData.dailyRevenue = Object.values(dateMap);
+        responseData.revenueData = Object.values(dateMap);
 
         return res.status(200).json({
             success: true,
@@ -415,6 +440,7 @@ const getAdminDashboardChartData = async (req, res, next) => {
         next(error);
     }
 };
+
 
 // const getAdminDashboardExtendedStats = async (req, res, next) => {
 //     try {
@@ -483,4 +509,5 @@ module.exports = {
     resetPassword,
     verifyOtp,
     getAdminDashboardStats,
+    getAdminDashboardChartData,
 };
