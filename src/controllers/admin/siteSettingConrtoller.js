@@ -35,10 +35,12 @@ const createSiteSettingData = async (req, res, next) => {
       } else {
         throw new ApiError('Invalid type. Use "user" or "astro".', 400);
       }
-
+      
       let settings = await settingsModel.findOne();
       let updatedData = { ...req.body };
-
+      
+      console.log('updqted', updatedData.anroid)
+      console.log('updqted', updatedData.anroid)
       // Convert boolean fields correctly
       if (updatedData?.android) {
         updatedData.android.mandatory_update = parseBoolean(updatedData.android.mandatory_update);
@@ -71,14 +73,6 @@ const createSiteSettingData = async (req, res, next) => {
       } else if (settings?.ios?.maintenance_image) {
         // Keep existing image if no new one is uploaded
         updatedData.ios = { ...updatedData.ios, maintenance_image: settings.ios.maintenance_image };
-      }
-
-
-      // Remove extra fields for Astro type (astro shouldn't have `refer_amount`, etc.)
-      if (type === 'astro') {
-        delete updatedData.refer_amount;
-        delete updatedData.sign_up_bonus;
-        delete updatedData.bonus_text;
       }
 
       // Update or create settings
