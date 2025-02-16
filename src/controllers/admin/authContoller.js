@@ -246,8 +246,8 @@ const getAdminDashboardStats = async (req, res, next) => {
             // Static data for puja and product revenue
             pujaRevenue = 2000; // Static puja revenue for today
             pujaUnits = 200;    // Static puja units for today
-            productRevenue = 4500780; // Static product revenue for today
-            productUnits = 150; // Static product units for today
+            productRevenue = 45000; // Static product revenue for today
+            productUnits = 1500; // Static product units for today
         } else if (type === 'total') {
             // Fetch total user count
             userCount = await User.countDocuments();
@@ -269,8 +269,8 @@ const getAdminDashboardStats = async (req, res, next) => {
             // Static data for puja and product revenue
             pujaRevenue = 2000; // Static puja revenue
             pujaUnits = 200;    // Static puja units
-            productRevenue = 4500780; // Static product revenue
-            productUnits = 150; // Static product units
+            productRevenue = 45000; // Static product revenue
+            productUnits = 1500; // Static product units
         } else {
             return res.status(400).json({
                 success: false,
