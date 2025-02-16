@@ -8,6 +8,7 @@ const {
   resetPassword,
   getProfile,
   changePassword,
+  getAdminDashboardStats
 } = require("../../controllers/admin/authContoller");
 
 // User authentication routes
@@ -17,5 +18,6 @@ router.post("/verify_otp", verifyOtp);
 router.post("/reset_password", resetPassword);
 router.get("/profile", authenticateAdmin, getProfile);
 router.put("/change_password", authenticateAdmin, changePassword);
+router.get("/getAdminDashboardStats", authenticateAdmin, getAdminDashboardStats);
 
 module.exports = router;
