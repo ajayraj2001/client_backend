@@ -1,14 +1,17 @@
 const express = require('express');
 const { ApiError } = require('../../errorHandler');
 const { UserSetting, AstroSetting } = require('../../models');
-const { getFileUploader, deleteFile } = require('../../middlewares');
+const { getMultipleFilesUploader, deleteFile } = require('../../middlewares');
 
-// Multer setup for maintenance image uploads
-const uploadMaintenanceImage = getFileUploader('maintenance_image', 'site_settings');
+// Multer setup for multiple maintenance image uploads
+const uploadMaintenanceImages = getMultipleFilesUploader([
+  { name: 'android_maintenance_image', folder: 'site_settings', maxCount: 1 },
+  { name: 'ios_maintenance_image', folder: 'site_settings', maxCount: 1 },
+]);
 
 // Create or Update Site Settings
 const createSiteSettingData = async (req, res, next) => {
-  uploadMaintenanceImage(req, res, async (err) => {
+  uploadMaintenanceImages(req, res, async (err) => {
     if (err) {
       console.error('Multer Error:', err);
       return next(new ApiError(err.message, 400));
@@ -29,22 +32,30 @@ const createSiteSettingData = async (req, res, next) => {
       let settings = await settingsModel.findOne();
       let updatedData = { ...req.body };
 
-      // If a new image is uploaded, update it; otherwise, retain the existing one
-      if (req.file) {
-        const newImagePath = `/site_settings/${req.file.filename}`;
-
-        // Delete the old image if it exists
-        if (settings && settings[type]?.maintenance_image) {
-          await deleteFile(settings[type].maintenance_image);
+      // Handle Android maintenance image upload
+      if (req.files?.android_maintenance_image) {
+        const newAndroidImgPath = `/site_settings/${req.files.android_maintenance_image[0].filename}`;
+        if (settings?.[type]?.android?.android_maintenance_image) {
+          await deleteFile(settings[type].android.android_maintenance_image);
         }
-
-        // Assign the new image path
-        updatedData[`${type}.maintenance_image`] = newImagePath;
+        updatedData[`${type}.android.maintenance_image`] = newAndroidImgPath;
       } else if (settings) {
-        // Retain the old image if no new file is uploaded
-        updatedData[`${type}.maintenance_image`] = settings[type]?.maintenance_image || '';
+        updatedData[`${type}.android.maintenance_image`] = settings[type]?.android?.android_maintenance_image || '';
       }
 
+      // Handle iOS maintenance image upload
+      if (req.files?.ios_maintenance_image) {
+        const newIosImgPath = `/site_settings/${req.files.ios_maintenance_image[0].filename}`;
+        if (settings?.[type]?.ios?.ios_maintenance_image) {
+          await deleteFile(settings[type].ios.ios_maintenance_image);
+        }
+        updatedData[`${type}.ios.maintenance_image`] = newIosImgPath;
+      } else if (settings) {
+        updatedData[`${type}.ios.maintenance_image`] = settings[type]?.ios?.ios_maintenance_image || '';
+      }
+
+
+      console.log('updatedData',updatedData)
       // Update or create settings
       if (settings) {
         settings = await settingsModel.findOneAndUpdate({}, updatedData, { new: true });
