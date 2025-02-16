@@ -1,5 +1,5 @@
 {
-  "name": "live_aarti",
+  "name": "astrosetu",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -12,12 +12,8 @@
     "type": "git",
     "url": "git+https://github.com/rajat-kumar-dev/LiveAarti.git"
   },
-  "author": "Rajat Kumar",
+  "author": "Ajay Raj",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rajat-kumar-dev/LiveAarti/issues"
-  },
-  "homepage": "https://github.com/rajat-kumar-dev/LiveAarti#readme",
   "dependencies": {
     "@google-cloud/translate": "^8.1.0",
     "axios": "^1.5.1",
