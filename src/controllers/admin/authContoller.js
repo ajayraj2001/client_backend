@@ -1,4 +1,3 @@
-const moment = require('moment-timezone');
 const { ApiError } = require('../../errorHandler');
 const { Admin, AdminCommissionHistory, User } = require('../../models');
 const bcrypt = require('bcrypt');
@@ -205,31 +204,31 @@ const verifyOtp = async (req, res, next) => {
 const getAdminDashboardStats = async (req, res, next) => {
     try {
         const { type = 'today' } = req.query; // 'today' or 'total' passed in the query
-
         let userCount, callRevenue, totalCalls, pujaRevenue, pujaUnits, productRevenue, productUnits;
 
+
         if (type === 'today') {
-            // Get the current date in IST (Indian Standard Time)
-            const todayIST = moment().tz('Asia/Kolkata').startOf('day'); // Starting from 00:00 AM IST
-            const tomorrowIST = moment(todayIST).add(1, 'day'); // Tomorrow's start of the day in IST
+            // Get the current date (start of the day)
+            const startDate = new Date().setUTCHours(0, 0, 0, 0);;
+            const endDate = new Date().setUTCHours(23, 59, 59, 999);
 
-            // Convert to UTC
-            const todayUTC = todayIST.utc();
-            const tomorrowUTC = tomorrowIST.utc();
-
-            console.log('Today UTC:', todayUTC.format());
-            console.log('Tomorrow UTC:', tomorrowUTC.format());
-
+            const query = {
+                created_at: {
+                    $gte: startDate, // Start of today
+                    $lte: endDate    // End of today
+                }
+            };
             // Fetch today's user count
-            userCount = await User.countDocuments({
-                created_at: { $gte: todayUTC.toDate(), $lt: tomorrowUTC.toDate() }
-            });
+            userCount = await User.countDocuments(query);
 
             // Fetch today's call revenue and call count from AdminCommission
             const callStats = await AdminCommissionHistory.aggregate([
                 {
                     $match: {
-                        timestamp: { $gte: todayUTC.toDate(), $lt: tomorrowUTC.toDate() }
+                        timestamp: {
+                            $gte: startDate,
+                            $lte: endDate
+                        }
                     }
                 },
                 {
@@ -254,7 +253,7 @@ const getAdminDashboardStats = async (req, res, next) => {
             userCount = await User.countDocuments();
 
             // Fetch total call revenue and call count from AdminCommission
-            const callStats = await AdminCommissionHistory.aggregate([
+            const callStats = await AdminCommission.aggregate([
                 {
                     $group: {
                         _id: null,
@@ -311,6 +310,7 @@ const getAdminDashboardStats = async (req, res, next) => {
         next(error);
     }
 };
+
 
 
 module.exports = { login, changePassword, forgotPassword, getProfile, resetPassword, verifyOtp, getAdminDashboardStats };
