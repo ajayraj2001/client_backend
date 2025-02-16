@@ -253,7 +253,7 @@ const getAdminDashboardStats = async (req, res, next) => {
             userCount = await User.countDocuments();
 
             // Fetch total call revenue and call count from AdminCommission
-            const callStats = await AdminCommission.aggregate([
+            const callStats = await AdminCommissionHistory.aggregate([
                 {
                     $group: {
                         _id: null,
