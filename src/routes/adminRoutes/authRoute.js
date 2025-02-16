@@ -8,7 +8,7 @@ const {
   resetPassword,
   getProfile,
   changePassword,
-  getAdminDashboardStats
+  getAdminDashboardStats,
 } = require("../../controllers/admin/authContoller");
 
 // User authentication routes
