@@ -27,9 +27,9 @@ const createSiteSettingData = async (req, res, next) => {
       }
 
       let settings = await settingsModel.findOne();
-      let updatedData = req.body;
+      let updatedData = { ...req.body };
 
-      // Handle maintenance image upload
+      // If a new image is uploaded, update it; otherwise, retain the existing one
       if (req.file) {
         const newImagePath = `/site_settings/${req.file.filename}`;
 
@@ -39,12 +39,13 @@ const createSiteSettingData = async (req, res, next) => {
         }
 
         // Assign the new image path
-        updatedData = {
-          ...req.body,
-          [`${type}.maintenance_image`]: newImagePath,
-        };
+        updatedData[`${type}.maintenance_image`] = newImagePath;
+      } else if (settings) {
+        // Retain the old image if no new file is uploaded
+        updatedData[`${type}.maintenance_image`] = settings[type]?.maintenance_image || '';
       }
 
+      // Update or create settings
       if (settings) {
         settings = await settingsModel.findOneAndUpdate({}, updatedData, { new: true });
       } else {
@@ -77,10 +78,8 @@ const getSiteSettingData = async (req, res, next) => {
       throw new ApiError('Invalid type. Use "user" or "astro".', 400);
     }
 
-    const settings = await settingsModel.findOne();
-    if (!settings) {
-      throw new ApiError(`No settings found for ${type}`, 404);
-    }
+      // Fetch settings; if none exist, return an empty object
+    const settings = await settingsModel.findOne() || {};
 
     return res.status(200).json({
       success: true,
@@ -93,6 +92,6 @@ const getSiteSettingData = async (req, res, next) => {
 };
 
 module.exports = {
-    createSiteSettingData,
-    getSiteSettingData
+  createSiteSettingData,
+  getSiteSettingData
 };
