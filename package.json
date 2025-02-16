@@ -8,10 +8,6 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rajat-kumar-dev/LiveAarti.git"
-  },
   "author": "Ajay Raj",
   "license": "ISC",
   "dependencies": {
