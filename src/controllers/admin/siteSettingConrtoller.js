@@ -3,11 +3,18 @@ const { ApiError } = require('../../errorHandler');
 const { UserSetting, AstroSetting } = require('../../models');
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares');
 
-// Multer setup for multiple maintenance image uploads
+// Multer setup for maintenance image uploads
 const uploadMaintenanceImages = getMultipleFilesUploader([
   { name: 'android_maintenance_image', folder: 'site_settings', maxCount: 1 },
   { name: 'ios_maintenance_image', folder: 'site_settings', maxCount: 1 },
 ]);
+
+// Utility function to parse boolean values correctly
+const parseBoolean = (value) => {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return value; // Keep the original value if not "true" or "false"
+};
 
 // Create or Update Site Settings
 const createSiteSettingData = async (req, res, next) => {
@@ -32,30 +39,48 @@ const createSiteSettingData = async (req, res, next) => {
       let settings = await settingsModel.findOne();
       let updatedData = { ...req.body };
 
+      // Convert boolean fields correctly
+      if (updatedData?.android) {
+        updatedData.android.mandatory_update = parseBoolean(updatedData.android.mandatory_update);
+        updatedData.android.maintenance_status = parseBoolean(updatedData.android.maintenance_status);
+      }
+      if (updatedData?.ios) {
+        updatedData.ios.mandatory_update = parseBoolean(updatedData.ios.mandatory_update);
+        updatedData.ios.maintenance_status = parseBoolean(updatedData.ios.maintenance_status);
+      }
+
       // Handle Android maintenance image upload
       if (req.files?.android_maintenance_image) {
         const newAndroidImgPath = `/site_settings/${req.files.android_maintenance_image[0].filename}`;
-        if (settings?.[type]?.android?.android_maintenance_image) {
-          await deleteFile(settings[type].android.android_maintenance_image);
+        if (settings?.android?.maintenance_image) {
+          await deleteFile(settings.android.maintenance_image);
         }
-        updatedData[`${type}.android.maintenance_image`] = newAndroidImgPath;
-      } else if (settings) {
-        updatedData[`${type}.android.maintenance_image`] = settings[type]?.android?.android_maintenance_image || '';
+        updatedData.android = { ...updatedData.android, maintenance_image: newAndroidImgPath };
+      } else if (settings?.android?.maintenance_image) {
+        // Keep existing image if no new one is uploaded
+        updatedData.android = { ...updatedData.android, maintenance_image: settings.android.maintenance_image };
       }
 
       // Handle iOS maintenance image upload
       if (req.files?.ios_maintenance_image) {
         const newIosImgPath = `/site_settings/${req.files.ios_maintenance_image[0].filename}`;
-        if (settings?.[type]?.ios?.ios_maintenance_image) {
-          await deleteFile(settings[type].ios.ios_maintenance_image);
+        if (settings?.ios?.maintenance_image) {
+          await deleteFile(settings.ios.maintenance_image);
         }
-        updatedData[`${type}.ios.maintenance_image`] = newIosImgPath;
-      } else if (settings) {
-        updatedData[`${type}.ios.maintenance_image`] = settings[type]?.ios?.ios_maintenance_image || '';
+        updatedData.ios = { ...updatedData.ios, maintenance_image: newIosImgPath };
+      } else if (settings?.ios?.maintenance_image) {
+        // Keep existing image if no new one is uploaded
+        updatedData.ios = { ...updatedData.ios, maintenance_image: settings.ios.maintenance_image };
       }
 
 
-      console.log('updatedData',updatedData)
+      // Remove extra fields for Astro type (astro shouldn't have `refer_amount`, etc.)
+      if (type === 'astro') {
+        delete updatedData.refer_amount;
+        delete updatedData.sign_up_bonus;
+        delete updatedData.bonus_text;
+      }
+
       // Update or create settings
       if (settings) {
         settings = await settingsModel.findOneAndUpdate({}, updatedData, { new: true });
@@ -70,7 +95,7 @@ const createSiteSettingData = async (req, res, next) => {
       });
 
     } catch (error) {
-      console.log('err', error)
+      console.log('Error:', error);
       next(error);
     }
   });
@@ -90,7 +115,6 @@ const getSiteSettingData = async (req, res, next) => {
       throw new ApiError('Invalid type. Use "user" or "astro".', 400);
     }
 
-      // Fetch settings; if none exist, return an empty object
     const settings = await settingsModel.findOne() || {};
 
     return res.status(200).json({
