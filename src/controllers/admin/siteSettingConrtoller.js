@@ -70,6 +70,7 @@ const createSiteSettingData = async (req, res, next) => {
       });
 
     } catch (error) {
+      console.log('err', error)
       next(error);
     }
   });
