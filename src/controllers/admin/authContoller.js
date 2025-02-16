@@ -1,5 +1,6 @@
+const moment = require('moment');
 const { ApiError } = require('../../errorHandler');
-const { Admin, AdminCommissionHistory } = require('../../models');
+const { Admin, AdminCommissionHistory, User } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getOtp } = require('../../utils');
@@ -204,75 +205,73 @@ const verifyOtp = async (req, res, next) => {
 // Admin Dashboard API
 const getAdminDashboardStats = async (req, res, next) => {
     try {
-        // Get the current date in IST (Indian Standard Time)
-        const todayIST = moment().startOf('day');  // No need for tz() as timestamps are saved in IST
-        const tomorrowIST = moment(todayIST).add(1, 'day');
+        const { type = 'today' } = req.query; // 'today' or 'total' passed in the query
 
-        // Fetch today's user signups
-        const todayUserCount = await User.countDocuments({
-            created_at: { $gte: todayIST.toDate(), $lt: tomorrowIST.toDate() }
-        });
+        let userCount, callRevenue, totalCalls;
 
-        // Fetch today's call revenue and count from AdminCommission
-        const callStats = await AdminCommission.aggregate([
-            {
-                $match: {
-                    timestamp: { $gte: todayIST.toDate(), $lt: tomorrowIST.toDate() }
+        if (type === 'today') {
+            // Get the current date in IST (Indian Standard Time)
+            const todayIST = moment().startOf('day'); // Starting from 00:00 AM IST
+            const tomorrowIST = moment(todayIST).add(1, 'day'); // Tomorrow's start of the day
+
+            // Fetch today's user count
+            userCount = await User.countDocuments({
+                created_at: { $gte: todayIST.toDate(), $lt: tomorrowIST.toDate() }
+            });
+
+            // Fetch today's call revenue and call count from AdminCommission
+            const callStats = await AdminCommissionHistory.aggregate([
+                {
+                    $match: {
+                        timestamp: { $gte: todayIST.toDate(), $lt: tomorrowIST.toDate() }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: "$amount" },
+                        totalCalls: { $sum: 1 }
+                    }
                 }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: { $sum: "$amount" },
-                    totalCalls: { $sum: 1 }
+            ]);
+
+            callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
+            totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
+        } else if (type === 'total') {
+            // Fetch total user count
+            userCount = await User.countDocuments();
+
+            // Fetch total call revenue and call count from AdminCommission
+            const callStats = await AdminCommission.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: "$amount" },
+                        totalCalls: { $sum: 1 }
+                    }
                 }
-            }
-        ]);
+            ]);
 
-        const callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
-        const totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
-
-        // Handle date range search (startDate and endDate from query params)
-        const { startDate, endDate, page = 1, limit = 10 } = req.query;
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        let searchQuery = {};
-        if (startDate || endDate) {
-            const parsedStartDate = new Date(startDate);
-            const parsedEndDate = endDate ? new Date(endDate) : new Date();
-            searchQuery.$and = [{
-                created_at: {
-                    $gte: parsedStartDate || new Date(0),
-                    $lte: endDate ? new Date(new Date(parsedEndDate).setUTCHours(23, 59, 59, 999)) : new Date()
-                }
-            }];
+            callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
+            totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid query parameter, use "today" or "total" for type.'
+            });
         }
-
-        // Fetch paginated user data based on start and end date range
-        const users = await User.find(searchQuery)
-            .skip(skip)
-            .limit(parseInt(limit));
-
-        // Fetch total records for pagination
-        const totalRecords = await User.countDocuments(searchQuery);
 
         return res.status(200).json({
             success: true,
             message: 'Admin dashboard stats fetched successfully',
             data: {
-                todayUserSignups: todayUserCount,
-                todayCallRevenue: callRevenue,
-                todayTotalCalls: totalCalls,
-                todayPujaRevenue: 5000, // Static for now
-                todayPujaUnits: 10, // Static for now
-                todayProductRevenue: 10000, // Static for now
-                todayProductUnits: 15, // Static for now
-                users,  // Paginated users
-            },
-            pagination: {
-                totalRecords,
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(totalRecords / parseInt(limit)),
+                userCount, // Either today or total user count
+                callRevenue, // Either today or total call revenue
+                totalCalls, // Either today or total calls made
+                todayPujaRevenue: 5000, // Static value for today revenue
+                todayPujaUnits: 10, // Static units for today
+                todayProductRevenue: 10000, // Static value for product revenue
+                todayProductUnits: 15, // Static product units
             }
         });
     } catch (error) {
