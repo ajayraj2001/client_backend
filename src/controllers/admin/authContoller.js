@@ -207,7 +207,7 @@ const getAdminDashboardStats = async (req, res, next) => {
     try {
         const { type = 'today' } = req.query; // 'today' or 'total' passed in the query
 
-        let userCount, callRevenue, totalCalls;
+        let userCount, callRevenue, totalCalls, pujaRevenue, pujaUnits, productRevenue, productUnits;
 
         if (type === 'today') {
             // Get the current date in IST (Indian Standard Time)
@@ -237,6 +237,12 @@ const getAdminDashboardStats = async (req, res, next) => {
 
             callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
             totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
+
+            // Static data for puja and product revenue
+            pujaRevenue = 2000; // Static puja revenue for today
+            pujaUnits = 200;    // Static puja units for today
+            productRevenue = 4500780; // Static product revenue for today
+            productUnits = 150; // Static product units for today
         } else if (type === 'total') {
             // Fetch total user count
             userCount = await User.countDocuments();
@@ -254,6 +260,12 @@ const getAdminDashboardStats = async (req, res, next) => {
 
             callRevenue = callStats.length > 0 ? callStats[0].totalRevenue : 0;
             totalCalls = callStats.length > 0 ? callStats[0].totalCalls : 0;
+
+            // Static data for puja and product revenue
+            pujaRevenue = 2000; // Static puja revenue
+            pujaUnits = 200;    // Static puja units
+            productRevenue = 4500780; // Static product revenue
+            productUnits = 150; // Static product units
         } else {
             return res.status(400).json({
                 success: false,
@@ -261,22 +273,38 @@ const getAdminDashboardStats = async (req, res, next) => {
             });
         }
 
+        // Calculate total revenue (call + puja + product revenue)
+        const totalRevenue = callRevenue + pujaRevenue + productRevenue;
+
         return res.status(200).json({
             success: true,
             message: 'Admin dashboard stats fetched successfully',
             data: {
-                userCount, // Either today or total user count
-                callRevenue, // Either today or total call revenue
-                totalCalls, // Either today or total calls made
-                todayPujaRevenue: 5000, // Static value for today revenue
-                todayPujaUnits: 10, // Static units for today
-                todayProductRevenue: 10000, // Static value for product revenue
-                todayProductUnits: 15, // Static product units
+                call: {
+                    revenue: callRevenue,
+                    total: totalCalls,
+                },
+                puja: {
+                    revenue: pujaRevenue,
+                    total: pujaUnits,
+                },
+                product: {
+                    revenue: productRevenue,
+                    total: productUnits,
+                },
+                totalRevenue: {
+                    revenue: totalRevenue,
+                    total: totalCalls + pujaUnits + productUnits, // Total count for all (calls + puja + products)
+                },
+                user: {
+                    total: userCount,
+                }
             }
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 module.exports = { login, changePassword, forgotPassword, getProfile, resetPassword, verifyOtp, getAdminDashboardStats };
