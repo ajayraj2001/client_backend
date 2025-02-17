@@ -3,6 +3,7 @@ const CONSTANTS = {
   FREE_CALL_LIMIT: 2,
 };
 
+const {sendFCMNotification} = require('./src/utils/sendNotification')
 const { User, Astrologer, LiveStream, ChatMessage, CallChatHistory, AdminCommissionHistory, AstrologerWalletHistory, UserWalletHistory } = require('./src/models');
 // const redis = require('redis');
 // const { promisify } = require('util');
