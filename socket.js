@@ -98,8 +98,19 @@ const initializeSocket = (server) => {
         // Add to active calls
         activeCalls.set(socket.id, { user_id, astrologer_id, callHistory });
 
+        const notificationPayload = {
+          title: 'Incoming Call',
+          body: 'You have an incoming call',
+          call_type: call_type,  // Include the call type
+          user_info: {  // Group user-related info in user_info object
+            name: user.name,  // User's name
+            number: user.number,  // User's phone number
+            profile_img: user.profile_img,  // User's profile image
+          },
+        };
+
         // Notify astrologer via FCM (offload to background worker)
-        sendFCMNotification(astrologer.deviceToken, { title: 'Incoming Call', body: 'You have an incoming call' });
+        sendFCMNotification(astrologer.deviceToken, notificationPayload);
 
         // Start auto-cut timer (2 minutes)
         const autoCutTimer = setTimeout(async () => {
