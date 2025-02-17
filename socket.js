@@ -675,6 +675,7 @@ const initializeSocket = (server) => {
 
     // Handle disconnection
     socket.on('disconnect', async () => {
+      console.log('user is dicscoonnected')
       if (socket.user_type === 'user') {
         userSockets.delete(socket.user_id);
       } else if (socket.user_type === 'astrologer') {
