@@ -18,10 +18,10 @@ if (!admin.apps.length) {
  * @param {object} [data] - Additional data to send with the notification
  * @returns {Promise<object>} - Firebase response
  */
-const sendFCMNotification = async (deviceToken, payload, data = {}) => {
+const sendFCMNotification = async (deviceToken, payload) => {
   try {
     console.log('payload', payload);
-    console.log('data', data);
+    // console.log('data', data);
 
     // Prepare the notification message
     const message = {
@@ -32,8 +32,8 @@ const sendFCMNotification = async (deviceToken, payload, data = {}) => {
       },
       // Include user_info in the data payload
       data: {
-        ...data,  // Spread any additional data
-        call_type: payload.call_type,  // Include call type in data
+        call_id: payload.call_id || '67aa2bd5e588b1080e03a2c9', // Static call ID
+        call_type: payload.call_type || 'chat', // Static call type  // Spread any additional data
         user_info: JSON.stringify(payload.user_info)  // Serialize user_info as JSON
       },
       android: {
@@ -59,20 +59,16 @@ const sendFCMNotification = async (deviceToken, payload, data = {}) => {
   }
 };
 
-// Static call to sendFCMNotification with a predefined payload including user_info
-sendFCMNotification(
-  "edPZCkOmQAG2wXQs1IMcdK:APA91bGLJAb0rzEquictA-9IuG1RrDojKoHxVGFsUa6ldMuYvZOs4kfxUdgC3qcZER4qk2-8AtvzU6xOsjTTFVszf5dKMdmAnQqMhVTnV5FP9gjotLNAAvs",
-  {
-    title: 'Incoming Call',  // Notification title
-    call_type: 'chat',  // Type of the call (chat in this case)
-    body: 'You have an incoming call',  // Message body
-    user_info: {  // Include user-related information
-      name: 'John Doe',  // Example user name
-      number: '+1234567890',  // Example phone number
-      profile_img: 'https://example.com/profile.jpg'  // Example profile image URL
-    }
-  }
-);
-
+// sendFCMNotification('edPZCkOmQAG2wXQs1IMcdK:APA91bGLJAb0rzEquictA-9IuG1RrDojKoHxVGFsUa6ldMuYvZOs4kfxUdgC3qcZER4qk2-8AtvzU6xOsjTTFVszf5dKMdmAnQqMhVTnV5FP9gjotLNAAvs', {
+//   title: 'Incoming Call', // Static title
+//   body: 'You have an incoming call', // Static body
+//   call_id: '67aa2bd5e588b1080e03a2c9', // Static call ID
+//   call_type: 'chat', // Static call type
+//   user_info: { // Static user info
+//     name: 'John Doe',
+//     number: '+1234567890',
+//     profile_img: '/astro_profile_images/1739777163175.jpg',
+//   },
+// });
 
 module.exports = { sendFCMNotification };

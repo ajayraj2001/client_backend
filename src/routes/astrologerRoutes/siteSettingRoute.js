@@ -8,6 +8,6 @@ const {
 
 // Chat routes
 router.get('/appStatusCheck', appStatusCheck);
-router.get('/settingsData', authenticateAstrologer, settingsData);
+router.get('/', authenticateAstrologer, settingsData);
 
 module.exports = router;

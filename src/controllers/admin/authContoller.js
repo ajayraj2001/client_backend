@@ -315,37 +315,37 @@ const moment = require('moment');
 
 const getAdminDashboardChartData = async (req, res, next) => {
     try {
-        const { type = 'call', timePeriod = 'this_month' } = req.query;
+        const { type = 'call', timePeriod = 'this_week' } = req.query;
 
         let startDate, endDate, isYearly = false;
-
-        const now = moment().utc(); // Current time in UTC
+        // Start with local time instead of UTC
+        const now = moment();
 
         switch (timePeriod) {
             case 'this_week':
-                startDate = now.clone().startOf('isoWeek').toDate();
-                endDate = now.clone().endOf('isoWeek').toDate();
+                startDate = now.clone().startOf('isoWeek').startOf('day').toDate();
+                endDate = now.clone().endOf('isoWeek').startOf('day').toDate();
                 break;
             case 'last_week':
-                startDate = now.clone().subtract(1, 'weeks').startOf('isoWeek').toDate();
-                endDate = now.clone().subtract(1, 'weeks').endOf('isoWeek').toDate();
+                startDate = now.clone().subtract(1, 'weeks').startOf('isoWeek').startOf('day').toDate();
+                endDate = now.clone().subtract(1, 'weeks').endOf('isoWeek').startOf('day').toDate();
                 break;
             case 'this_month':
-                startDate = now.clone().startOf('month').toDate();
-                endDate = now.clone().endOf('month').toDate();
+                startDate = now.clone().startOf('month').startOf('day').toDate();
+                endDate = now.clone().endOf('month').startOf('day').toDate();
                 break;
             case 'last_month':
-                startDate = now.clone().subtract(1, 'months').startOf('month').toDate();
-                endDate = now.clone().subtract(1, 'months').endOf('month').toDate();
+                startDate = now.clone().subtract(1, 'months').startOf('month').startOf('day').toDate();
+                endDate = now.clone().subtract(1, 'months').endOf('month').startOf('day').toDate();
                 break;
             case 'this_year':
-                startDate = now.clone().startOf('year').toDate();
-                endDate = now.clone().endOf('year').toDate();
+                startDate = now.clone().startOf('year').startOf('day').toDate();
+                endDate = now.clone().endOf('year').startOf('day').toDate();
                 isYearly = true;
                 break;
             case 'last_year':
-                startDate = now.clone().subtract(1, 'years').startOf('year').toDate();
-                endDate = now.clone().subtract(1, 'years').endOf('year').toDate();
+                startDate = now.clone().subtract(1, 'years').startOf('year').startOf('day').toDate();
+                endDate = now.clone().subtract(1, 'years').endOf('year').startOf('day').toDate();
                 isYearly = true;
                 break;
             default:
@@ -355,11 +355,16 @@ const getAdminDashboardChartData = async (req, res, next) => {
                 });
         }
 
+        // Adjust the query to use date-only comparison
         let matchQuery = {
-            timestamp: {
-                $gte: startDate,
-                $lte: endDate,
-            },
+            $expr: {
+                $and: [
+                    { $gte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } }, 
+                            moment(startDate).format('YYYY-MM-DD')] },
+                    { $lte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } }, 
+                            moment(endDate).format('YYYY-MM-DD')] }
+                ]
+            }
         };
 
         let responseData = {
@@ -371,20 +376,21 @@ const getAdminDashboardChartData = async (req, res, next) => {
         let dateMap = {};
         
         if (isYearly) {
-            // If it's yearly, initialize data month-wise
             for (let i = 0; i < 12; i++) {
-                let month = moment().month(i).format('MMMM'); // January, February, etc.
+                let month = moment().month(i).format('MMMM');
                 dateMap[month] = {
                     month: month,
                     revenue: 0,
                 };
             }
         } else {
-            // If it's weekly or monthly, initialize data day-wise
-            let currentDate = moment(startDate);
-            while (currentDate.isBefore(moment(endDate), 'day')) {
-                dateMap[currentDate.format('YYYY-MM-DD')] = {
-                    date: currentDate.format('YYYY-MM-DD'),
+            let currentDate = moment(startDate).startOf('day');
+            const endMoment = moment(endDate).startOf('day');
+            
+            while (currentDate.isSameOrBefore(endMoment, 'day')) {
+                const dateStr = currentDate.format('YYYY-MM-DD');
+                dateMap[dateStr] = {
+                    date: dateStr,
                     day: currentDate.format('dddd'),
                     revenue: 0,
                 };
@@ -393,24 +399,46 @@ const getAdminDashboardChartData = async (req, res, next) => {
         }
 
         const aggregateData = async (collection, key) => {
-            const groupBy = isYearly
-                ? { format: '%Y-%m', date: '$timestamp' } // Group by Month (YYYY-MM)
-                : { format: '%Y-%m-%d', date: '$timestamp' }; // Group by Day (YYYY-MM-DD)
+            const groupStage = isYearly
+                ? {
+                    $group: {
+                        _id: {
+                            month: { $month: '$timestamp' },
+                            year: { $year: '$timestamp' }
+                        },
+                        totalRevenue: { $sum: '$amount' }
+                    }
+                }
+                : {
+                    $group: {
+                        _id: {
+                            date: {
+                                $dateToString: {
+                                    format: '%Y-%m-%d',
+                                    date: '$timestamp'
+                                }
+                            }
+                        },
+                        totalRevenue: { $sum: '$amount' }
+                    }
+                };
 
             const data = await collection.aggregate([
                 { $match: matchQuery },
-                {
-                    $group: {
-                        _id: { timestamp: { $dateToString: groupBy } },
-                        totalRevenue: { $sum: '$amount' },
-                    },
-                },
-                { $sort: { '_id.date': 1 } },
+                groupStage,
+                { $sort: { '_id': 1 } }
             ]);
+
+            // For debugging
+            console.log('Date Range:', {
+                startDate: moment(startDate).format('YYYY-MM-DD'),
+                endDate: moment(endDate).format('YYYY-MM-DD'),
+                matchedRecords: data.length
+            });
 
             data.forEach((item) => {
                 if (isYearly) {
-                    let month = moment(item._id.date, 'YYYY-MM').format('MMMM');
+                    let month = moment().month(item._id.month - 1).format('MMMM');
                     if (dateMap[month]) {
                         dateMap[month].revenue += item.totalRevenue;
                     }
@@ -440,6 +468,147 @@ const getAdminDashboardChartData = async (req, res, next) => {
         next(error);
     }
 };
+
+
+// const getAdminDashboardChartData = async (req, res, next) => {
+//     try {
+//         const { type = 'call', timePeriod = 'this_month' } = req.query;
+
+//         let startDate, endDate, isYearly = false;
+//         const now = moment().utc();
+
+//         switch (timePeriod) {
+//             case 'this_week':
+//                 startDate = now.clone().startOf('isoWeek').toDate();
+//                 endDate = now.clone().endOf('isoWeek').toDate();
+//                 break;
+//             case 'last_week':
+//                 startDate = now.clone().subtract(1, 'weeks').startOf('isoWeek').toDate();
+//                 endDate = now.clone().subtract(1, 'weeks').endOf('isoWeek').toDate();
+//                 break;
+//             case 'this_month':
+//                 startDate = now.clone().startOf('month').toDate();
+//                 endDate = now.clone().endOf('month').toDate();
+//                 break;
+//             case 'last_month':
+//                 startDate = now.clone().subtract(1, 'months').startOf('month').toDate();
+//                 endDate = now.clone().subtract(1, 'months').endOf('month').toDate();
+//                 break;
+//             case 'this_year':
+//                 startDate = now.clone().startOf('year').toDate();
+//                 endDate = now.clone().endOf('year').toDate();
+//                 isYearly = true;
+//                 break;
+//             case 'last_year':
+//                 startDate = now.clone().subtract(1, 'years').startOf('year').toDate();
+//                 endDate = now.clone().subtract(1, 'years').endOf('year').toDate();
+//                 isYearly = true;
+//                 break;
+//             default:
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: 'Invalid timePeriod. Use this_week, last_week, this_month, last_month, this_year, last_year.',
+//                 });
+//         }
+
+//         let matchQuery = {
+//             timestamp: {
+//                 $gte: startDate,
+//                 $lte: endDate,
+//             },
+//         };
+
+//         let responseData = {
+//             revenueBreakdown: {},
+//             totalRevenue: 0,
+//             revenueData: [],
+//         };
+
+//         let dateMap = {};
+        
+//         if (isYearly) {
+//             for (let i = 0; i < 12; i++) {
+//                 let month = moment().month(i).format('MMMM');
+//                 dateMap[month] = {
+//                     month: month,
+//                     revenue: 0,
+//                 };
+//             }
+//         } else {
+//             let currentDate = moment(startDate);
+//             while (currentDate.isSameOrBefore(moment(endDate), 'day')) {
+//                 dateMap[currentDate.format('YYYY-MM-DD')] = {
+//                     date: currentDate.format('YYYY-MM-DD'),
+//                     day: currentDate.format('dddd'),
+//                     revenue: 0,
+//                 };
+//                 currentDate.add(1, 'day');
+//             }
+//         }
+
+//         const aggregateData = async (collection, key) => {
+//             const groupStage = isYearly
+//                 ? {
+//                     $group: {
+//                         _id: {
+//                             month: { $month: '$timestamp' },
+//                             year: { $year: '$timestamp' }
+//                         },
+//                         totalRevenue: { $sum: '$amount' }
+//                     }
+//                 }
+//                 : {
+//                     $group: {
+//                         _id: {
+//                             date: {
+//                                 $dateToString: {
+//                                     format: '%Y-%m-%d',
+//                                     date: '$timestamp'
+//                                 }
+//                             }
+//                         },
+//                         totalRevenue: { $sum: '$amount' }
+//                     }
+//                 };
+
+//             const data = await collection.aggregate([
+//                 { $match: matchQuery },
+//                 groupStage,
+//                 { $sort: { '_id': 1 } }
+//             ]);
+
+//             data.forEach((item) => {
+//                 if (isYearly) {
+//                     let month = moment().month(item._id.month - 1).format('MMMM');
+//                     if (dateMap[month]) {
+//                         dateMap[month].revenue += item.totalRevenue;
+//                     }
+//                 } else {
+//                     if (dateMap[item._id.date]) {
+//                         dateMap[item._id.date].revenue += item.totalRevenue;
+//                     }
+//                 }
+//             });
+
+//             responseData.revenueBreakdown[key] = data.reduce((acc, item) => acc + item.totalRevenue, 0);
+//             responseData.totalRevenue += responseData.revenueBreakdown[key];
+//         };
+
+//         if (type === 'overall' || type === 'call') await aggregateData(AdminCommissionHistory, 'call');
+//         if (type === 'overall' || type === 'puja') await aggregateData(PujaBookings, 'puja');
+//         if (type === 'overall' || type === 'product') await aggregateData(Orders, 'product');
+
+//         responseData.revenueData = Object.values(dateMap);
+
+//         return res.status(200).json({
+//             success: true,
+//             message: 'Revenue chart data fetched successfully',
+//             data: responseData,
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 
 
 // const getAdminDashboardExtendedStats = async (req, res, next) => {
