@@ -1,3 +1,4 @@
+const moment = require('moment');
 const { ApiError } = require('../../errorHandler');
 const { Admin, AdminCommissionHistory, User, AstrologerWalletHistory, UserWalletHistory, CallChatHistory } = require('../../models');
 const bcrypt = require('bcrypt');
@@ -310,8 +311,6 @@ const getAdminDashboardStats = async (req, res, next) => {
         next(error);
     }
 };
-
-const moment = require('moment');
 
 const getAdminDashboardChartData = async (req, res, next) => {
     try {

@@ -470,6 +470,8 @@
 // module.exports = { initializeSocket };
 
 
+
+//new
 const CONSTANTS = {
   FREE_CALL_PER_MIN: 1,
   FREE_CALL_LIMIT: 2,
@@ -507,7 +509,7 @@ const initializeSocket = (server) => {
     // Handle call initiation
     socket.on('initiate_call', async (data) => {
       const { user_id, astrologer_id, call_type } = data;
-      
+
       try {
         // Validate users and check availability
         const [user, astrologer] = await Promise.all([
@@ -533,7 +535,7 @@ const initializeSocket = (server) => {
 
         // Handle free call logic
         const isFreeCall = await handleFreeCallLogic(user, user_id);
-        
+
         // Check wallet balance for paid calls
         if (!isFreeCall) {
           const rate = astrologer[`per_min_${call_type}`];
@@ -570,7 +572,7 @@ const initializeSocket = (server) => {
           user_socket: socket.id,
           astrologer_socket: astrologerSockets.get(astrologer_id)
         };
-        
+
         activeCalls.set(callHistory._id.toString(), callData);
 
         // Create unique room for this call
@@ -590,13 +592,47 @@ const initializeSocket = (server) => {
         socket.emit('call_ringing', {
           call_id: callHistory._id,
           message: 'Calling astrologer...'
-        });
+        });  //not needed i think--------------------------------------------
 
-        // Set auto-cut timer
-        const timer = setTimeout(() => {
-          handleCallEnd(callHistory._id, 'auto_cut');
+        // Set auto-cut timer with simplified logic
+        const timer = setTimeout(async () => {
+          const call_id = callHistory._id.toString();
+
+          // Notify all users in the call room
+          io.to(callRoom).emit('call_auto_cut', {
+            call_id,
+            message: 'Call auto-cut due to no response'
+          });
+
+          // Update call history
+          await CallChatHistory.updateOne(
+            { _id: call_id },
+            {
+              $set: {
+                status: 'auto_cut',
+                end_time: getCurrentIST()
+              }
+            }
+          );
+
+          // Free up user and astrologer
+          await Promise.all([
+            User.updateOne(
+              { _id: user_id },
+              { $set: { busy: false, call_type: '' } }
+            ),
+            Astrologer.updateOne(
+              { _id: astrologer_id },
+              { $set: { busy: false, call_type: '' } }
+            )
+          ]);
+
+          // Cleanup
+          activeCalls.delete(call_id);
+          activeTimers.delete(call_id);
+
         }, CONSTANTS.AUTO_CUT_TIMEOUT);
-        
+
         activeTimers.set(callHistory._id.toString(), timer);
 
       } catch (error) {
@@ -608,7 +644,7 @@ const initializeSocket = (server) => {
     // Handle call acceptance (separate from initiate_call)
     socket.on('accept_call', async ({ call_id }) => {
       try {
-        console.log('call accpeted by astrologer',call_id)
+        console.log('call accpeted by astrologer', call_id)
         const callData = activeCalls.get(call_id.toString());
         if (!callData) {
           socket.emit('call_error', { message: 'Call not found' });
@@ -626,7 +662,7 @@ const initializeSocket = (server) => {
         // Update call status
         await CallChatHistory.updateOne(
           { _id: call_id },
-          { $set: { status: 'active', start_time: getCurrentIST() }}
+          { $set: { status: 'active', start_time: getCurrentIST() } }
         );
 
         // Update call data
@@ -675,7 +711,7 @@ const initializeSocket = (server) => {
 
     // Handle disconnection
     socket.on('disconnect', async () => {
-      console.log('user is dicscoonnected')
+      console.log('user is disconnected')
       if (socket.user_type === 'user') {
         userSockets.delete(socket.user_id);
       } else if (socket.user_type === 'astrologer') {
@@ -696,23 +732,13 @@ const initializeSocket = (server) => {
     const callData = activeCalls.get(call_id.toString());
     if (!callData) return;
 
-    const duration = callData.start_time 
-      ? Math.ceil((Date.now() - callData.start_time) / 1000)
-      : 0;
-
     try {
-      // Get astrologer data for rates
-      const astrologer = await Astrologer.findById(callData.astrologer_id)
-        .select('commission per_min_chat per_min_voice_call per_min_video_call')
-        .lean();
+      const duration = Math.ceil((Date.now() - callData.start_time) / 1000)
+      const cost = callData.isFreeCall ? 0 : Math.ceil(duration / 60) * rate; // per-minute billing
 
-      // Calculate costs
-      const rate = astrologer[`per_min_${callData.call_type}`];
-      const cost = callData.isFreeCall ? 0 : Math.ceil(duration / 60) * rate;
-      const astrologerCommission = callData.isFreeCall 
-        ? CONSTANTS.FREE_CALL_PER_MIN 
-        : (cost * astrologer.commission) / 100;
-      const adminCommission = cost - astrologerCommission;
+      // Calculate astrologer's commission and admin's share
+      const astrologerCommission = callData.isFreeCall ? CONSTANTS.FREE_CALL_PER_MIN : (cost * astrologer.commission) / 100;
+      const adminCommission = callData.isFreeCall ? 0 : cost - astrologerCommission;
 
       // Update all relevant records
       await Promise.all([
@@ -734,12 +760,12 @@ const initializeSocket = (server) => {
         // Update wallets
         User.updateOne(
           { _id: callData.user_id },
-          { $set: { busy: false, call_type: '' }, $inc: { wallet: -cost }}
+          { $set: { busy: false, call_type: '' }, $inc: { wallet: -cost } }
         ),
 
         Astrologer.updateOne(
           { _id: callData.astrologer_id },
-          { $set: { busy: false, call_type: '' }, $inc: { wallet: astrologerCommission }}
+          { $set: { busy: false, call_type: '' }, $inc: { wallet: astrologerCommission } }
         ),
 
         // Create wallet histories
@@ -780,7 +806,7 @@ const initializeSocket = (server) => {
     if (isNewDay(user.last_free_call_reset)) {
       await User.updateOne(
         { _id: user_id },
-        { $set: { free_calls_used_today: 0, last_free_call_reset: new Date() }}
+        { $set: { free_calls_used_today: 0, last_free_call_reset: new Date() } }
       );
       return true;
     }
@@ -794,9 +820,9 @@ const getCurrentIST = () => new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000
 const isNewDay = (lastResetDate) => {
   const now = new Date();
   const lastReset = new Date(lastResetDate);
-  return now.getDate() !== lastReset.getDate() || 
-         now.getMonth() !== lastReset.getMonth() || 
-         now.getFullYear() !== lastReset.getFullYear();
+  return now.getDate() !== lastReset.getDate() ||
+    now.getMonth() !== lastReset.getMonth() ||
+    now.getFullYear() !== lastReset.getFullYear();
 };
 
 module.exports = { initializeSocket };
