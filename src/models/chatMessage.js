@@ -7,6 +7,8 @@ const chatMessageSchema = new Schema({
     message: { type: String, required: true },
     sender: { type: String, enum: ['user', 'astrologer'], required: true }, // Who sent the message
     timestamp: { type: Date, default: () => new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000) }, // IST
+    read: { type: Boolean, default: false },
+    messageType: { type: String, enum: ['text', 'image', 'file'], default: 'text' },
 });
 
 // Indexing for faster retrieval of chat history

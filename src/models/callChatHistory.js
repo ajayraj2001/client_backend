@@ -12,7 +12,7 @@ const callChatHistorySchema = new Schema({
     start_time: { type: Date , default: null }, // IST (when astrologer accepts the call)
     end_time: { type: Date , default: null }, // IST (when call ends)
     duration: { type: Number }, // in seconds
-    status: { type: String, enum: ['call_initiate', 'accept_astro', 'reject_astro', 'reject_user', 'end_user', 'end_astro', 'auto_cut', 'insufficient_balance', 'disconnected'], required: true },
+    status: { type: String, enum: ['call_initiate', 'accept_astro', 'reject_astro', 'reject_user', 'end_user', 'end_astro', 'auto_rejected', 'insufficient_balance', 'disconnected'], required: true },
     cost: { type: Number, default: 0 }, // total cost of the call/chat
     astro_cut: { type: Number, default: 0 }, // astro cut of the call/chat
     admin_cut: { type: Number, default: 0 }, // admin cut of the call/chat

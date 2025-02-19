@@ -1,5 +1,5 @@
 const { sendFCMNotification } = require('./src/utils/sendNotification');
-const { User, Astrologer, CallChatHistory } = require('./src/models');
+const { User, Astrologer, CallChatHistory, ChatMessage, UserWalletHistory, AstrologerWalletHistory, AdminCommissionHistory } = require('./src/models');
 
 const CONSTANTS = {
   FREE_CALL_PER_MIN: 1,
@@ -24,7 +24,7 @@ const initializeSocket = (server) => {
     const callRoom = `call_${call_id}`;
     const callData = activeCalls.get(call_id);
     const participantCount = io.sockets.adapter.rooms.get(callRoom)?.size || 0;
-    
+
     return {
       call_id,
       room: callRoom,
@@ -40,7 +40,7 @@ const initializeSocket = (server) => {
   // Room monitoring middleware
   io.use((socket, next) => {
     const originalJoin = socket.join;
-    socket.join = function(room) {
+    socket.join = function (room) {
       console.log(`Socket ${socket.id} is joining room: ${room}`);
       return originalJoin.apply(this, arguments);
     }
@@ -78,6 +78,7 @@ const initializeSocket = (server) => {
       } else if (user_type === 'astrologer') {
         astrologerSockets.set(user_id, socket.id);
       }
+
       socket.user_id = user_id;
       socket.user_type = user_type;
     });
@@ -156,8 +157,8 @@ const initializeSocket = (server) => {
         const callRoom = `call_${callHistory._id}`;
         socket.join(callRoom);
 
-         // Log room join
-         console.log(`User socket ${socket.id} joined room ${callRoom}`);
+        // Log room join
+        console.log(`User socket ${socket.id} joined room ${callRoom}`);
 
         // Store call data
         const callData = {
@@ -192,6 +193,7 @@ const initializeSocket = (server) => {
           call_type,
           maximum_minutes: maxMinutes.toString(),
           user_info: {
+            user_id: user._id,
             name: user.name ? user.name : "",  // If user.name exists, use it; otherwise, send an empty string
             profile_img: user.profile_img ? user.profile_img : "",  // If user.profile_img exists, use it; otherwise, send an empty string
           }
@@ -294,6 +296,135 @@ const initializeSocket = (server) => {
       });
     });
 
+    // Handle chat messages
+    socket.on('send_message', async (data) => {
+      try {
+        const { user_id, astrologer_id, message, sender } = data;
+        console.log('data of send message', data)
+        // Create and save message
+        const chatMessage = new ChatMessage({
+          user_id,
+          astrologer_id,
+          message,
+          sender,
+          messageType: 'text',
+          read: false
+        });
+        await chatMessage.save();
+
+        // Determine recipient's room
+        // Log the recipient socket lookup
+        let recipientSocketId;
+        if (sender === 'user') {
+          recipientSocketId = astrologerSockets.get(user_id);
+          console.log('📤 Sending to astro socket:', user_id, recipientSocketId);
+        } else {
+          recipientSocketId = userSockets.get(user_id);
+          console.log('📤 Sending to user socket:', astrologer_id, recipientSocketId);
+        }
+
+        // Log before emitting
+        console.log('📤 About to emit to socket:', recipientSocketId);
+
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('receive_message', {
+            _id: chatMessage._id,
+            user_id,
+            astrologer_id,
+            message,
+            sender,
+            timestamp: chatMessage.timestamp,
+            read: false
+          });
+          console.log('✅ Message emitted successfully');
+        } else {
+          console.log('❌ No recipient socket found');
+        }
+
+        // Send confirmation back to sender
+        socket.emit('message_sent', {
+          _id: chatMessage._id,
+          timestamp: chatMessage.timestamp
+        });
+
+      } catch (error) {
+        console.error('Error in send_message:', error);
+        socket.emit('message_error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Handle typing status
+    socket.on('typing_start', (data) => {
+      const { user_id, astrologer_id, user_type } = data;
+      const key = `${user_id}_${astrologer_id}`;
+      typingStatus.set(key, true);
+
+      // Send typing status to the other party
+      let recipientSocketId;
+      if (user_type === 'user') {
+        recipientSocketId = astrologerSockets.get(astrologer_id);
+      } else {
+        recipientSocketId = userSockets.get(user_id);
+      }
+
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('typing_status', {
+          user_type,
+          isTyping: true
+        });
+      }
+    });
+
+    socket.on('typing_end', (data) => {
+      const { user_id, astrologer_id, user_type } = data;
+      const key = `${user_id}_${astrologer_id}`;
+      typingStatus.delete(key);
+
+      // Send typing ended status to the other party
+      let recipientSocketId;
+      if (user_type === 'user') {
+        recipientSocketId = astrologerSockets.get(astrologer_id);
+      } else {
+        recipientSocketId = userSockets.get(user_id);
+      }
+
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('typing_status', {
+          user_type,
+          isTyping: false
+        });
+      }
+    });
+
+    // Handle message read status
+    socket.on('mark_read', async (data) => {
+      const { message_id, reader_type } = data;
+      try {
+        const message = await ChatMessage.findById(message_id);
+        if (message && message.sender !== reader_type) {
+          message.read = true;
+          await message.save();
+
+          // Notify the original sender that their message was read
+          let senderSocketId;
+          if (reader_type === 'user') {
+            senderSocketId = astrologerSockets.get(message.astrologer_id);
+          } else {
+            senderSocketId = userSockets.get(message.user_id);
+          }
+
+          if (senderSocketId) {
+            io.to(senderSocketId).emit('message_read', {
+              message_id
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error marking message as read:', error);
+      }
+    });
+
+
     socket.on('end_call', async ({ call_id }) => {
       console.log('end_call', call_id)
       const status = socket.user_type === 'user' ? 'ended_by_user' : 'ended_by_astrologer';
@@ -303,7 +434,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('disconnect', async () => {
-      console.log('disconnecte socketr')
+      console.log('disconnecte socketr--------------------------------------------------')
       if (socket.user_type === 'user') {
         userSockets.delete(socket.user_id);
       } else if (socket.user_type === 'astrologer') {
@@ -335,20 +466,19 @@ const initializeSocket = (server) => {
 
       let duration = 0;
       let cost = 0;
-      let astrologerCommission = 0
-      let updateData = {
-        status: end_status
-      };
+      let updateData = { status: end_status };
 
-      // Only set duration, cost, and end_time if call was actually started
-      if (callData.start_time && end_status !== 'auto_cut') {
+      // Calculate financials if call was connected and ended normally
+      const shouldUpdateWallets = callData.start_time &&
+        !['auto_rejected', 'reject_user', 'reject_astro', 'auto_cut'].includes(end_status);
+
+      if (shouldUpdateWallets) {
         duration = Math.ceil((Date.now() - callData.start_time) / 1000);
         const minutes = Math.ceil(duration / 60);
         cost = callData.isFreeCall ? 0 : minutes * callData.rate_per_minute;
-console.log('callidfree', callData.isFreeCall)
-        // Calculate astrologer's commission and admin's share
-        astrologerCommission = callData.isFreeCall ? CONSTANTS.FREE_CALL_PER_MIN : (cost * callData.astrologer_commission) / 100;
-        console.log('eeroe with get reosve ', astrologerCommission)
+        const astrologerCommission = callData.isFreeCall ?
+          CONSTANTS.FREE_CALL_PER_MIN :
+          (cost * callData.astrologer_commission) / 100;
         const adminCommission = callData.isFreeCall ? 0 : cost - astrologerCommission;
 
         updateData = {
@@ -359,44 +489,59 @@ console.log('callidfree', callData.isFreeCall)
           astro_cut: astrologerCommission,
           admin_cut: adminCommission
         };
+
+        // Combine wallet updates with busy status updates
+        await Promise.all([
+          User.updateOne(
+            { _id: callData.user_id },
+            {
+              $inc: { wallet: -cost },
+              $set: { busy: false, call_type: '' }
+            }
+          ),
+          Astrologer.updateOne(
+            { _id: callData.astrologer_id },
+            {
+              $inc: { wallet: astrologerCommission },
+              $set: { busy: false, call_type: '' }
+            }
+          ),
+          updateWalletHistories(
+            call_id,
+            callData.user_id,
+            callData.astrologer_id,
+            cost,
+            astrologerCommission,
+            adminCommission,
+            callData.call_type,
+            callData.isFreeCall
+          ),
+          CallChatHistory.updateOne(
+            { _id: call_id },
+            { $set: updateData }
+          )
+        ]);
+      } else {
+        // If no wallet updates needed, just update busy status
+        await Promise.all([
+          User.updateOne(
+            { _id: callData.user_id },
+            { $set: { busy: false, call_type: '' } }
+          ),
+          Astrologer.updateOne(
+            { _id: callData.astrologer_id },
+            { $set: { busy: false, call_type: '' } }
+          ),
+          CallChatHistory.updateOne(
+            { _id: call_id },
+            { $set: updateData }
+          )
+        ]);
       }
 
-       // Log final room status before cleanup
-       const finalRoomStatus = await getRoomStatus(call_id);
-       console.log('Final room status before end:', finalRoomStatus);
-
-      // Update call history
-      await Promise.all([
-        await CallChatHistory.updateOne(
-          { _id: call_id },
-          { $set: updateData }
-        ),
-        // Update wallets
-        User.updateOne(
-          { _id: callData.user_id },
-          { $set: { busy: false, call_type: '' }, $inc: { wallet: -cost } }
-        ),
-
-        Astrologer.updateOne(
-          { _id: callData.astrologer_id },
-          { $set: { busy: false, call_type: '' }, $inc: { wallet: astrologerCommission } }
-        ),
-
-        // Create wallet histories
-        updateWalletHistories(
-          call_id,
-          callData.user_id,
-          callData.astrologer_id,
-          cost,
-          astrologerCommission,
-          adminCommission,
-          callData.call_type,
-          callData.isFreeCall
-        )
-      ]);
+      const finalRoomStatus = await getRoomStatus(call_id);
 
       // Notify all participants
-   
       io.to(`call_${call_id}`).emit('call_ended', {
         call_id,
         status: end_status,
