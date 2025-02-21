@@ -59,7 +59,9 @@ const sendFCMNotification = async (deviceToken, payload) => {
   }
 };
 
-// sendFCMNotification('f3F1W0VlT1ia1Tg3f4r4fM:APA91bG5LpOO5KvAORRh3tSYkq0VyligPSlH-4F45DCpyJLmHbd1JnX9hiApxDc_8LxhoLCvxnQGalvuA5THj_IeIHBayPqlMZYJAfEds26hLxDv-Iw2WfE', {
+
+// const deviceToken = "fDUUSjL6QVKCzCAK2pBCH7:APA91bH15YajLzzNoUj6eq0y46oucfO9bGcfofJDF5Kd1ZCmGcrCqzcP_nZeB-Qt6UoPy_ZHpmMlfD0bOUKLhPUgi8BYrCejZO-KeZqVX7Nlvh6tO3ux1gk"
+// sendFCMNotification(deviceToken, {
 //   title: 'Incoming Call', // Static title
 //   body: 'You have an incoming call', // Static body
 //   call_id: '67aa2bd5e588b1080e03a2c9', // Static call ID

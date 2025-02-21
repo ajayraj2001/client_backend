@@ -41,7 +41,7 @@ const initializeSocket = (server) => {
   io.use((socket, next) => {
     const originalJoin = socket.join;
     socket.join = function (room) {
-      console.log(`Socket ${socket.id} is joining room: ${room}`);
+      // console.log(`Socket ${socket.id} is joining room: ${room}`);
       return originalJoin.apply(this, arguments);
     }
     next();
@@ -71,11 +71,13 @@ const initializeSocket = (server) => {
     console.log('Connected:', socket.id);
 
     socket.on('register_user', ({ user_id, user_type }) => {
-      console.log('rwgister user_id', user_id)
-      console.log('rwgister _user_type', user_type)
+      console.log('register user_id', user_id)
+      console.log('register _user_type', user_type)
       if (user_type === 'user') {
+        console.log('usre tesifetr s now')
         userSockets.set(user_id, socket.id);
       } else if (user_type === 'astrologer') {
+        console.log('astro tegster now')
         astrologerSockets.set(user_id, socket.id);
       }
 
@@ -103,6 +105,7 @@ const initializeSocket = (server) => {
         console.log('here 2')
         // Validate availability
         if (astrologer.busy || !astrologer[`is_${call_type}_online`]) {
+          console.log('ghgjg')
           socket.emit('call_rejected', {
             status: 'astrologer_unavailable',
             message: astrologer.busy ? 'Astrologer is busy' : 'Astrologer is offline'
@@ -114,7 +117,7 @@ const initializeSocket = (server) => {
         if (user.busy) {
           socket.emit('call_rejected', {
             status: 'user_busy',
-            message: 'You are already in a call'
+            message: `You are already in a ${call_type} call`
           });
           return;
         }
@@ -130,15 +133,15 @@ const initializeSocket = (server) => {
         const maxMinutes = isFreeCall ? CONSTANTS.FREE_CALL_MAX_MINIT : Math.floor(user.wallet / rate);
 
         console.log('here 6')
-        if (!isFreeCall && maxMinutes < 2) {
-          socket.emit('call_rejected', {
-            status: 'insufficient_balance',
-            message: 'Insufficient balance for minimum 2-minute call'
-          });
-          return;
-        }
+        // if (!isFreeCall && maxMinutes < 2) {
+        //   socket.emit('call_rejected', {
+        //     status: 'insufficient_balance',
+        //     message: 'Insufficient balance for minimum 2-minute call'
+        //   });
+        //   return;
+        // }
 
-        console.log('here 7')
+        console.log('here 7--------------------', socket.id)
         // Create call record
         const callHistory = await new CallChatHistory({
           user_id,
@@ -158,7 +161,7 @@ const initializeSocket = (server) => {
         socket.join(callRoom);
 
         // Log room join
-        console.log(`User socket ${socket.id} joined room ${callRoom}`);
+        // console.log(`User socket ${socket.id} joined room ${callRoom}`);
 
         // Store call data
         const callData = {
@@ -184,7 +187,7 @@ const initializeSocket = (server) => {
         // console.log('deive token', astrologer.deviceToken)
 
         const roomStatus = await getRoomStatus(callHistory._id.toString());
-        console.log('Room status after initiation:', roomStatus);
+        // console.log('Room status after initiation:', roomStatus);
         // Send FCM to astrologer
         await sendFCMNotification(astrologer.deviceToken, {
           title: 'Incoming Call',
@@ -209,11 +212,11 @@ const initializeSocket = (server) => {
         activeTimers.set(callHistory._id.toString(), { autoRejectTimer });
 
         // Notify user about call initiation with maximum duration
-        socket.emit('call_initiated', {
-          call_id: callHistory._id,
-          maximum_minutes: maxMinutes,
-          message: 'Calling astrologer... Auto-reject in 2 minutes'
-        });  //not needed i think
+        // socket.emit('call_initiated', {
+        //   call_id: callHistory._id,
+        //   maximum_minutes: maxMinutes,
+        //   message: 'Calling astrologer... Auto-reject in 2 minutes'
+        // });  //not needed i think
 
       } catch (error) {
         console.error('Error in initiate_call:', error);
@@ -222,7 +225,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('accept_call', async ({ call_id }) => {
-      console.log('accept_call------------------------------', call_id)
+      console.log('accept_call------------------------------', call_id, 'socket id ', socket.id)
       try {
         const callData = activeCalls.get(call_id);
         if (!callData) {
@@ -247,7 +250,7 @@ const initializeSocket = (server) => {
 
         // Log updated room status
         const roomStatus = await getRoomStatus(call_id);
-        console.log('Room status after acceptance:', roomStatus);
+        // console.log('Room status after acceptance:', roomStatus);
 
 
         await CallChatHistory.updateOne(
@@ -316,11 +319,12 @@ const initializeSocket = (server) => {
         // Log the recipient socket lookup
         let recipientSocketId;
         if (sender === 'user') {
-          recipientSocketId = astrologerSockets.get(user_id);
-          console.log('📤 Sending to astro socket:', user_id, recipientSocketId);
+          console.log('astrologersocket code map---****',astrologerSockets )
+          recipientSocketId = astrologerSockets.get(astrologer_id);
+          console.log('📤 Sending to astro socket:', astrologer_id, recipientSocketId);
         } else {
           recipientSocketId = userSockets.get(user_id);
-          console.log('📤 Sending to user socket:', astrologer_id, recipientSocketId);
+          console.log('📤 Sending to user socket:', user_id, recipientSocketId);
         }
 
         // Log before emitting
@@ -434,7 +438,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('disconnect', async () => {
-      console.log('disconnecte socketr--------------------------------------------------')
+      console.log('disconnecte socketr--------------------------------------------------', socket.user_type)
       if (socket.user_type === 'user') {
         userSockets.delete(socket.user_id);
       } else if (socket.user_type === 'astrologer') {
