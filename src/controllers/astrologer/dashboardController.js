@@ -5,8 +5,11 @@ const { CallChatHistory, AstrologerWalletHistory } = require('../../models');
 
 const getAstroDashboard = async (req, res, next) => {
   try {
-    const  astrologer_id  = req.astrologer._id;
+    const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
     const { type = 'call', period = '7d' } = req.query;
+
+    console.log('type', type)
+    console.log('period', period)
 
     // Validate input
     if (!['call', 'earning'].includes(type)) {
@@ -18,244 +21,848 @@ const getAstroDashboard = async (req, res, next) => {
       throw new ApiError('Invalid period parameter', 400);
     }
 
-    // Date range calculation
-    const getDateRange = () => {
-      const now = getCurrentIST();
-      let current, previous, lastYear;
-
-      switch (period) {
-        case '7d':
-          current = {
-            start: new Date(now - 7 * 864e5),
-            end: now
-          };
-          previous = {
-            start: new Date(now - 14 * 864e5),
-            end: new Date(now - 7 * 864e5)
-          };
-          lastYear = {
-            start: new Date(now.setFullYear(now.getFullYear() - 1) - 7 * 864e5),
-            end: new Date(now - 7 * 864e5)
-          };
-          break;
-
-        case '30d':
-          current = {
-            start: new Date(now - 30 * 864e5),
-            end: now
-          };
-          previous = {
-            start: new Date(now - 60 * 864e5),
-            end: new Date(now - 30 * 864e5)
-          };
-          lastYear = {
-            start: new Date(now.setFullYear(now.getFullYear() - 1) - 30 * 864e5),
-            end: new Date(now - 30 * 864e5)
-          };
-          break;
-
-        case '12m':
-          current = {
-            start: new Date(now.getFullYear(), now.getMonth() - 11, 1),
-            end: now
-          };
-          previous = {
-            start: new Date(now.getFullYear() - 1, now.getMonth() - 11, 1),
-            end: new Date(now.getFullYear() - 1, now.getMonth(), 0)
-          };
-          lastYear = {
-            start: new Date(now.getFullYear() - 2, now.getMonth() - 11, 1),
-            end: new Date(now.getFullYear() - 2, now.getMonth(), 0)
-          };
-          break;
-
-        case 'this_week':
-          const day = now.getDay(); // Sunday = 0
-          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-          current = {
-            start: new Date(now.setDate(diff)),
-            end: now
-          };
-          previous = {
-            start: new Date(now - 7 * 864e5),
-            end: new Date(now - 7 * 864e5 + 6 * 864e5)
-          };
-          lastYear = {
-            start: new Date(now.setFullYear(now.getFullYear() - 1)),
-            end: new Date(now + 6 * 864e5)
-          };
-          break;
-
-        case 'this_month':
-          current = {
-            start: new Date(now.getFullYear(), now.getMonth(), 1),
-            end: now
-          };
-          previous = {
-            start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-            end: new Date(now.getFullYear(), now.getMonth(), 0)
-          };
-          lastYear = {
-            start: new Date(now.getFullYear() - 1, now.getMonth(), 1),
-            end: new Date(now.getFullYear() - 1, now.getMonth() + 1, 0)
-          };
-          break;
-
-        case 'ytd':
-          current = {
-            start: new Date(now.getFullYear(), 0, 1),
-            end: now
-          };
-          previous = {
-            start: new Date(now.getFullYear() - 1, 0, 1),
-            end: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-          };
-          lastYear = {
-            start: new Date(now.getFullYear() - 2, 0, 1),
-            end: new Date(now.getFullYear() - 2, now.getMonth(), now.getDate())
-          };
-          break;
-      }
-
-      return { current, previous, lastYear };
-    };
-
-    // Data aggregation
-    const getAggregatedData = async (start, end) => {
-      const Model = type === 'call' ? CallChatHistory : AstrologerWalletHistory;
-      const match = {
-        astrologer_id: mongoose.Types.ObjectId(astrologer_id),
-        [type === 'call' ? 'created_at' : 'timestamp']: { $gte: start, $lte: end }
-      };
-
-      if (type === 'earning') match.transaction_type = 'credit';
-
-      return Model.aggregate([
-        { $match: match },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: type === 'call' ? 1 : '$amount' }
-          }
-        }
-      ]);
-    };
-
-    // Get all data
-    const { current, previous, lastYear } = getDateRange();
-    const [currentData, previousData, lastYearData] = await Promise.all([
-      getAggregatedData(current.start, current.end),
-      getAggregatedData(previous.start, previous.end),
-      getAggregatedData(lastYear.start, lastYear.end)
-    ]);
-
-    // Process results
-    const processResult = (data) => ({
-      total: data[0]?.total || 0
+    // Calculate date range based on period
+    const { startDate, endDate, dateFormat, groupByField, includeUpcoming } = getDateRangeConfig(period);
+    
+    // Get chart data
+    const chartData = await getChartData({
+      type,
+      astrologer_id,
+      startDate,
+      endDate,
+      dateFormat,
+      groupByField,
+      includeUpcoming,
+      period
     });
 
-    const currentResult = processResult(currentData);
-    const previousResult = processResult(previousData);
-    const lastYearResult = processResult(lastYearData);
-
-    // Calculate percentages
-    const calculatePercentage = (current, previous) =>
-      previous === 0 ? 0 : ((current - previous) / previous * 100).toFixed(2);
-
-    // Get chart data
-    const chartData = await getChartData(type, period, astrologer_id);
+    // Get totals and breakdowns by type
+    const { total, breakdownByType } = await getTotalsAndBreakdown({
+      type,
+      astrologer_id,
+      startDate,
+      endDate
+    });
 
     // Build response
     const response = {
       success: true,
       data: {
-        current: {
-          total: currentResult.total
-        },
-        comparison: {
-          previous_period: {
-            total: previousResult.total,
-            percentage: calculatePercentage(currentResult.total, previousResult.total)
-          },
-          last_year: {
-            total: lastYearResult.total,
-            percentage: calculatePercentage(currentResult.total, lastYearResult.total)
-          }
-        },
+        period,
+        type,
+        total,
+        breakdown_by_type: breakdownByType,
         chart: chartData
       }
     };
 
     res.json(response);
-
   } catch (error) {
     next(error);
   }
 };
 
-const getDayName = (date) => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[date.getDay()];
-};
-
-// Modified getChartData function for this_week
-async function getChartData(type, period, astrologerId) {
+// Get date range configuration based on period
+function getDateRangeConfig(period) {
   const now = getCurrentIST();
-  let groupFormat, dateField;
+  let startDate, endDate, dateFormat, groupByField, includeUpcoming = false;
 
   switch (period) {
     case '7d':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 6); // Last 7 days including today
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      dateFormat = '%Y-%m-%d';
+      groupByField = 'day';
+      break;
+
     case '30d':
-      groupFormat = '%Y-%m-%d';
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 29); // Last 30 days including today
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      dateFormat = '%Y-%m-%d';
+      groupByField = 'day';
       break;
+
     case '12m':
-    case 'this_month':
-    case 'ytd':
-      groupFormat = '%Y-%m';
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 11); // Last 12 months including current month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      dateFormat = '%Y-%m';
+      groupByField = 'month';
       break;
+
     case 'this_week':
-      groupFormat = '%Y-%m-%d';
+      // Start from Monday of current week
+      const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - diff);
+      startDate.setHours(0, 0, 0, 0);
+      
+      // End date is Sunday of the same week
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      
+      dateFormat = '%Y-%m-%d';
+      groupByField = 'day';
+      includeUpcoming = true; // Show all 7 days even if they haven't occurred yet
+      break;
+
+    case 'this_month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+      startDate.setHours(0, 0, 0, 0);
+      
+      // Last day of current month
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      dateFormat = '%Y-%m-%d';
+      groupByField = 'day';
+      includeUpcoming = true; // Show all days of the month even if they haven't occurred yet
+      break;
+
+    case 'ytd':
+      startDate = new Date(now.getFullYear(), 0, 1); // January 1 of current year
+      startDate.setHours(0, 0, 0, 0);
+      
+      // December 31 of current year
+      endDate = new Date(now.getFullYear(), 11, 31);
+      endDate.setHours(23, 59, 59, 999);
+      
+      dateFormat = '%Y-%m';
+      groupByField = 'month';
+      includeUpcoming = true; // Show all months of the year even if they haven't occurred yet
       break;
   }
 
-  const Model = type === 'call' ? CallChatHistory : AstrologerWallet;
-  dateField = type === 'call' ? 'created_at' : 'timestamp';
+  return { startDate, endDate, dateFormat, groupByField, includeUpcoming };
+}
 
-  const chartData = await Model.aggregate([
-    { $match: { 
-      astrologer_id: mongoose.Types.ObjectId(astrologerId),
-      ...(type === 'earning' && { transaction_type: 'credit' })
-    }},
-    { $addFields: {
-      date: {
-        $dateToString: {
-          format: groupFormat,
-          date: `$${dateField}`,
-          timezone: '+05:30'
+// Get chart data based on configuration
+async function getChartData({ type, astrologer_id, startDate, endDate, dateFormat, groupByField, includeUpcoming, period }) {
+  const Model = type === 'call' ? CallChatHistory : AstrologerWalletHistory;
+  
+  // For data retrieval, we only want to query up to the current date
+  const queryEndDate = includeUpcoming ? new Date(getCurrentIST()) : endDate;
+  
+  const matchQuery = {
+    astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+    [type === 'call' ? 'created_at' : 'timestamp']: { $gte: startDate, $lte: queryEndDate }
+  };
+
+  if (type === 'earning') {
+    matchQuery.transaction_type = 'credit';
+  }
+
+  // For call type, we need to get breakdown by call_type
+  let pipeline;
+  if (type === 'call') {
+    pipeline = [
+      { $match: matchQuery },
+      {
+        $addFields: {
+          formatted_date: {
+            $dateToString: {
+              format: dateFormat,
+              date: '$created_at',
+              timezone: '+05:30'
+            }
+          }
         }
-      }
-    }},
-    { $group: {
-      _id: '$date',
-      total: { $sum: type === 'call' ? 1 : '$amount' }
-    }},
-    { $sort: { _id: 1 } },
-    { $project: {
-      date: '$_id',
-      total: 1,
-      _id: 0
-    }}
-  ]);
+      },
+      {
+        $group: {
+          _id: {
+            date: '$formatted_date',
+            call_type: '$call_type'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.date',
+          total: { $sum: '$count' },
+          types: {
+            $push: {
+              type: '$_id.call_type',
+              count: '$count'
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ];
+  } else {
+    // For earning type, we need to get breakdown by call_type using transaction_for field
+    pipeline = [
+      { $match: matchQuery },
+      {
+        $addFields: {
+          formatted_date: {
+            $dateToString: {
+              format: dateFormat,
+              date: '$timestamp',
+              timezone: '+05:30'
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            date: '$formatted_date',
+            transaction_for: { $ifNull: ['$transaction_for', 'other'] }
+          },
+          amount: { $sum: '$amount' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.date',
+          total: { $sum: '$amount' },
+          types: {
+            $push: {
+              type: '$_id.transaction_for',
+              amount: '$amount'
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ];
+  }
 
-  // For this_week, add day names
-  if (period === 'this_week') {
-    return chartData.map(entry => ({
-      ...entry,
-      day: getDayName(new Date(entry.date))
+  const results = await Model.aggregate(pipeline);
+
+  // Fill in missing dates with zero values
+  const filledResults = fillMissingDates(results, startDate, endDate, dateFormat, type, period);
+
+  // Format the results based on period type
+  return formatChartData(filledResults, groupByField, type, period);
+}
+
+// Fill in missing dates with zero values
+function fillMissingDates(results, startDate, endDate, dateFormat, type, period) {
+  const dateMap = {};
+  
+  // Create a map of existing dates
+  results.forEach(item => {
+    dateMap[item._id] = {
+      total: item.total,
+      types: {}
+    };
+    
+    // Create a map of types for each date
+    item.types.forEach(typeData => {
+      dateMap[item._id].types[typeData.type || 'other'] = type === 'call' ? typeData.count : typeData.amount;
+    });
+  });
+
+  const filledResults = [];
+  const current = new Date(startDate);
+  const realEndDate = new Date(endDate);
+  
+  // Loop through all dates in the range
+  while (current <= realEndDate) {
+    let formattedDate;
+    
+    if (dateFormat === '%Y-%m-%d') {
+      formattedDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+      
+      const existingData = dateMap[formattedDate] || { total: 0, types: {} };
+      
+      // Ensure chat and voice types are always present for both call and earning
+      if (!existingData.types.chat) existingData.types.chat = 0;
+      if (!existingData.types.voice) existingData.types.voice = 0;
+      
+      // Format date for display based on period
+      let displayDate;
+      
+      if (period === '7d' || period === '30d') {
+        // Format like "Feb 22"
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        displayDate = `${monthNames[current.getMonth()]} ${current.getDate()}`;
+      } else if (period === 'this_week') {
+        // Format like "Mon"
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        displayDate = dayNames[current.getDay()];
+      } else if (period === 'this_month') {
+        // Format like "Feb 1"
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        displayDate = `${monthNames[current.getMonth()]} ${current.getDate()}`;
+      }
+      
+      filledResults.push({
+        _id: formattedDate,
+        date: displayDate,
+        fullDate: formattedDate,
+        total: existingData.total || 0,
+        day: getDayName(current),
+        voice: existingData.types.voice || 0,
+        chat: existingData.types.chat || 0
+      });
+      
+      current.setDate(current.getDate() + 1);
+    } else if (dateFormat === '%Y-%m') {
+      formattedDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      
+      const existingData = dateMap[formattedDate] || { total: 0, types: {} };
+      
+      // Ensure chat and voice types are always present for both call and earning
+      if (!existingData.types.chat) existingData.types.chat = 0;
+      if (!existingData.types.voice) existingData.types.voice = 0;
+      
+      // Format date for display based on period
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const displayDate = monthNames[current.getMonth()];
+      
+      filledResults.push({
+        _id: formattedDate,
+        date: displayDate,
+        fullDate: formattedDate,
+        total: existingData.total || 0,
+        month: getMonthName(current),
+        voice: existingData.types.voice || 0,
+        chat: existingData.types.chat || 0
+      });
+      
+      current.setMonth(current.getMonth() + 1);
+    }
+  }
+
+  return filledResults;
+}
+
+// Format chart data based on grouping field
+function formatChartData(results, groupByField, type, period) {
+  if (groupByField === 'day') {
+    return results.map(item => ({
+      date: item.date,
+      fullDate: item.fullDate,
+      total: item.total,
+      day: item.day,
+      voice: item.voice || 0,
+      chat: item.chat || 0
+    }));
+  } else if (groupByField === 'month') {
+    return results.map(item => ({
+      date: item.date,
+      fullDate: item.fullDate,
+      total: item.total,
+      month: item.month,
+      voice: item.voice || 0,
+      chat: item.chat || 0
     }));
   }
+  
+  return results;
+}
 
-  return chartData;
+// Get totals and breakdown by type
+async function getTotalsAndBreakdown({ type, astrologer_id, startDate, endDate }) {
+  if (type === 'call') {
+    const results = await CallChatHistory.aggregate([
+      {
+        $match: {
+          astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+          created_at: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$call_type',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Calculate total and create breakdown by type
+    const total = results.reduce((sum, item) => sum + item.count, 0);
+    const breakdownByType = {};
+    
+    results.forEach(item => {
+      breakdownByType[item._id || 'other'] = item.count;
+    });
+
+    // Ensure chat and voice are always present
+    if (!breakdownByType.chat) breakdownByType.chat = 0;
+    if (!breakdownByType.voice) breakdownByType.voice = 0;
+
+    return { total, breakdownByType };
+  } else {
+    // Handle earnings type with breakdown by transaction_for field
+    const results = await AstrologerWalletHistory.aggregate([
+      {
+        $match: {
+          astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+          timestamp: { $gte: startDate, $lte: endDate },
+          transaction_type: 'credit'
+        }
+      },
+      {
+        $group: {
+          _id: { $ifNull: ['$transaction_for', 'other'] },
+          amount: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    // Calculate total and create breakdown by type
+    const total = results.reduce((sum, item) => sum + item.amount, 0);
+    const breakdownByType = {};
+    
+    results.forEach(item => {
+      breakdownByType[item._id] = item.amount;
+    });
+
+    // Ensure chat and voice are always present
+    if (!breakdownByType.chat) breakdownByType.chat = 0;
+    if (!breakdownByType.voice) breakdownByType.voice = 0;
+
+    return { total, breakdownByType };
+  }
+}
+
+// Helper functions
+function getDayName(date) {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[date.getDay()];
+}
+
+function getMonthName(date) {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return months[date.getMonth()];
 }
 
 module.exports = { getAstroDashboard };
+// const mongoose = require('mongoose');
+// const { getCurrentIST } = require('../../utils/timeUtils');
+// const { ApiError } = require('../../errorHandler');
+// const { CallChatHistory, AstrologerWalletHistory } = require('../../models');
+
+// const getAstroDashboard = async (req, res, next) => {
+//   try {
+//     const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
+//     const { type = 'call', period = '7d' } = req.query;
+
+//     console.log('type', type)
+//     console.log('period', period)
+
+//     // Validate input
+//     if (!['call', 'earning'].includes(type)) {
+//       throw new ApiError('Invalid type parameter. Allowed values: call, earning', 400);
+//     }
+
+//     const validPeriods = ['7d', '30d', '12m', 'this_week', 'this_month', 'ytd'];
+//     if (!validPeriods.includes(period)) {
+//       throw new ApiError('Invalid period parameter', 400);
+//     }
+
+//     // Calculate date range based on period
+//     const { startDate, endDate, dateFormat, groupByField, includeUpcoming } = getDateRangeConfig(period);
+    
+//     // Get chart data
+//     const chartData = await getChartData({
+//       type,
+//       astrologer_id,
+//       startDate,
+//       endDate,
+//       dateFormat,
+//       groupByField,
+//       includeUpcoming
+//     });
+
+//     // Get totals and breakdowns by type
+//     const { total, breakdownByType } = await getTotalsAndBreakdown({
+//       type,
+//       astrologer_id,
+//       startDate,
+//       endDate
+//     });
+
+//     // Build response
+//     const response = {
+//       success: true,
+//       data: {
+//         period,
+//         type,
+//         total,
+//         breakdown_by_type: breakdownByType,
+//         chart: chartData
+//       }
+//     };
+
+//     res.json(response);
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // Get date range configuration based on period
+// function getDateRangeConfig(period) {
+//   const now = getCurrentIST();
+//   let startDate, endDate, dateFormat, groupByField, includeUpcoming = false;
+
+//   switch (period) {
+//     case '7d':
+//       startDate = new Date(now);
+//       startDate.setDate(now.getDate() - 6); // Last 7 days including today
+//       startDate.setHours(0, 0, 0, 0);
+//       endDate = new Date(now);
+//       endDate.setHours(23, 59, 59, 999);
+//       dateFormat = '%Y-%m-%d';
+//       groupByField = 'day';
+//       break;
+
+//     case '30d':
+//       startDate = new Date(now);
+//       startDate.setDate(now.getDate() - 29); // Last 30 days including today
+//       startDate.setHours(0, 0, 0, 0);
+//       endDate = new Date(now);
+//       endDate.setHours(23, 59, 59, 999);
+//       dateFormat = '%Y-%m-%d';
+//       groupByField = 'day';
+//       break;
+
+//     case '12m':
+//       startDate = new Date(now);
+//       startDate.setMonth(now.getMonth() - 11); // Last 12 months including current month
+//       startDate.setDate(1);
+//       startDate.setHours(0, 0, 0, 0);
+//       endDate = new Date(now);
+//       endDate.setHours(23, 59, 59, 999);
+//       dateFormat = '%Y-%m';
+//       groupByField = 'month';
+//       break;
+
+//     case 'this_week':
+//       // Start from Monday of current week
+//       const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday
+//       const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
+//       startDate = new Date(now);
+//       startDate.setDate(now.getDate() - diff);
+//       startDate.setHours(0, 0, 0, 0);
+      
+//       // End date is Sunday of the same week
+//       endDate = new Date(startDate);
+//       endDate.setDate(startDate.getDate() + 6);
+//       endDate.setHours(23, 59, 59, 999);
+      
+//       dateFormat = '%Y-%m-%d';
+//       groupByField = 'day';
+//       includeUpcoming = true; // Show all 7 days even if they haven't occurred yet
+//       break;
+
+//     case 'this_month':
+//       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+//       startDate.setHours(0, 0, 0, 0);
+      
+//       // Last day of current month
+//       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+//       endDate.setHours(23, 59, 59, 999);
+      
+//       dateFormat = '%Y-%m-%d';
+//       groupByField = 'day';
+//       includeUpcoming = true; // Show all days of the month even if they haven't occurred yet
+//       break;
+
+//     case 'ytd':
+//       startDate = new Date(now.getFullYear(), 0, 1); // January 1 of current year
+//       startDate.setHours(0, 0, 0, 0);
+      
+//       // December 31 of current year
+//       endDate = new Date(now.getFullYear(), 11, 31);
+//       endDate.setHours(23, 59, 59, 999);
+      
+//       dateFormat = '%Y-%m';
+//       groupByField = 'month';
+//       includeUpcoming = true; // Show all months of the year even if they haven't occurred yet
+//       break;
+//   }
+
+//   return { startDate, endDate, dateFormat, groupByField, includeUpcoming };
+// }
+
+// // Get chart data based on configuration
+// async function getChartData({ type, astrologer_id, startDate, endDate, dateFormat, groupByField, includeUpcoming }) {
+//   const Model = type === 'call' ? CallChatHistory : AstrologerWalletHistory;
+  
+//   // For data retrieval, we only want to query up to the current date
+//   const queryEndDate = includeUpcoming ? new Date(getCurrentIST()) : endDate;
+  
+//   const matchQuery = {
+//     astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+//     [type === 'call' ? 'created_at' : 'timestamp']: { $gte: startDate, $lte: queryEndDate }
+//   };
+
+//   if (type === 'earning') {
+//     matchQuery.transaction_type = 'credit';
+//   }
+
+//   // For call type, we need to get breakdown by call_type
+//   let pipeline;
+//   if (type === 'call') {
+//     pipeline = [
+//       { $match: matchQuery },
+//       {
+//         $addFields: {
+//           formatted_date: {
+//             $dateToString: {
+//               format: dateFormat,
+//               date: '$created_at',
+//               timezone: '+05:30'
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: {
+//             date: '$formatted_date',
+//             call_type: '$call_type'
+//           },
+//           count: { $sum: 1 }
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: '$_id.date',
+//           total: { $sum: '$count' },
+//           types: {
+//             $push: {
+//               type: '$_id.call_type',
+//               count: '$count'
+//             }
+//           }
+//         }
+//       },
+//       { $sort: { _id: 1 } }
+//     ];
+//   } else {
+//     // For earning type, we need to get breakdown by call_type using transaction_for field
+//     pipeline = [
+//       { $match: matchQuery },
+//       {
+//         $addFields: {
+//           formatted_date: {
+//             $dateToString: {
+//               format: dateFormat,
+//               date: '$timestamp',
+//               timezone: '+05:30'
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: {
+//             date: '$formatted_date',
+//             transaction_for: { $ifNull: ['$transaction_for', 'other'] }
+//           },
+//           amount: { $sum: '$amount' }
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: '$_id.date',
+//           total: { $sum: '$amount' },
+//           types: {
+//             $push: {
+//               type: '$_id.transaction_for',
+//               amount: '$amount'
+//             }
+//           }
+//         }
+//       },
+//       { $sort: { _id: 1 } }
+//     ];
+//   }
+
+//   const results = await Model.aggregate(pipeline);
+
+//   // Fill in missing dates with zero values
+//   const filledResults = fillMissingDates(results, startDate, endDate, dateFormat, type);
+
+//   // Format the results based on period type
+//   return formatChartData(filledResults, groupByField, type);
+// }
+
+// // Fill in missing dates with zero values
+// function fillMissingDates(results, startDate, endDate, dateFormat, type) {
+//   const dateMap = {};
+  
+//   // Create a map of existing dates
+//   results.forEach(item => {
+//     dateMap[item._id] = {
+//       total: item.total,
+//       types: {}
+//     };
+    
+//     // Create a map of types for each date
+//     item.types.forEach(typeData => {
+//       dateMap[item._id].types[typeData.type || 'other'] = type === 'call' ? typeData.count : typeData.amount;
+//     });
+//   });
+
+//   const filledResults = [];
+//   const current = new Date(startDate);
+//   const realEndDate = new Date(endDate);
+  
+//   // Loop through all dates in the range
+//   while (current <= realEndDate) {
+//     let formattedDate;
+    
+//     if (dateFormat === '%Y-%m-%d') {
+//       formattedDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+      
+//       const existingData = dateMap[formattedDate] || { total: 0, types: {} };
+      
+//       // Ensure chat and voice types are always present for both call and earning
+//       if (!existingData.types.chat) existingData.types.chat = 0;
+//       if (!existingData.types.voice) existingData.types.voice = 0;
+      
+//       filledResults.push({
+//         _id: formattedDate,
+//         date: formattedDate,
+//         total: existingData.total || 0,
+//         day: getDayName(current),
+//         voice: existingData.types.voice || 0,
+//         chat: existingData.types.chat || 0
+//       });
+      
+//       current.setDate(current.getDate() + 1);
+//     } else if (dateFormat === '%Y-%m') {
+//       formattedDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      
+//       const existingData = dateMap[formattedDate] || { total: 0, types: {} };
+      
+//       // Ensure chat and voice types are always present for both call and earning
+//       if (!existingData.types.chat) existingData.types.chat = 0;
+//       if (!existingData.types.voice) existingData.types.voice = 0;
+      
+//       filledResults.push({
+//         _id: formattedDate,
+//         date: formattedDate,
+//         total: existingData.total || 0,
+//         month: getMonthName(current),
+//         voice: existingData.types.voice || 0,
+//         chat: existingData.types.chat || 0
+//       });
+      
+//       current.setMonth(current.getMonth() + 1);
+//     }
+//   }
+
+//   return filledResults;
+// }
+
+// // Format chart data based on grouping field
+// function formatChartData(results, groupByField, type) {
+//   if (groupByField === 'day') {
+//     return results.map(item => ({
+//       date: item.date,
+//       total: item.total,
+//       day: item.day,
+//       voice: item.voice || 0,
+//       chat: item.chat || 0
+//     }));
+//   } else if (groupByField === 'month') {
+//     return results.map(item => ({
+//       date: item.date,
+//       total: item.total,
+//       month: item.month,
+//       voice: item.voice || 0,
+//       chat: item.chat || 0
+//     }));
+//   }
+  
+//   return results;
+// }
+
+// // Get totals and breakdown by type
+// async function getTotalsAndBreakdown({ type, astrologer_id, startDate, endDate }) {
+//   if (type === 'call') {
+//     const results = await CallChatHistory.aggregate([
+//       {
+//         $match: {
+//           astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+//           created_at: { $gte: startDate, $lte: endDate }
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: '$call_type',
+//           count: { $sum: 1 }
+//         }
+//       }
+//     ]);
+
+//     // Calculate total and create breakdown by type
+//     const total = results.reduce((sum, item) => sum + item.count, 0);
+//     const breakdownByType = {};
+    
+//     results.forEach(item => {
+//       breakdownByType[item._id || 'other'] = item.count;
+//     });
+
+//     // Ensure chat and voice are always present
+//     if (!breakdownByType.chat) breakdownByType.chat = 0;
+//     if (!breakdownByType.voice) breakdownByType.voice = 0;
+
+//     return { total, breakdownByType };
+//   } else {
+//     // Handle earnings type with breakdown by transaction_for field
+//     const results = await AstrologerWalletHistory.aggregate([
+//       {
+//         $match: {
+//           astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+//           timestamp: { $gte: startDate, $lte: endDate },
+//           transaction_type: 'credit'
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: { $ifNull: ['$transaction_for', 'other'] },
+//           amount: { $sum: '$amount' }
+//         }
+//       }
+//     ]);
+
+//     // Calculate total and create breakdown by type
+//     const total = results.reduce((sum, item) => sum + item.amount, 0);
+//     const breakdownByType = {};
+    
+//     results.forEach(item => {
+//       breakdownByType[item._id] = item.amount;
+//     });
+
+//     // Ensure chat and voice are always present
+//     if (!breakdownByType.chat) breakdownByType.chat = 0;
+//     if (!breakdownByType.voice) breakdownByType.voice = 0;
+
+//     return { total, breakdownByType };
+//   }
+// }
+
+// // Helper functions
+// function getDayName(date) {
+//   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+//   return days[date.getDay()];
+// }
+
+// function getMonthName(date) {
+//   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+//   return months[date.getMonth()];
+// }
+
+// module.exports = { getAstroDashboard };
