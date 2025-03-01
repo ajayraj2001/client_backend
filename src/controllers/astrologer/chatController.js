@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { ChatMessage, CallChatHistory } = require('../../models');
+const { ChatMessage, CallChatHistory, Astrologer } = require('../../models');
 
 // Get last chats for a user or astrologer
 const getLastChats = async (req, res, next) => {
@@ -97,4 +97,56 @@ const getCallHistory = async (req, res, next) => {
   }
 };
 
-module.exports = { getLastChats, getCallHistory };
+const updateAstrologerOnlineStatus = async (req, res, next) => {
+  try {
+    const astrologer_id = req.astrologer._id; // Get from authenticated user
+    const { is_chat_online, is_voice_online } = req.body; // Get values from request
+
+    // Fetch astrologer with required fields
+    const astrologer = await Astrologer.findById(astrologer_id).select("is_chat is_voice_call is_chat_online is_voice_online");
+
+    if (!astrologer) {
+      throw new ApiError('Astrologer not found', 404);
+    }
+
+    // Validate online status update
+    const updates = {};
+
+    if (is_chat_online !== undefined) {
+      if (astrologer.is_chat === "on") {
+        updates.is_chat_online = is_chat_online;
+      } else {
+        throw new ApiError("Cannot go online for chat as chat service is disabled", 400);
+      }
+    }
+
+    if (is_voice_online !== undefined) {
+      if (astrologer.is_voice_call === "on") {
+        updates.is_voice_online = is_voice_online;
+      } else {
+        throw new ApiError("Cannot go online for voice as voice call service is disabled", 400);
+      }
+    }
+
+    // If no valid updates, return an error
+    if (Object.keys(updates).length === 0) {
+      throw new ApiError("No valid fields to update", 400);
+    }
+
+    // Update astrologer status
+    await Astrologer.findByIdAndUpdate(astrologer_id, { $set: updates });
+
+    // Return updated response
+    res.json({
+      success: true,
+      message: "Astrologer online status updated successfully",
+      data: updates
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+module.exports = { getLastChats, getCallHistory, updateAstrologerOnlineStatus };
