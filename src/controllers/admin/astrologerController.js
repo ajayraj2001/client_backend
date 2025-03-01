@@ -166,7 +166,7 @@ const updateAstrologer = async (req, res, next) => {
 
     try {
       const { id } = req.params;
-      const { email, number } = req.body;
+      const { email, number, is_chat, is_voice_call, is_video_call } = req.body;
       const updateData = req.body;
 
       const astroExist = await Astrologer.findById(id);
@@ -212,6 +212,17 @@ const updateAstrologer = async (req, res, next) => {
       if (req.files?.pan_card_img) {
         panImgPath = `/pan_images/${req.files.pan_card_img[0].filename}`;
         updateData.pan_card_img = panImgPath;
+      }
+
+       // Automatically set is_chat_online & is_voice_online to "off" if chat or voice_call is disabled
+       if (is_chat === "off") {
+        updateData.is_chat_online = "off";
+      }
+      if (is_voice_call === "off") {
+        updateData.is_voice_online = "off";
+      }
+      if (is_video_call === "off") {
+        updateData.is_video_online = "off";
       }
 
       // Find the astrologer to get existing file paths
