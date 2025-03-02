@@ -4,9 +4,9 @@ const { authenticateAstrologer } = require("../../middlewares");
 const { getAstroDashboard, getAstrologerStats, getAstrologerOnlineStats } = require("../../controllers/astrologer/dashboardController");
 
 // // Dashboard routes
-router.get("/", getAstroDashboard);
-router.get("/stats", getAstrologerStats);
-router.get("/profileStats", getAstrologerOnlineStats);
+router.get("/", authenticateAstrologer,  getAstroDashboard);
+router.get("/stats", authenticateAstrologer, getAstrologerStats);
+router.get("/profileStats",authenticateAstrologer,  getAstrologerOnlineStats);
 // router.get("/", authenticateAstrologer, getDashboardData);
 
 module.exports = router;
