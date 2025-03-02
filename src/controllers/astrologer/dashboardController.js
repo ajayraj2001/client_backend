@@ -5,7 +5,8 @@ const { CallChatHistory, AstrologerWalletHistory, Astrologer } = require('../../
 
 const getAstroDashboard = async (req, res, next) => {
   try {
-    const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
+    // const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
+    const astrologer_id =  req.astrologer._id
     const { type = 'call', period = '7d' } = req.query;
 
     console.log('type', type)
@@ -447,7 +448,7 @@ function getMonthName(date) {
 
 const getAstrologerStats = async (req, res, next) => {
   try {
-    const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
+    const astrologer_id =  req.astrologer._id; // Get from authenticated user
 
     const astrologer = await Astrologer.findById(astrologer_id).select("rating total_reviews call_counts");
     if (!astrologer) {
@@ -551,7 +552,7 @@ const getAstrologerStats = async (req, res, next) => {
 
 const getAstrologerOnlineStats = async (req, res, next) => {
   try {
-    const astrologer_id = '67b2e48b094a099dcf83352b'; // Get from authenticated user
+    const astrologer_id =  req.astrologer._id; // Get from authenticated user
 
     // Fetch astrologer with only name and wallet fields
     const astrologer = await Astrologer.findById(astrologer_id).select("name wallet is_chat is_voice_call is_chat_online is_voice_online");
