@@ -468,7 +468,6 @@ const getAdminDashboardChartData = async (req, res, next) => {
     }
 };
 
-
 // const getAdminDashboardChartData = async (req, res, next) => {
 //     try {
 //         const { type = 'call', timePeriod = 'this_month' } = req.query;
