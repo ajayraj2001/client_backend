@@ -450,7 +450,7 @@ const getAstrologerStats = async (req, res, next) => {
   try {
     const astrologer_id =  req.astrologer._id; // Get from authenticated user
 
-    const astrologer = await Astrologer.findById(astrologer_id).select("rating total_reviews call_counts");
+    const astrologer = await Astrologer.findById(astrologer_id).select("rating wallet total_reviews call_counts");
     if (!astrologer) {
       throw new ApiError('Astrologer not found or not active', 404);
     }
