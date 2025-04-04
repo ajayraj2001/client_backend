@@ -16,7 +16,8 @@ const getDashboardData = async (req, res, next) => {
     const activeBlogs = await Blog.find({ status: 'Active' });
 
     // Fetch top 4 astrologers with is_chat_online = "on"
-    const onlineAstrologers = await Astrologer.find({ status: "Active", is_chat: "on", is_chat_online: 'on' })
+    const onlineAstrologers = await Astrologer.find({ status: "Active" })
+    // const onlineAstrologers = await Astrologer.find({ status: "Active", is_chat: "on", is_chat_online: 'on' })
       .limit(10) // Limit to 4 astrologers
       .sort({busy:1, rating:-1})
       .select('name experience rating profile_img') // Exclude password field
