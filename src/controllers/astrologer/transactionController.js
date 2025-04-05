@@ -14,7 +14,7 @@ const getWalletHistory = async (req, res, next) => {
       .limit(parseInt(limit));
 
     // Fetch total count for pagination
-    const totalRecords = await AstrologerWalletHistory.countDocuments({ astrologer_id: id });
+    const totalRecords = await AstrologerWalletHistory.countDocuments({ astrologer_id });
 
 
     // Fetch the user's current wallet balance from the User model (if stored separately)
