@@ -8,7 +8,7 @@ const {
 } = require("../../controllers/astrologer/chatController");
 
 // Chat routes
-router.post('/call_history', authenticateAstrologer, getCallHistory);
+router.get('/call_history', authenticateAstrologer, getCallHistory);
 router.get('/last_chats', authenticateAstrologer, getLastChats);
 router.post('/updateOnlineStatus', authenticateAstrologer, updateAstrologerOnlineStatus);
 

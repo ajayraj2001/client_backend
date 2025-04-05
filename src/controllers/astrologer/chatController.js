@@ -58,33 +58,36 @@ const getLastChats = async (req, res, next) => {
 
 const getCallHistory = async (req, res, next) => {
   try {
-
-    
-    const { call_type } = req.body;
+    const { call_type } = req.query;
     const astrologer_id = req.astrologer._id;
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 30; // 30 records per page
 
-    // Validate call_type
-    if (!['chat', 'voice', 'video'].includes(call_type)) {
-      throw new ApiError('Invalid call type', 400);
+    // Build the query dynamically
+    const query = { astrologer_id };
+    if (call_type) {
+      if (!['chat', 'voice', 'video'].includes(call_type)) {
+        throw new ApiError('Invalid call type', 400);
+      }
+      query.call_type = call_type;
     }
 
     // Fetch the call history with pagination
-    const callHistory = await CallChatHistory.find({ astrologer_id, call_type })
+    const callHistory = await CallChatHistory.find(query)
       .sort({ start_time: -1 }) // Sort by latest first
       .skip((page - 1) * limit) // Skip records for previous pages
       .limit(limit) // Limit to 30 records per page
-      .populate('user_id', 'name profile_img'); // Include astrologer details
+      .select('-cost -admin_cut') // Exclude these fields
+      .populate('user_id', 'name profile_img'); // Include user details
 
     // Get total number of records for pagination metadata
-    const totalRecords = await CallChatHistory.countDocuments({ astrologer_id, call_type });
+    const totalRecords = await CallChatHistory.countDocuments(query);
 
     return res.status(200).json({
       success: true,
       message: 'Call history fetched successfully',
       data: {
-        callHistory: callHistory,
+        callHistory,
         pagination: {
           currentPage: page,
           totalPages: Math.ceil(totalRecords / limit),
