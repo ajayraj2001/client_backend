@@ -46,11 +46,14 @@ const astrologerSchema = new Schema({
   is_voice_online: { type: String, default: 'off' },
   is_video_online: { type: String, default: 'off' },
 
+  //totalminutes
+  chat_mins: { type: Number, default: 0 },
+  voice_mins: { type: Number, default: 0 },
+
   // Profile and Documents
   profile_img: { type: String, default: '' },
   aadhar_card_img: { type: String, default: '' },
   pan_card_img: { type: String, default: '' },
-
 
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive', },
   password_created: { type: Boolean, default: false, },
