@@ -34,6 +34,9 @@ const astrologerSchema = new Schema({
   // Wallet and Pricing
   wallet: { type: Number, default: 0 },
   commission: { type: Number, default: 0 },
+  display_per_min_chat: { type: Number, default: 0 },
+  display_per_min_voice_call: { type: Number, default: 0 },
+  display_per_min_video_call: { type: Number, default: 0 },
   per_min_chat: { type: Number, default: 0 },
   per_min_voice_call: { type: Number, default: 0 },
   per_min_video_call: { type: Number, default: 0 },
