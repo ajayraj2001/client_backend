@@ -32,7 +32,7 @@ const getActiveAstrologers = async (req, res, next) => {
         };
 
         const activeAstrologers = await Astrologer.find(query)
-            .select('_id number name skills languages profile_img busy rating is_chat is_voice_call is_video_call is_chat_online is_voice_online is_video_online per_min_chat per_min_voice_call per_min_video_call') // Include only required fields
+            .select('_id number experience name skills languages profile_img busy rating is_chat is_voice_call is_chat_online is_voice_online per_min_chat per_min_voice_call per_min_video_call') // Include only required fields
             .populate('languages', 'name')
             .populate('skills', 'name')
             .sort(sortCriteria); // Apply sorting
