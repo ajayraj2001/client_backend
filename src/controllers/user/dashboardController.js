@@ -20,7 +20,7 @@ const getDashboardData = async (req, res, next) => {
     // const onlineAstrologers = await Astrologer.find({ status: "Active", is_chat: "on", is_chat_online: 'on' })
       .limit(10) // Limit to 4 astrologers
       .sort({busy:1, rating:-1})
-      .select('name experience rating profile_img is_chat is_chat_online per_min_chat') // Exclude password field
+      .select('name experience rating profile_img is_chat is_chat_online per_min_chat display_per_min_chat display_per_min_voice_call') // Exclude password field
       .populate('languages', 'name')
       .populate('skills', 'name');
 
