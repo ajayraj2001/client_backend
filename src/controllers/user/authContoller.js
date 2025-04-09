@@ -77,6 +77,7 @@ const verifyOTP = async (req, res, next) => {
         if (!number || !otp) {
             throw new ApiError('Number and OTP are required', 400);
         }
+        console.log('req.body_whioe_lgin', req.body)
 
         // if (!deviceToken || !deviceId) {
         //     throw new ApiError(' deviceToken, and deviceId are required', 400);
