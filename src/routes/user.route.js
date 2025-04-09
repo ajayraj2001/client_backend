@@ -17,6 +17,6 @@ userRoute.use("/dashboard", dashboardRoutes); // For dashboard routes
 userRoute.use("/astrologers", astrologerRoutes); // For astrologer routes
 userRoute.use("/transactions", transactionRoutes); // For transaction routes
 userRoute.use("/chat", chatRoutes); // For chat routes
-userRoute.use("/siteSetting", siteSettingRoutes); // For chat routes
+userRoute.use("/siteSetting", siteSettingRoutes);
 
 module.exports = userRoute;

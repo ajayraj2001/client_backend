@@ -65,7 +65,6 @@ const settingsData = async (req, res) => {
     }
 };
 
-
 module.exports = {
     appStatusCheck,
     settingsData
