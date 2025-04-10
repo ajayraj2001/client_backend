@@ -4,19 +4,33 @@ const { Puja } = require('../../models');
 // Get All Pujas
 const getAllPujas = async (req, res, next) => {
   try {
+    const page = parseInt(req.query.page) || 1; // default page = 1
+    const limit = parseInt(req.query.limit) || 10; // default limit = 10
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Puja.countDocuments();
     const pujas = await Puja.find({})
-    .sort({ _id: -1 })
-    .populate('compulsoryProducts.productId optionalProducts.productId');  
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('compulsoryProducts.productId optionalProducts.productId');
 
     return res.status(200).json({
       success: true,
       message: 'Pujas fetched successfully',
       data: pujas,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 // Get Puja by ID
 const getPujaById = async (req, res, next) => {
