@@ -10,6 +10,7 @@ const astrologerRoutes = require("./userRoutes/astrologerRoute");
 const transactionRoutes = require("./userRoutes/transactionRoute");
 const chatRoutes = require("./userRoutes/chatRoutes");
 const siteSettingRoutes = require("./userRoutes/siteSettingRoute");
+const pujaRoutes = require("./userRoutes/pujaRoute");
 
 // Use the routes
 userRoute.use("/auth", authRoutes); // For authentication routes
@@ -18,5 +19,6 @@ userRoute.use("/astrologers", astrologerRoutes); // For astrologer routes
 userRoute.use("/transactions", transactionRoutes); // For transaction routes
 userRoute.use("/chat", chatRoutes); // For chat routes
 userRoute.use("/siteSetting", siteSettingRoutes);
+userRoute.use("/puja", pujaRoutes);
 
 module.exports = userRoute;
