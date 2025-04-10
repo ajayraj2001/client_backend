@@ -3,14 +3,14 @@ const router = express.Router();
 const {
   getAllPujas,
   getPujaById,
-} = require('../../controllers/admin/pujaController');
+} = require('../../controllers/user/pujaController');
 const { authenticateUser } = require('../../middlewares');
 
 // Get all pujas with search and sorting
-router.get('/', authenticateUser, getAllPujas);
+router.get('/', getAllPujas);
 
 // Get a specific puja by ID
-router.get('/:id', authenticateUser, getPujaById);
+router.get('/:id', getPujaById);
 
 
 module.exports = router;
