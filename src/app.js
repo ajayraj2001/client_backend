@@ -8,8 +8,7 @@ const app = express();
 const allowedOrigins = process.env.CORS_ORIGINS.split(',');
 
 const corsOptions = {
-    // origin: allowedOrigins,
-    origin: true,
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true 
