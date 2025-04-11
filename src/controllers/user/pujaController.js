@@ -5,7 +5,7 @@ const { Puja } = require('../../models');
 const getAllPujas = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1; // default page = 1
-    const limit = parseInt(req.query.limit) || 10; // default limit = 10
+    const limit = parseInt(req.query.limit) || 4; // default limit = 10
     const skip = (page - 1) * limit;
 
     const totalCount = await Puja.countDocuments();
@@ -31,7 +31,6 @@ const getAllPujas = async (req, res, next) => {
   }
 };
 
-
 // Get Puja by ID
 const getPujaById = async (req, res, next) => {
   try {
@@ -51,8 +50,6 @@ const getPujaById = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 module.exports = {
   getAllPujas,
