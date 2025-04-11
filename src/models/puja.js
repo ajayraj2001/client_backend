@@ -36,6 +36,10 @@ const pujaSchema = new Schema({
         type: String,
         default: '',
     },
+    shortDescription: {
+        type: String,
+        default: '',
+    },
     benifits: {
         type: [String],
         default: [],
