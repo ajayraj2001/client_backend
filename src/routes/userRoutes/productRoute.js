@@ -7,7 +7,7 @@ const {
 } = require("../../controllers/user/productController");
 
 
-router.get('/', authenticateAdmin, getAllProducts);
-router.get('/:id', authenticateAdmin, getProductById);
+router.get('/', authenticateUser, getAllProducts);
+router.get('/:id', authenticateUser, getProductById);
 
 module.exports = router;
