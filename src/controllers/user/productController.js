@@ -89,7 +89,7 @@ const getProductById = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: 'Product fetched successfully',
-            data: product,
+            productData: product,
         });
     } catch (error) {
         next(error);
