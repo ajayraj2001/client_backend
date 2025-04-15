@@ -4,10 +4,13 @@ const { authenticateUser } = require("../../middlewares");
 const {
   getAllProducts,
   getProductById,
+  getProductsByCategory
 } = require("../../controllers/user/productController");
 
 
 router.get('/', authenticateUser, getAllProducts);
+router.get('/:categoryId', authenticateUser, getProductsByCategory);
 router.get('/:id', authenticateUser, getProductById);
+
 
 module.exports = router;
