@@ -9,7 +9,7 @@ const {
 
 
 router.get('/', authenticateUser, getAllProducts);
-router.get('byCategory/:categoryId', authenticateUser, getProductsByCategory);
+router.get('/byCategory/:categoryId', authenticateUser, getProductsByCategory);
 router.get('/:id', authenticateUser, getProductById);
 
 
