@@ -4,7 +4,7 @@ const { Category } = require('../../models');
 // Get All Categories
 const getAllCategories = async (req, res, next) => {
     try {
-        const categories = await Category.find({}).sort({_id:-1})
+        const categories = await Category.find({status: "Active"}).sort({_id:-1})
 
         return res.status(200).json({
             success: true,

@@ -54,11 +54,10 @@ const getProductsByCategory = async (req, res, next) => {
         // Get total count in the category
         const totalCount = await Product.countDocuments({ categoryId });
 
-        const products = await Product.find({ categoryId })
+        const products = await Product.find({ status: "Active",categoryId })
             .sort({ _id: -1 })
             .skip(skip)
             .limit(limit)
-            .populate('categoryId', 'name image');
 
         return res.status(200).json({
             success: true,
