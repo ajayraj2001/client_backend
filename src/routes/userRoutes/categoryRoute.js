@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateAdmin } = require("../../middlewares");
+const { authenticateUser } = require("../../middlewares");
 const {
   getAllCategories,
   getCategoryById,
-} = require("../../controllers/admin/categoryController");
+} = require("../../controllers/user/categoryController");
 
-router.get('/', authenticateAdmin, getAllCategories);
-router.get('/:id', authenticateAdmin, getCategoryById);
+router.get('/', authenticateUser, getAllCategories);
+router.get('/:id', authenticateUser, getCategoryById);
 
 module.exports = router;
