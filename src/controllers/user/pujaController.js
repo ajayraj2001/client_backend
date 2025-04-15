@@ -13,7 +13,7 @@ const getAllPujas = async (req, res, next) => {
       .sort({ _id: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('compulsoryProducts.productId optionalProducts.productId');
+      .select('title pujaImage slug displayedPrice actualPrice pujaDate shortDescription');
 
     return res.status(200).json({
       success: true,

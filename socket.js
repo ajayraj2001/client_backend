@@ -629,5 +629,4 @@ const updateWalletHistories = async (call_id, user_id, astrologer_id, cost, astr
   await adminHistory.save();
 };
 
-
 module.exports = { initializeSocket };
