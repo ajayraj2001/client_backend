@@ -62,7 +62,7 @@ const getProductsByCategory = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: 'Products fetched successfully by category',
-            data: products,
+            productData: products,
             pagination: {
                 total: totalCount,
                 page,
@@ -89,7 +89,7 @@ const getProductById = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: 'Product fetched successfully',
-            productData: product,
+            data: product,
         });
     } catch (error) {
         next(error);
