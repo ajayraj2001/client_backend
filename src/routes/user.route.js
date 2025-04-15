@@ -11,6 +11,7 @@ const transactionRoutes = require("./userRoutes/transactionRoute");
 const chatRoutes = require("./userRoutes/chatRoutes");
 const siteSettingRoutes = require("./userRoutes/siteSettingRoute");
 const pujaRoutes = require("./userRoutes/pujaRoute");
+const productRoutes = require("./userRoutes/productRoute");
 
 // Use the routes
 userRoute.use("/auth", authRoutes); // For authentication routes
@@ -20,5 +21,6 @@ userRoute.use("/transactions", transactionRoutes); // For transaction routes
 userRoute.use("/chat", chatRoutes); // For chat routes
 userRoute.use("/siteSetting", siteSettingRoutes);
 userRoute.use("/puja", pujaRoutes);
+userRoute.use('/product', productRoutes);
 
 module.exports = userRoute;
