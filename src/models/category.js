@@ -9,10 +9,6 @@ const categorySchema = new Schema({
         trim: true,
         unique: true,
     },
-    description: {
-        type: String,
-        default: '',
-    },
     image: {
         type: String,
         default: '',
