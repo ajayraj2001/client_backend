@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const { ApiError } = require('../../errorHandler');
 const { ChatMessage, CallChatHistory, Astrologer } = require('../../models');
 
@@ -16,8 +17,8 @@ const getLastChats = async (req, res, next) => {
     const lastChats = await ChatMessage.aggregate([
       {
         $match: {
-          ...(user_id && { user_id: mongoose.Types.ObjectId(user_id) }),
-          ...(astrologer_id && { astrologer_id: mongoose.Types.ObjectId(astrologer_id) }),
+          ...(user_id && { user_id: new mongoose.Types.ObjectId(user_id) }),
+          ...(astrologer_id && { astrologer_id: new mongoose.Types.ObjectId(astrologer_id) }),
         },
       },
       {
@@ -157,7 +158,8 @@ const updateAstrologerOnlineStatus = async (req, res, next) => {
  */
 const getChatList = async (req, res, next) => {
   try {
-    const astrologer_id = req.astrologer._id;
+    const astrologer_id = '67b2e48b094a099dcf83352b'
+    // const astrologer_id = req.astrologer._id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
@@ -167,7 +169,7 @@ const getChatList = async (req, res, next) => {
       // Match all messages involving this astrologer
       {
         $match: {
-          astrologer_id: mongoose.Types.ObjectId(astrologer_id)
+          astrologer_id: new mongoose.Types.ObjectId(astrologer_id)
         }
       },
       // Sort by timestamp (newest first)
@@ -238,7 +240,7 @@ const getChatList = async (req, res, next) => {
 
     // Get total count for pagination
     const totalUsers = await ChatMessage.aggregate([
-      { $match: { astrologer_id: mongoose.Types.ObjectId(astrologer_id) } },
+      { $match: { astrologer_id: new mongoose.Types.ObjectId(astrologer_id) } },
       { $group: { _id: "$user_id" } },
       { $count: "total" }
     ]);

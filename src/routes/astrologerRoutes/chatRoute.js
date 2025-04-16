@@ -10,7 +10,7 @@ const {
 
 // Chat routes
 router.get('/call_history', authenticateAstrologer, getCallHistory);
-router.get('/getChatList', authenticateAstrologer, getChatList);
+router.get('/getChatList', getChatList);
 router.get('/last_chats', authenticateAstrologer, getLastChats);
 router.post('/updateOnlineStatus', authenticateAstrologer, updateAstrologerOnlineStatus);
 
