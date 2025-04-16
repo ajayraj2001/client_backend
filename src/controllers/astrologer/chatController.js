@@ -151,5 +151,116 @@ const updateAstrologerOnlineStatus = async (req, res, next) => {
   }
 };
 
+/**
+ * Get chat list for an astrologer showing all users they've chatted with and the last message
+ * Similar to a WhatsApp chat list UI
+ */
+const getChatList = async (req, res, next) => {
+  try {
+    const astrologer_id = req.astrologer._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-module.exports = { getLastChats, getCallHistory, updateAstrologerOnlineStatus };
+    // Aggregate to get the last message for each user that has chatted with this astrologer
+    const chatList = await ChatMessage.aggregate([
+      // Match all messages involving this astrologer
+      {
+        $match: {
+          astrologer_id: mongoose.Types.ObjectId(astrologer_id)
+        }
+      },
+      // Sort by timestamp (newest first)
+      {
+        $sort: { timestamp: -1 }
+      },
+      // Group by user_id to get one entry per user
+      {
+        $group: {
+          _id: "$user_id",
+          lastMessage: { $first: "$$ROOT" },
+          unreadCount: {
+            $sum: {
+              $cond: [
+                { $and: [
+                  { $eq: ["$sender", "user"] },
+                  { $eq: ["$read", false] }
+                ]},
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      // Look up user info
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userInfo"
+        }
+      },
+      // Unwind the user info array (convert to object)
+      {
+        $unwind: "$userInfo"
+      },
+      // Sort by last message timestamp
+      {
+        $sort: { "lastMessage.timestamp": -1 }
+      },
+      // Skip and limit for pagination
+      {
+        $skip: skip
+      },
+      {
+        $limit: limit
+      },
+      // Project only the fields we need
+      {
+        $project: {
+          _id: 0,
+          user_id: "$_id",
+          name: "$userInfo.name",
+          profile_img: "$userInfo.profile_img",
+          lastMessage: {
+            message: "$lastMessage.message",
+            sender: "$lastMessage.sender",
+            timestamp: "$lastMessage.timestamp",
+            read: "$lastMessage.read",
+            messageType: "$lastMessage.messageType"
+          },
+          unreadCount: 1
+        }
+      }
+    ]);
+
+    // Get total count for pagination
+    const totalUsers = await ChatMessage.aggregate([
+      { $match: { astrologer_id: mongoose.Types.ObjectId(astrologer_id) } },
+      { $group: { _id: "$user_id" } },
+      { $count: "total" }
+    ]);
+
+    const total = totalUsers.length > 0 ? totalUsers[0].total : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Chat list fetched successfully',
+      data: {
+        chatList,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalRecords: total
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+module.exports = { getLastChats, getCallHistory, updateAstrologerOnlineStatus, getChatList };
