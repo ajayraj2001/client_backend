@@ -102,7 +102,7 @@ const initializeSocket = (server) => {
           return;
         }
 
-        console.log('here 2')
+        console.log('here 2',astrologer.deviceToken)
         // Validate availability
         if (astrologer.busy || !astrologer[`is_${call_type}_online`]) {
           console.log('ghgjg')
