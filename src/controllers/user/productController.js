@@ -75,7 +75,6 @@ const getProductsByCategory = async (req, res, next) => {
     }
 };
 
-
 // Get Product by ID
 const getProductById = async (req, res, next) => {
     try {

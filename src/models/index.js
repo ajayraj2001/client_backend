@@ -20,6 +20,10 @@ const Puja = require("./puja");
 const AstrologerSignupRequest = require("./astrologerSignupRequest");
 const LiveStream = require("./liveStream");
 const Gift = require("./gift");
+const Cart = require("./cart");
+const Address = require("./address");
+const PujaTransaction = require("./pujaTransaction");
+const ProductTransaction = require("./productTransaction");
 const { UserSetting, AstroSetting } = require("./siteSetting");
 
 module.exports = {
@@ -46,6 +50,10 @@ module.exports = {
   LiveStream,
   Gift,
   UserSetting,
-  AstroSetting
+  AstroSetting,
+  Cart,
+  Address,
+  PujaTransaction,
+  ProductTransaction
 };
 
