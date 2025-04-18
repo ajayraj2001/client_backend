@@ -16,52 +16,70 @@ const cartController = {
       // Find or create cart for user
       let cart = await Cart.findOne({ userId }).populate({
         path: 'items.productId',
-        select: 'name img displayedPrice actualPrice status categoryId details',
-        populate: {
-          path: 'categoryId',
-          select: 'name'
-        }
+        select: 'name img displayedPrice actualPrice status',
       });
 
-      if (!cart) {
-        // Create empty cart if none exists
-        cart = new Cart({ userId, items: [] });
-        await cart.save();
-      } else {
-        // Filter out any products that might have been deleted or deactivated
-        const validItems = cart.items.filter(item => 
-          item.productId && item.productId.status === 'Active'
-        );
-        
-        // If items changed, update the cart
-        if (validItems.length !== cart.items.length) {
-          cart.items = validItems;
-          await cart.save();
-        }
-      }
 
+        // If no cart found, return empty cart response
+    if (!cart) {
       return res.status(200).json({
         success: true,
         cart: {
-          _id: cart._id,
-          items: cart.items.map(item => ({
-            _id: item._id,
-            productId: item.productId._id,
-            name: item.productId.name,
-            img: item.productId.img && item.productId.img.length > 0 ? item.productId.img[0] : '',
-            category: item.productId.categoryId ? item.productId.categoryId.name : '',
-            displayedPrice: item.productId.displayedPrice,
-            actualPrice: item.productId.actualPrice,
-            quantity: item.quantity,
-            details: item.productId.details,
-            subtotal: item.productId.actualPrice * item.quantity,
-            gstAmount: (item.productId.actualPrice * item.quantity) * 0.18,
-            total: (item.productId.actualPrice * item.quantity) * 1.18,
-            savedAmount: (item.productId.displayedPrice - item.productId.actualPrice) * item.quantity
-          })),
-          summary: cart.summary
+          _id: null,
+          items: [],
+          summary: {}
         }
       });
+    }
+
+         // Filter out inactive/deleted products
+    const validItems = cart.items.filter(
+      item => item.productId && item.productId.status === 'Active'
+    );
+
+    // Update only if items were removed
+    if (validItems.length !== cart.items.length) {
+      cart.items = validItems;
+      await cart.save();
+    }
+
+    const items = validItems.map(item => {
+      const product = item.productId;
+      const quantity = item.quantity;
+      const actualPrice = product.actualPrice;
+      const displayedPrice = product.displayedPrice;
+
+      const subtotal = actualPrice * quantity;
+      const gstAmount = subtotal * 0.18;
+      const total = subtotal + gstAmount;
+      const savedAmount = (displayedPrice - actualPrice) * quantity;
+
+      
+      return {
+        _id: item._id,
+        productId: product._id,
+        name: product.name,
+        img: Array.isArray(product.img) && product.img.length > 0 ? product.img[0] : '',
+        category: product.categoryId?.name || '',
+        displayedPrice,
+        actualPrice,
+        quantity,
+        details: product.details,
+        subtotal,
+        gstAmount,
+        total,
+        savedAmount
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      cart: {
+        _id: cart._id,
+        items,
+        summary: cart.summary || {}
+      }
+    });
     } catch (error) {
       console.error('Error fetching cart:', error);
       return res.status(500).json({
