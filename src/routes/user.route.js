@@ -13,6 +13,9 @@ const siteSettingRoutes = require("./userRoutes/siteSettingRoute");
 const pujaRoutes = require("./userRoutes/pujaRoute");
 const categoryRoutes = require("./userRoutes/categoryRoute");
 const productRoutes = require("./userRoutes/productRoute");
+const paymentRoutes = require('./userRoutes/paymentRoute');
+const cartRoutes = require('./userRoutes/cartRoute');
+const addressRoutes = require('./userRoutes/addressRoute');
 
 // Use the routes
 userRoute.use("/auth", authRoutes); // For authentication routes
@@ -24,6 +27,8 @@ userRoute.use("/siteSetting", siteSettingRoutes);
 userRoute.use("/puja", pujaRoutes);
 userRoute.use('/category', categoryRoutes);
 userRoute.use('/product', productRoutes);
-
+userRoute.use('/payment', paymentRoutes);
+userRoute.use('/cart', cartRoutes);
+userRoute.use('/address', addressRoutes);
 
 module.exports = userRoute;
