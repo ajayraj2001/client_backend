@@ -11,24 +11,37 @@ const baseTransactionSchema = {
     required: true,
     index: true // Index for faster queries
   },
-  amount: {
+  totalAmount: {
     type: Number,
     required: true
   },
-  displayedAmount: { // Original displayed price
+  orderAmount: {
     type: Number,
     required: true
   },
-  paymentId: {
-    type: String,
-    default: '',
-    index: true // Index for faster payment lookups
+  gstAmount: {
+    type: Number,
+    required: true
+  },
+  shippingCharges: {
+    type: Number,
+    required: true
   },
   orderId: {
     type: String,
     required: true,
-    unique: true,
-    index: true // Index for faster order lookups
+    // unique: true,
+    // index: true // Index for faster order lookups
+  },
+  receiptId: {
+    type: String,
+    default: ''
+    // index: true // Index for faster order lookups
+  },
+  paymentId: {
+    type: String,
+    default: '',
+    // index: true // Index for faster payment lookups
   },
   status: {
     type: String,
@@ -36,19 +49,11 @@ const baseTransactionSchema = {
     default: 'INITIATED',
     index: true // Index for status-based queries
   },
-  paymentMethod: {
-    type: String,
-    enum: ['RAZORPAY', 'WALLET', 'OTHER'],
-    default: 'RAZORPAY'
-  },
-  paymentDetails: {
-    type: Schema.Types.Mixed, // Store payment gateway response
-    default: {}
-  },
-  walletAmountUsed: {
-    type: Number,
-    default: 0
-  },
+  // paymentMethod: {
+  //   type: String,
+  //   enum: ['RAZORPAY', 'WALLET', 'OTHER'],
+  //   default: 'RAZORPAY'
+  // },
   discountAmount: {
     type: Number,
     default: 0

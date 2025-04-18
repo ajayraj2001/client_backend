@@ -28,13 +28,17 @@ const ProductTransactionSchema = new Schema({
         type: Number,
         required: true
       },
-      totalPrice: {
+      basePrice: {
         type: Number,
         required: true
       },
-      img: {
-        type: String,
-        default: ''
+      gstAmount: {
+        type: Number,
+        required: true
+      },
+      totalPrice: {
+        type: Number,
+        required: true
       }
     }
   ],
@@ -49,9 +53,9 @@ const ProductTransactionSchema = new Schema({
       type: String,
       required: true
     },
-    email: {
+    alternatePhoneNumber: {
       type: String,
-      default: ''
+      required: true
     },
     address: {
       addressLine1: { type: String, required: true },
@@ -70,31 +74,25 @@ const ProductTransactionSchema = new Schema({
     default: 'PROCESSING'
   },
   
-  trackingId: {
-    type: String,
-    default: ''
-  },
+  // trackingId: {
+  //   type: String,
+  //   default: ''
+  // },
   
-  courierName: {
-    type: String,
-    default: ''
-  },
+  // courierName: {
+  //   type: String,
+  //   default: ''
+  // },
   
   estimatedDelivery: {
     type: Date,
     default: null
-  },
-  
+  },  
   deliveryDate: {
     type: Date,
     default: null
   },
-  
-  // For any special instructions
-  deliveryInstructions: {
-    type: String,
-    default: ''
-  }
+
 }, {
   timestamps: { 
     createdAt: 'created_at', 

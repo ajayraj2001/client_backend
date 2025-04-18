@@ -1,6 +1,5 @@
 'use strict';
-const Cart = require('../../models');
-const Product = require('../../models');
+const {Product, Cart} = require('../../models');
 const mongoose = require('mongoose');
 const { getCurrentIST } = require('../../utils/timeUtils');
 

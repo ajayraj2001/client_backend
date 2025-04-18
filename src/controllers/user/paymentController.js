@@ -274,11 +274,11 @@ const paymentController = {
 
           const basePrice = product.actualPrice * item.quantity;
           const itemGst = basePrice * 0.18;
-          const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
+          // const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
 
           subtotal += basePrice;
           gstAmount += itemGst;
-          savedAmount += itemSaved > 0 ? itemSaved : 0;
+          // savedAmount += itemSaved > 0 ? itemSaved : 0;
 
           productItems.push({
             productId: product._id,
@@ -287,8 +287,7 @@ const paymentController = {
             unitPrice: product.actualPrice,
             basePrice: basePrice,
             gstAmount: itemGst,
-            totalPrice: basePrice + itemGst,
-            img: product.img && product.img.length > 0 ? product.img[0] : ''
+            totalPrice: basePrice + itemGst
           });
         }
       }
@@ -300,11 +299,11 @@ const paymentController = {
       const shippingCharges = subtotal < 500 ? 40 : 0; // Free shipping over ₹500
 
       // Create Razorpay order
-      const orderId = generateOrderId();
+      const receiptId = generateOrderId();
       const razorpayOrder = await razorpay.orders.create({
         amount: Math.round((totalAmount + shippingCharges) * 100), // Convert to paisa
         currency: 'INR',
-        receipt: orderId,
+        receipt: receiptId,
         notes: {
           userId: userId.toString(),
           type: 'PRODUCT_TRANSACTION'
@@ -315,7 +314,7 @@ const paymentController = {
       const shippingDetails = {
         name: address.name,
         phoneNumber: address.mobileNumber,
-        email: req.user.email || '',
+        alternatePhoneNumber: address.alternatePhoneNumber,
         address: {
           addressLine1: address.addressLine1,
           addressLine2: address.addressLine2,
@@ -329,24 +328,18 @@ const paymentController = {
       // Create transaction record
       const transaction = new ProductTransaction({
         userId,
-        amount: totalAmount + shippingCharges,
-        displayedAmount: totalAmount + shippingCharges + savedAmount,
-        orderId,
-        paymentId: '',
+        totalAmount: totalAmount + shippingCharges,
+        orderAmount: subtotal,
+        gstAmount: itemGst,
+        shippingCharges:shippingCharges,
+        orderId: razorpayOrder.id,
+        receiptId: receiptId,
+        paymentId,
         status: 'INITIATED',
+        discountAmount,
+        couponCode,
         products: productItems,
         shippingDetails,
-        deliveryInstructions: deliveryInstructions || '',
-        orderSummary: {
-          subtotal,
-          gstAmount,
-          shippingCharges,
-          discount: 0, // Can be filled if coupon applied
-          savedAmount
-        },
-        paymentDetails: {
-          razorpayOrderId: razorpayOrder.id
-        },
         initiatedAt: getCurrentIST(),
         isPaymentAttempted: false
       });
