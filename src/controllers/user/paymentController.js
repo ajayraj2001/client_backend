@@ -3,13 +3,13 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address, User } = require('../../models');
-const { getCurrentIST } = require('../utils/timeUtils');
+const { getCurrentIST } = require('../../utils/timeUtils');
 
 // Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+// const razorpay = new Razorpay({
+//   key_id: process.env.RAZORPAY_KEY_ID,
+//   key_secret: process.env.RAZORPAY_KEY_SECRET
+// });
 
 // Generate unique order ID
 const generateOrderId = () => {
