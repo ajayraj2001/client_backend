@@ -12,8 +12,8 @@ const {
 // Chat routes
 router.get('/call_history', authenticateAstrologer, getCallHistory);
 router.get('/getUserChats', authenticateAstrologer, getChatList);
-router.get('/last_chats', authenticateAstrologer, getLastChats);
 router.get('/chatList', authenticateAstrologer, getAstrologerMessages);
+router.get('/last_chats', authenticateAstrologer, getLastChats);
 router.post('/updateOnlineStatus', authenticateAstrologer, updateAstrologerOnlineStatus);
 
 module.exports = router;

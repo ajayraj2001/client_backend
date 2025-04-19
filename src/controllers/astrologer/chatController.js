@@ -118,14 +118,12 @@ const getAstrologerMessages = async (req, res, next) => {
   }
 };
 
-
-
 const getCallHistory = async (req, res, next) => {
   try {
     const { call_type } = req.query;
     const astrologer_id = req.astrologer._id;
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 30; // 30 records per page
+    const limit = 10; // 10 records per page
 
     // Build the query dynamically
     const query = { astrologer_id };
