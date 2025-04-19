@@ -1,6 +1,6 @@
 'use strict';
-const Address = require('../../models');
 const mongoose = require('mongoose');
+const {Address} = require('../../models')
 
 const addressController = {
   /**
