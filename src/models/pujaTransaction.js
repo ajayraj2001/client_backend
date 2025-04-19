@@ -61,17 +61,6 @@ const PujaTransactionSchema = new Schema({
     }
   },
   
-  // Special requirements or notes
-  notes: {
-    type: String,
-    default: ''
-  },
-  
-  // Booking details 
-  bookingReference: {
-    type: String,
-    default: ''
-  }
 }, {
   timestamps: { 
     createdAt: 'created_at', 

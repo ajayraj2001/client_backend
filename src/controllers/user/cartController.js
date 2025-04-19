@@ -25,7 +25,7 @@ const cartController = {
       return res.status(200).json({
         success: true,
         cart: {
-          _id: null,
+          _id: "",
           items: [],
           summary: {}
         }
