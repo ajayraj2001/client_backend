@@ -22,8 +22,7 @@ const AddressSchema = new Schema({
   },
   alternateNumber: {
     type: String,
-    required: true,
-    trim: true
+    default: ''
   },
   address: {
     type: String,
