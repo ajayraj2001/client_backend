@@ -25,6 +25,10 @@ const productSchema = new Schema({
         type: Number,
         required: [true, 'Actual price is required'],
     },
+    rating: {
+        type: Number,
+        default: 0
+    },
     img: {
         type: [String], // Array of image paths
         default: [], // Default empty array

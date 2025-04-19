@@ -24,6 +24,10 @@ const pujaSchema = new Schema({
         type: Number,
         required: [true, 'Actual price is required'],
     },
+    rating: {
+        type: Number,
+        default: 0
+    },
     bannerImages: {
         type: [String],
         default: [],

@@ -44,6 +44,7 @@ const addressController = {
       const {
         name,
         mobileNumber,
+        alternateNumber,
         addressLine1,
         addressLine2,
         landmark,
@@ -71,6 +72,7 @@ const addressController = {
         userId,
         name,
         mobileNumber,
+        alternateNumber,
         addressLine1,
         addressLine2: addressLine2 || '',
         landmark: landmark || '',

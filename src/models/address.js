@@ -20,6 +20,11 @@ const AddressSchema = new Schema({
     required: true,
     trim: true
   },
+  alternateNumber: {
+    type: String,
+    required: true,
+    trim: true
+  },
   addressLine1: {
     type: String,
     required: true,
