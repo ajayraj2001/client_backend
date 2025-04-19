@@ -92,7 +92,7 @@ const addressController = {
         );
       }
 
-      await address.save({ session });
+      await createAddress.save({ session });
       await session.commitTransaction();
 
       return res.status(201).json({
