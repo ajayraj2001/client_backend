@@ -5,8 +5,7 @@ const { ChatMessage, CallChatHistory, Astrologer } = require('../../models');
 // Get last chats for a user or astrologer
 const getLastChats = async (req, res, next) => {
   try {
-    // const astrologer_id = req.astrologer?._id;
-    const astrologer_id = "67b2e48b094a099dcf83352b"
+    const astrologer_id = req.astrologer?._id;
     const { user_id, page = 1, limit = 10 } = req.query;
 
     if (!user_id && !astrologer_id) {
@@ -19,7 +18,7 @@ const getLastChats = async (req, res, next) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const lastChats = await ChatMessage.aggregate([
+    const result = await ChatMessage.aggregate([
       { $match: matchQuery },
       { $sort: { timestamp: -1 } },
       {
@@ -31,28 +30,42 @@ const getLastChats = async (req, res, next) => {
           lastMessage: { $first: '$$ROOT' },
         },
       },
-      { $sort: { 'lastMessage.timestamp': -1 } }, // Sort groups by latest timestamp
       {
-        $project: {
-          _id: 0,
-          user_id: '$_id.user_id',
-          astrologer_id: '$_id.astrologer_id',
-          message: '$lastMessage.message',
-          sender: '$lastMessage.sender',
-          timestamp: '$lastMessage.timestamp',
+        $facet: {
+          data: [
+            { $sort: { 'lastMessage.timestamp': -1 } },
+            { $skip: skip },
+            { $limit: parseInt(limit) },
+            {
+              $project: {
+                _id: 0,
+                user_id: '$_id.user_id',
+                astrologer_id: '$_id.astrologer_id',
+                message: '$lastMessage.message',
+                sender: '$lastMessage.sender',
+                timestamp: '$lastMessage.timestamp',
+              },
+            },
+          ],
+          totalCount: [
+            { $count: 'total' },
+          ],
         },
       },
-      { $skip: skip },
-      { $limit: parseInt(limit) },
     ]);
+
+    const chats = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.total || 0;
+    const totalPages = Math.ceil(total / limit);
 
     return res.status(200).json({
       success: true,
       message: 'Last chats fetched successfully',
-      data: lastChats,
+      data: chats,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        currentPage: parseInt(page),
+        totalPages,
+        totalRecords: total,
       },
     });
   } catch (error) {
