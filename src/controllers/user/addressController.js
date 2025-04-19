@@ -19,6 +19,7 @@ const addressController = {
 
       return res.status(200).json({
         success: true,
+        message: "address fetched",
         addresses
       });
     } catch (error) {
