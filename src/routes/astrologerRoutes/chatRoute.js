@@ -5,13 +5,15 @@ const {
   getCallHistory,
   getLastChats,
   getChatList,
-  updateAstrologerOnlineStatus
+  updateAstrologerOnlineStatus,
+  getAstrologerMessages
 } = require("../../controllers/astrologer/chatController");
 
 // Chat routes
 router.get('/call_history', authenticateAstrologer, getCallHistory);
-router.get('/getChatList', authenticateAstrologer, getChatList);
+router.get('/getUserChats', authenticateAstrologer, getChatList);
 router.get('/last_chats', authenticateAstrologer, getLastChats);
+router.get('/chatList', authenticateAstrologer, getAstrologerMessages);
 router.post('/updateOnlineStatus', authenticateAstrologer, updateAstrologerOnlineStatus);
 
 module.exports = router;

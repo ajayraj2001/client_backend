@@ -75,6 +75,51 @@ const getLastChats = async (req, res, next) => {
   }
 };
 
+const getAstrologerMessages = async (req, res, next) => {
+  try {
+     const astrologer_id = '67b2e48b094a099dcf83352b';
+    let user_id = "67a083c23964cf8d5a46462e"
+    // const astrologer_id = req.astrologer?._id 
+    const { page = 1, limit = 20 } = req.query;
+
+    const matchQuery = {
+      astrologer_id: new mongoose.Types.ObjectId(astrologer_id),
+    };
+
+    if (user_id) {
+      matchQuery.user_id = new mongoose.Types.ObjectId(user_id);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Count total messages (for pagination)
+    const totalMessages = await ChatMessage.countDocuments(matchQuery);
+
+    // Fetch paginated messages
+    const messages = await ChatMessage.find(matchQuery)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('user_id astrologer_id message sender timestamp read messageType') // include only essential fields
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Messages fetched successfully',
+      data: messages,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalMessages / limit),
+        totalRecords: totalMessages
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
 const getCallHistory = async (req, res, next) => {
   try {
     const { call_type } = req.query;
@@ -283,4 +328,4 @@ const getChatList = async (req, res, next) => {
 };
 
 
-module.exports = { getLastChats, getCallHistory, updateAstrologerOnlineStatus, getChatList };
+module.exports = { getLastChats, getCallHistory, updateAstrologerOnlineStatus, getChatList , getAstrologerMessages};

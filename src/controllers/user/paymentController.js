@@ -480,7 +480,7 @@ const paymentController = {
       }
 
       // Verify Razorpay order ID
-      if (transaction.paymentDetails.razorpayOrderId !== razorpayOrderId) {
+      if (transaction.orderId !== razorpayOrderId) {
         return res.status(400).json({
           success: false,
           message: 'Order ID mismatch'
@@ -492,22 +492,17 @@ const paymentController = {
       transaction.paymentId = razorpayPaymentId;
       transaction.completedAt = getCurrentIST();
       transaction.isPaymentAttempted = true;
-      transaction.paymentDetails = {
-        ...transaction.paymentDetails,
-        razorpayPaymentId,
-        razorpaySignature,
-        verifiedAt: getCurrentIST()
-      };
+
 
       // Update user if it's a puja transaction with referral
-      if (type === 'PUJA' && transaction.userId) {
-        const user = await User.findById(transaction.userId).session(session);
+      // if (type === 'PUJA' && transaction.userId) {
+      //   const user = await User.findById(transaction.userId).session(session);
 
-        if (user && user.refer_user_id) {
-          // Add referral bonus to referring user's wallet (if needed)
-          // Implement your referral bonus logic here
-        }
-      }
+      //   if (user && user.refer_user_id) {
+      //     // Add referral bonus to referring user's wallet (if needed)
+      //     // Implement your referral bonus logic here
+      //   }
+      // }
 
       // Clear cart if order was from cart
       if (type === 'PRODUCT' && transaction.paymentDetails.clearCart) {
