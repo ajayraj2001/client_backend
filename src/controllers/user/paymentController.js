@@ -2,7 +2,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address, User } = require('../../models');
+const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address } = require('../../models');
 const { getCurrentIST } = require('../../utils/timeUtils');
 
 // Initialize Razorpay
@@ -11,11 +11,11 @@ const { getCurrentIST } = require('../../utils/timeUtils');
 //   key_secret: process.env.RAZORPAY_KEY_SECRET
 // });
 
-// Generate unique order ID
-const generateOrderId = () => {
+// Generate unique receipt ID
+const generateReceiptId = () => {
   const timestamp = new Date().getTime();
   const randomNum = Math.floor(Math.random() * 10000);
-  return `ORD_${timestamp}_${randomNum}`;
+  return `RCPT_${timestamp}_${randomNum}`;
 };
 
 const paymentController = {
@@ -43,8 +43,8 @@ const paymentController = {
         return res.status(400).json({ success: false, message: 'This puja is currently unavailable' });
       }
 
-      // Calculate total amount
-      let totalAmount = puja.actualPrice;
+      // Calculate puja amount (base price without GST)
+      let orderAmount = puja.actualPrice;
       const productDetails = [];
 
       // Process selected products
@@ -76,7 +76,7 @@ const paymentController = {
           }
 
           const itemTotal = product.actualPrice * item.quantity;
-          totalAmount += itemTotal;
+          orderAmount += itemTotal;
 
           productDetails.push({
             productId: product._id,
@@ -104,8 +104,17 @@ const paymentController = {
         }
       }
 
+      // Calculate GST (18% of base amount)
+      const gstAmount = Math.round(orderAmount * 0.18);
+      
+      // Calculate total amount (base + GST)
+      const totalAmount = orderAmount + gstAmount;
+
+      // No shipping charges for pujas
+      const shippingCharges = 0;
+
       // Create Razorpay order
-      const receiptId = generateOrderId();
+      const receiptId = generateReceiptId();
       const razorpayOrder = await razorpay.orders.create({
         amount: totalAmount * 100, // Convert to paisa
         currency: 'INR',
@@ -117,29 +126,25 @@ const paymentController = {
         }
       });
 
-      // Create transaction record but don't save it to history yet
-      // It will be filtered out of normal queries due to isPaymentAttempted: false
+      // Create transaction record
       const transaction = new PujaTransaction({
         userId,
         totalAmount,
         orderAmount,
         gstAmount,
         shippingCharges,
-        pujaId,
-        pujaDate: new Date(pujaDate),
-        amount: totalAmount,
-        displayedAmount: puja.displayedPrice,
-        orderId,
+        receiptId,
+        orderId: razorpayOrder.id,
         paymentId: '',
         status: 'INITIATED',
+        discountAmount: 0,
+        couponCode: '',
+        pujaId,
+        pujaDate: new Date(pujaDate),
         selectedProducts: productDetails,
         customerDetails,
-        notes,
-        paymentDetails: {
-          razorpayOrderId: razorpayOrder.id
-        },
         initiatedAt: getCurrentIST(),
-        isPaymentAttempted: false // Only change this when payment is attempted
+        isPaymentAttempted: false // Default - will be updated when payment is attempted
       });
 
       await transaction.save({ session });
@@ -149,7 +154,12 @@ const paymentController = {
         success: true,
         order: razorpayOrder,
         transactionId: transaction._id,
-        key: process.env.RAZORPAY_KEY_ID
+        key: process.env.RAZORPAY_KEY_ID,
+        orderSummary: {
+          orderAmount,
+          gstAmount,
+          totalAmount
+        }
       });
 
     } catch (error) {
@@ -188,8 +198,7 @@ const paymentController = {
       }
 
       let productItems = [];
-      let subtotal = 0;
-      let gstAmount = 0;
+      let orderAmount = 0; // Base price without GST
       let savedAmount = 0;
 
       if (fromCart) {
@@ -223,11 +232,10 @@ const paymentController = {
           const product = item.productId;
           const quantity = item.quantity;
           const basePrice = product.actualPrice * quantity;
-          const itemGst = basePrice * 0.18;
+          const itemGst = Math.round(basePrice * 0.18);
           const itemSaved = (product.displayedPrice - product.actualPrice) * quantity;
 
-          subtotal += basePrice;
-          gstAmount += itemGst;
+          orderAmount += basePrice;
           savedAmount += itemSaved > 0 ? itemSaved : 0;
 
           productItems.push({
@@ -277,11 +285,10 @@ const paymentController = {
           }
 
           const basePrice = product.actualPrice * item.quantity;
-          const itemGst = basePrice * 0.18;
+          const itemGst = Math.round(basePrice * 0.18);
           const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
 
-          subtotal += basePrice;
-          gstAmount += itemGst;
+          orderAmount += basePrice;
           savedAmount += itemSaved > 0 ? itemSaved : 0;
 
           productItems.push({
@@ -291,21 +298,25 @@ const paymentController = {
             unitPrice: product.actualPrice,
             basePrice: basePrice,
             gstAmount: itemGst,
-            totalPrice: basePrice + itemGst
+            totalPrice: basePrice + itemGst,
+            img: product.img && product.img.length > 0 ? product.img[0] : ''
           });
         }
       }
 
-      // Calculate total amount (including GST)
-      const totalAmount = subtotal + gstAmount;
-
+      // Calculate GST (18% of base amount)
+      const gstAmount = Math.round(orderAmount * 0.18);
+      
       // Calculate shipping charges (if any)
-      const shippingCharges = subtotal < 500 ? 40 : 0; // Free shipping over ₹500
+      const shippingCharges = orderAmount < 500 ? 40 : 0; // Free shipping over ₹500
+      
+      // Calculate total amount (base + GST + shipping)
+      const totalAmount = orderAmount + gstAmount + shippingCharges;
 
       // Create Razorpay order
-      const receiptId = generateOrderId();
+      const receiptId = generateReceiptId();
       const razorpayOrder = await razorpay.orders.create({
-        amount: Math.round((totalAmount + shippingCharges) * 100), // Convert to paisa
+        amount: Math.round(totalAmount * 100), // Convert to paisa
         currency: 'INR',
         receipt: receiptId,
         notes: {
@@ -318,13 +329,13 @@ const paymentController = {
       const shippingDetails = {
         name: address.name,
         phoneNumber: address.mobileNumber,
-        alternatePhoneNumber: address.alternatePhoneNumber,
+        alternatePhoneNumber: address.alternatePhoneNumber || '',
         address: {
           addressLine1: address.addressLine1,
-          addressLine2: address.addressLine2,
+          addressLine2: address.addressLine2 || '',
           city: address.city,
           state: address.state,
-          country: address.country,
+          country: address.country || 'India',
           pincode: address.pincode
         }
       };
@@ -332,30 +343,31 @@ const paymentController = {
       // Create transaction record
       const transaction = new ProductTransaction({
         userId,
-        totalAmount: totalAmount + shippingCharges,
-        orderAmount: subtotal,
-        gstAmount: itemGst,
-        shippingCharges:shippingCharges,
-        receiptId: receiptId,
+        totalAmount,
+        orderAmount,
+        gstAmount,
+        shippingCharges,
+        receiptId,
         orderId: razorpayOrder.id,
-        paymentId,
+        paymentId: '',
         status: 'INITIATED',
-        discountAmount,
-        couponCode,
+        discountAmount: 0,
+        couponCode: '',
         products: productItems,
         shippingDetails,
+        deliveryStatus: 'PROCESSING',
+        estimatedDelivery: null,
+        deliveryDate: null,
         initiatedAt: getCurrentIST(),
         isPaymentAttempted: false
       });
 
-      await transaction.save({ session });
-
-      // If order is from cart and payment is successful, clear cart later
+      // Store cart reference for clearing after successful payment
       if (fromCart) {
-        // We'll clear cart after payment verification to prevent data loss if payment fails
-        transaction.paymentDetails.clearCart = true;
+        transaction._fromCart = true; // Temporary property, not saved to DB
       }
 
+      await transaction.save({ session });
       await session.commitTransaction();
 
       return res.status(200).json({
@@ -364,10 +376,10 @@ const paymentController = {
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {
-          subtotal,
+          orderAmount,
           gstAmount,
           shippingCharges,
-          total: totalAmount + shippingCharges,
+          totalAmount,
           savedAmount
         }
       });
@@ -493,23 +505,11 @@ const paymentController = {
       transaction.completedAt = getCurrentIST();
       transaction.isPaymentAttempted = true;
 
-
-      // Update user if it's a puja transaction with referral
-      // if (type === 'PUJA' && transaction.userId) {
-      //   const user = await User.findById(transaction.userId).session(session);
-
-      //   if (user && user.refer_user_id) {
-      //     // Add referral bonus to referring user's wallet (if needed)
-      //     // Implement your referral bonus logic here
-      //   }
-      // }
-
-      // Clear cart if order was from cart
-      if (type === 'PRODUCT' && transaction.paymentDetails.clearCart) {
+      // Clear cart if order was from cart for product transactions
+      if (type === 'PRODUCT' && transaction._fromCart) {
         await Cart.updateOne(
           { userId: transaction.userId },
-          { $set: { items: [] } },
-          { session }
+          { $set: { items: [] } }
         );
       }
 
@@ -522,7 +522,7 @@ const paymentController = {
         transaction: {
           id: transaction._id,
           status: transaction.status,
-          amount: transaction.amount,
+          totalAmount: transaction.totalAmount,
           orderId: transaction.orderId
         }
       });
@@ -541,6 +541,107 @@ const paymentController = {
   },
 
   /**
+   * Process payment webhook from Razorpay
+   * This handles all payment events and updates transaction status
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  handleWebhook: async (req, res) => {
+    try {
+      // Verify webhook signature
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      const signature = req.headers['x-razorpay-signature'];
+      const payload = req.body;
+
+      // Verify webhook signature
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+
+      if (expectedSignature !== signature) {
+        console.error('Invalid webhook signature');
+        return res.status(400).json({ success: false, message: 'Invalid signature' });
+      }
+
+      // Process webhook event
+      const event = payload.event;
+      const paymentId = payload.payload.payment?.entity?.id;
+      const orderId = payload.payload.payment?.entity?.order_id;
+
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Order ID not found in webhook' });
+      }
+
+      // Find transaction by Razorpay order ID
+      const pujaTransaction = await PujaTransaction.findOne({ orderId });
+      const productTransaction = await ProductTransaction.findOne({ orderId });
+      
+      const transaction = pujaTransaction || productTransaction;
+      
+      if (!transaction) {
+        console.error(`Transaction not found for order ID: ${orderId}`);
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+
+      // Handle different webhook events
+      switch (event) {
+        case 'payment.authorized':
+          // Payment is authorized but not yet captured
+          transaction.status = 'PENDING';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+
+        case 'payment.captured':
+          // Payment is successfully captured
+          transaction.status = 'COMPLETED';
+          transaction.paymentId = paymentId;
+          transaction.completedAt = getCurrentIST();
+          transaction.isPaymentAttempted = true;
+          
+          // Clear cart if it's a product transaction from cart
+          if (productTransaction && transaction._fromCart) {
+            await Cart.updateOne(
+              { userId: transaction.userId },
+              { $set: { items: [] } }
+            );
+          }
+          break;
+
+        case 'payment.failed':
+          // Payment has failed
+          transaction.status = 'FAILED';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+
+        case 'refund.created':
+          // Refund initiated
+          transaction.status = 'REFUNDED';
+          break;
+
+        default:
+          // Other events - just log but don't change status
+          console.log(`Unhandled webhook event: ${event} for order ${orderId}`);
+      }
+
+      await transaction.save();
+      
+      // Respond to Razorpay with 200 OK
+      return res.status(200).json({ success: true });
+
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error processing webhook',
+        error: error.message
+      });
+    }
+  },
+
+  /**
    * Get transaction history for a user
    * @param {Object} req - Request object
    * @param {Object} res - Response object
@@ -553,7 +654,8 @@ const paymentController = {
       const skip = (page - 1) * limit;
       const query = {
         userId,
-        isPaymentAttempted: true // Only show transactions where payment was attempted
+        isPaymentAttempted: true, // Only show transactions where payment was attempted
+        status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated (like big apps)
       };
 
       // Add status filter if provided
@@ -629,7 +731,8 @@ const paymentController = {
         transaction = await PujaTransaction.findOne({
           _id: id,
           userId,
-          isPaymentAttempted: true
+          isPaymentAttempted: true, // Only show transactions where payment was attempted
+          status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
         })
           .populate('pujaId', 'title pujaImage aboutPuja shortDescription')
           .populate('selectedProducts.productId', 'name img');
@@ -637,7 +740,8 @@ const paymentController = {
         transaction = await ProductTransaction.findOne({
           _id: id,
           userId,
-          isPaymentAttempted: true
+          isPaymentAttempted: true, // Only show transactions where payment was attempted
+          status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
         });
       } else {
         return res.status(400).json({
@@ -707,6 +811,21 @@ const paymentController = {
       transaction.status = 'CANCELLED';
       await transaction.save({ session });
 
+      // If this is a Razorpay order and payment was attempted, try to cancel it in Razorpay
+      if (transaction.orderId && transaction.isPaymentAttempted) {
+        try {
+          await razorpay.orders.edit(transaction.orderId, {
+            notes: {
+              cancelReason: 'Cancelled by user',
+              cancelledAt: getCurrentIST()
+            }
+          });
+        } catch (error) {
+          console.error('Error updating Razorpay order:', error);
+          // Continue even if Razorpay update fails
+        }
+      }
+
       await session.commitTransaction();
 
       return res.status(200).json({
@@ -725,7 +844,376 @@ const paymentController = {
     } finally {
       session.endSession();
     }
+  },
+
+  /**
+   * Refund a transaction
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  refundTransaction: async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const { id, type } = req.params;
+      const { reason } = req.body;
+      const userId = req.user._id;
+
+      // Admin validation (assuming admin middleware is applied to this route)
+      if (!req.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only administrators can process refunds'
+        });
+      }
+
+      let transaction;
+
+      if (type === 'PUJA') {
+        transaction = await PujaTransaction.findOne({
+          _id: id,
+          status: 'COMPLETED' // Only completed transactions can be refunded
+        }).session(session);
+      } else if (type === 'PRODUCT') {
+        transaction = await ProductTransaction.findOne({
+          _id: id,
+          status: 'COMPLETED' // Only completed transactions can be refunded
+        }).session(session);
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+        });
+      }
+
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found or cannot be refunded' });
+      }
+
+      if (!transaction.paymentId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot refund transaction without payment ID'
+        });
+      }
+
+      // Create refund in Razorpay
+      const refund = await razorpay.payments.refund(transaction.paymentId, {
+        notes: {
+          reason: reason || 'Refunded by admin',
+          transactionId: transaction._id.toString()
+        }
+      });
+
+      // Update transaction
+      transaction.status = 'REFUNDED';
+      transaction.refundId = refund.id;
+      transaction.refundedAt = getCurrentIST();
+      transaction.refundReason = reason || 'Refunded by admin';
+
+      await transaction.save({ session });
+      await session.commitTransaction();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Transaction refunded successfully',
+        refundId: refund.id
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      console.error('Error refunding transaction:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error refunding transaction',
+        error: error.message
+      });
+    } finally {
+      session.endSession();
+    }
+  },
+
+  /**
+   * Check payment status
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  checkPaymentStatus: async (req, res) => {
+    try {
+      const { transactionId, type } = req.params;
+      const userId = req.user._id;
+
+      let transaction;
+
+      if (type === 'PUJA') {
+        transaction = await PujaTransaction.findOne({
+          _id: transactionId,
+          userId
+        });
+      } else if (type === 'PRODUCT') {
+        transaction = await ProductTransaction.findOne({
+          _id: transactionId,
+          userId
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+        });
+      }
+
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+
+      // If the transaction has a Razorpay order ID, fetch the latest status
+      if (transaction.orderId && transaction.status !== 'COMPLETED') {
+        try {
+          const razorpayOrder = await razorpay.orders.fetch(transaction.orderId);
+          
+          // If order is paid but our transaction isn't marked as completed
+          if (razorpayOrder.status === 'paid' && transaction.status !== 'COMPLETED') {
+            // Fetch payment details to get the payment ID
+            const payments = await razorpay.orders.fetchPayments(transaction.orderId);
+            if (payments.items && payments.items.length > 0) {
+              const payment = payments.items[0]; // Get the first payment
+              
+              // Update transaction
+              transaction.status = 'COMPLETED';
+              transaction.paymentId = payment.id;
+              transaction.completedAt = getCurrentIST();
+              transaction.isPaymentAttempted = true;
+              await transaction.save();
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching Razorpay order:', error);
+          // Continue even if Razorpay fetch fails
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        transaction: {
+          id: transaction._id,
+          status: transaction.status,
+          totalAmount: transaction.totalAmount,
+          orderId: transaction.orderId,
+          paymentId: transaction.paymentId,
+          createdAt: transaction.created_at,
+          updatedAt: transaction.updated_at
+        }
+      });
+
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking payment status',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Handle payment failures
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  handlePaymentFailure: async (req, res) => {
+    try {
+      const { transactionId, type, error } = req.body;
+      const userId = req.user._id;
+
+      let transaction;
+
+      if (type === 'PUJA') {
+        transaction = await PujaTransaction.findOne({
+          _id: transactionId,
+          userId
+        });
+      } else if (type === 'PRODUCT') {
+        transaction = await ProductTransaction.findOne({
+          _id: transactionId,
+          userId
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+        });
+      }
+
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+
+      // Mark transaction as failed
+      if (transaction.status !== 'COMPLETED') {
+        transaction.status = 'FAILED';
+        transaction.isPaymentAttempted = true; // It was attempted but failed
+        transaction.failureReason = error?.description || 'Payment failed';
+        transaction.failureCode = error?.code || 'UNKNOWN';
+        transaction.failureSource = error?.source || 'user';
+        transaction.failedAt = getCurrentIST();
+        
+        await transaction.save();
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Payment failure recorded',
+        transaction: {
+          id: transaction._id,
+          status: transaction.status
+        }
+      });
+
+    } catch (error) {
+      console.error('Error handling payment failure:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error handling payment failure',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Get payment stats for admin dashboard
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  getPaymentStats: async (req, res) => {
+    try {
+      // Admin validation
+      if (!req.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Admin privileges required.'
+        });
+      }
+
+      const { startDate, endDate } = req.query;
+      
+      // Default to last 30 days if no dates provided
+      const end = endDate ? new Date(endDate) : new Date();
+      const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Set time to start and end of day
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      
+      // Query for completed transactions within date range
+      const query = {
+        status: 'COMPLETED',
+        completedAt: { $gte: start, $lte: end }
+      };
+      
+      // Get stats for both transaction types
+      const [pujaStats, productStats] = await Promise.all([
+        PujaTransaction.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              totalAmount: { $sum: '$totalAmount' },
+              orderAmount: { $sum: '$orderAmount' },
+              gstAmount: { $sum: '$gstAmount' }
+            }
+          }
+        ]),
+        ProductTransaction.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              totalAmount: { $sum: '$totalAmount' },
+              orderAmount: { $sum: '$orderAmount' },
+              gstAmount: { $sum: '$gstAmount' },
+              shippingCharges: { $sum: '$shippingCharges' }
+            }
+          }
+        ])
+      ]);
+      
+      // Calculate statistics
+      const pujaTotal = pujaStats.length > 0 ? pujaStats[0] : { count: 0, totalAmount: 0, orderAmount: 0, gstAmount: 0 };
+      const productTotal = productStats.length > 0 ? productStats[0] : { count: 0, totalAmount: 0, orderAmount: 0, gstAmount: 0, shippingCharges: 0 };
+      
+      // Get daily statistics for chart
+      const dailyStats = await Promise.all([
+        PujaTransaction.aggregate([
+          { 
+            $match: {
+              ...query
+            }
+          },
+          {
+            $group: {
+              _id: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+              count: { $sum: 1 },
+              amount: { $sum: '$totalAmount' }
+            }
+          },
+          { $sort: { _id: 1 } }
+        ]),
+        ProductTransaction.aggregate([
+          { 
+            $match: {
+              ...query
+            }
+          },
+          {
+            $group: {
+              _id: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+              count: { $sum: 1 },
+              amount: { $sum: '$totalAmount' }
+            }
+          },
+          { $sort: { _id: 1 } }
+        ])
+      ]);
+      
+      return res.status(200).json({
+        success: true,
+        stats: {
+          puja: {
+            count: pujaTotal.count,
+            totalAmount: pujaTotal.totalAmount,
+            orderAmount: pujaTotal.orderAmount,
+            gstAmount: pujaTotal.gstAmount
+          },
+          product: {
+            count: productTotal.count,
+            totalAmount: productTotal.totalAmount,
+            orderAmount: productTotal.orderAmount, 
+            gstAmount: productTotal.gstAmount,
+            shippingCharges: productTotal.shippingCharges
+          },
+          total: {
+            count: pujaTotal.count + productTotal.count,
+            totalAmount: pujaTotal.totalAmount + productTotal.totalAmount
+          },
+          dailyStats: {
+            puja: dailyStats[0],
+            product: dailyStats[1]
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error getting payment stats:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error getting payment statistics',
+        error: error.message
+      });
+    }
   }
 };
 
-module.exports = paymentController;
+module.exports = paymentController

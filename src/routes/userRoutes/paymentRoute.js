@@ -4,15 +4,19 @@ const { authenticateUser } = require("../../middlewares");
 const paymentController = require("../../controllers/user/paymentController");
 
 
+router.post('/webhook', paymentController.handleWebhook);
+
 // Create orders
-router.post('/create-puja-order',authenticateUser,  paymentController.createPujaOrder);
-router.post('/create-product-order',authenticateUser,  paymentController.createProductOrder);
+router.post('/create_puja_order',authenticateUser,  paymentController.createPujaOrder);
+router.post('/create_product_order',authenticateUser,  paymentController.createProductOrder);
 
 // Mark payment as attempted (to include in history)
-router.post('/mark-payment-attempted',authenticateUser,  paymentController.markPaymentAttempted);
+router.post('/mark_payment_attempted',authenticateUser,  paymentController.markPaymentAttempted);
 
 // Verify payment
-router.post('/verify-payment', authenticateUser, paymentController.verifyPayment);
+router.post('/verify_payment', authenticateUser, paymentController.verifyPayment);
+router.post('/payment_failure', paymentController.handlePaymentFailure);
+router.get('/check_status/:type/:transactionId', paymentController.checkPaymentStatus);
 
 // Get transaction history
 router.get('/transactions',authenticateUser,  paymentController.getTransactionHistory);
@@ -21,6 +25,11 @@ router.get('/transactions',authenticateUser,  paymentController.getTransactionHi
 router.get('/transaction/:type/:id', authenticateUser, paymentController.getTransactionDetails);
 
 // Cancel transaction
-router.post('/cancel-transaction/:type/:id',authenticateUser,  paymentController.cancelTransaction);
+router.post('/cancel_transaction/:type/:id',authenticateUser,  paymentController.cancelTransaction);
+
+
+// Admin-only routes
+router.post('/refund_transaction/:type/:id', paymentController.refundTransaction);
+router.get('/stats', paymentController.getPaymentStats);
 
 module.exports = router;
