@@ -75,22 +75,23 @@ const AddressSchema = new Schema({
 AddressSchema.index({ userId: 1, isDefault: 1 });
 
 // Pre-save middleware to ensure only one default address
-AddressSchema.pre('save', async function(next) {
-  // If this is being set as default address
-  if (this.isDefault) {
-    try {
-      // Find and unset any existing default address for this user
-      await this.constructor.updateMany(
-        { userId: this.userId, _id: { $ne: this._id }, isDefault: true },
-        { $set: { isDefault: false } }
-      );
-      next();
-    } catch (error) {
-      next(error);
-    }
-  } else {
-    next();
-  }
-});
+// AddressSchema.pre('save', async function(next) {
+//   console.log('yessdfsdfds9980980---')
+//   // If this is being set as default address
+//   if (this.isDefault) {
+//     try {
+//       // Find and unset any existing default address for this user
+//       await this.constructor.updateMany(
+//         { userId: this.userId, _id: { $ne: this._id }, isDefault: true },
+//         { $set: { isDefault: false } }
+//       );
+//       next();
+//     } catch (error) {
+//       next(error);
+//     }
+//   } else {
+//     next();
+//   }
+// });
 
 module.exports = mongoose.model('Address', AddressSchema);
