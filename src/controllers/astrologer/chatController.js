@@ -7,7 +7,8 @@ const getLastChats = async (req, res, next) => {
   try {
     // const astrologer_id = req.astrologer?._id;
     const astrologer_id = '67b2e48b094a099dcf83352b';
-    const { user_id, page = 1, limit = 10 } = req.query;
+    let user_id = "67a083c23964cf8d5a46462e"
+    const {  page = 1, limit = 10 } = req.query;
 
     if (!user_id && !astrologer_id) {
       throw new ApiError('Either user_id or astrologer_id is required', 400);
@@ -73,7 +74,6 @@ const getLastChats = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const getCallHistory = async (req, res, next) => {
   try {
