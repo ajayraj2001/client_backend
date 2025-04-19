@@ -105,11 +105,11 @@ const paymentController = {
       }
 
       // Create Razorpay order
-      const orderId = generateOrderId();
+      const receiptId = generateOrderId();
       const razorpayOrder = await razorpay.orders.create({
         amount: totalAmount * 100, // Convert to paisa
         currency: 'INR',
-        receipt: orderId,
+        receipt: receiptId,
         notes: {
           userId: userId.toString(),
           pujaId: pujaId,
@@ -121,6 +121,10 @@ const paymentController = {
       // It will be filtered out of normal queries due to isPaymentAttempted: false
       const transaction = new PujaTransaction({
         userId,
+        totalAmount,
+        orderAmount,
+        gstAmount,
+        shippingCharges,
         pujaId,
         pujaDate: new Date(pujaDate),
         amount: totalAmount,
@@ -274,11 +278,11 @@ const paymentController = {
 
           const basePrice = product.actualPrice * item.quantity;
           const itemGst = basePrice * 0.18;
-          // const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
+          const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
 
           subtotal += basePrice;
           gstAmount += itemGst;
-          // savedAmount += itemSaved > 0 ? itemSaved : 0;
+          savedAmount += itemSaved > 0 ? itemSaved : 0;
 
           productItems.push({
             productId: product._id,
@@ -332,8 +336,8 @@ const paymentController = {
         orderAmount: subtotal,
         gstAmount: itemGst,
         shippingCharges:shippingCharges,
-        orderId: razorpayOrder.id,
         receiptId: receiptId,
+        orderId: razorpayOrder.id,
         paymentId,
         status: 'INITIATED',
         discountAmount,

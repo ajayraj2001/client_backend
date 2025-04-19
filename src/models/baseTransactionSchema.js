@@ -27,15 +27,15 @@ const baseTransactionSchema = {
     type: Number,
     required: true
   },
+  receiptId: {
+    type: String,
+    default: ''
+    // index: true // Index for faster order lookups
+  },
   orderId: {
     type: String,
     required: true,
     // unique: true,
-    // index: true // Index for faster order lookups
-  },
-  receiptId: {
-    type: String,
-    default: ''
     // index: true // Index for faster order lookups
   },
   paymentId: {
