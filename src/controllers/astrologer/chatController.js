@@ -5,7 +5,8 @@ const { ChatMessage, CallChatHistory, Astrologer } = require('../../models');
 // Get last chats for a user or astrologer
 const getLastChats = async (req, res, next) => {
   try {
-    const astrologer_id = req.astrologer?._id;
+    // const astrologer_id = req.astrologer?._id;
+    const astrologer_id = '67b2e48b094a099dcf83352b';
     const { user_id, page = 1, limit = 10 } = req.query;
 
     if (!user_id && !astrologer_id) {
