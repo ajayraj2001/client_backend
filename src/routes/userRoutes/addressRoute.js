@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticateUser } = require("../../middlewares");
-const addressController = require("../../controllers/user/addressController");
+const {addressController, getStates, getCities} = require("../../controllers/user/addressController");
 
 // Get all addresses
 router.get('/', authenticateUser, addressController.getAddresses);
@@ -17,5 +17,9 @@ router.delete('/:addressId',authenticateUser,  addressController.deleteAddress);
 
 // Set an address as default
 router.patch('/:addressId/set-default',authenticateUser,  addressController.setDefaultAddress);
+
+router.post("/states", getStates);
+router.post("/cities", getCities);
+
 
 module.exports = router;

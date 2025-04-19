@@ -25,14 +25,9 @@ const AddressSchema = new Schema({
     required: true,
     trim: true
   },
-  addressLine1: {
+  address: {
     type: String,
     required: true,
-    trim: true
-  },
-  addressLine2: {
-    type: String,
-    default: '',
     trim: true
   },
   landmark: {

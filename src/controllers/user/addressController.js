@@ -1,6 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 const {Address} = require('../../models')
+const { Country, State, City } = require("country-state-city");
 
 const addressController = {
   /**
@@ -45,8 +46,7 @@ const addressController = {
         name,
         mobileNumber,
         alternateNumber,
-        addressLine1,
-        addressLine2,
+        address,
         landmark,
         city,
         state,
@@ -56,7 +56,7 @@ const addressController = {
       } = req.body;
 
       // Validate required fields
-      if (!name || !mobileNumber || !addressLine1 || !city || !state || !pincode) {
+      if (!name || !mobileNumber || !address || !city || !state || !pincode) {
         return res.status(400).json({
           success: false,
           message: 'Required fields missing'
@@ -68,13 +68,12 @@ const addressController = {
       const shouldBeDefault = isDefault === true || addressCount === 0;
 
       // Create new address
-      const address = new Address({
+      const createAddress = new Address({
         userId,
         name,
         mobileNumber,
         alternateNumber,
-        addressLine1,
-        addressLine2: addressLine2 || '',
+        address,
         landmark: landmark || '',
         city,
         state,
@@ -307,4 +306,51 @@ const addressController = {
   }
 };
 
-module.exports = addressController;
+const getStates = async (req, res, next) => {
+  try {
+    const { searchTerm } = req.body; // pass isoCode in countryCode
+    const countryCode = "IN"
+
+    let states = State.getStatesOfCountry(countryCode);
+
+    if (searchTerm) {
+      states = states.filter((state) =>
+        state.name.toLowerCase().startsWith(searchTerm.toLowerCase())
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "State fetched successfully.",
+      data: states,
+    });
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
+const getCities = async (req, res, next) => {
+  try {
+    const { searchTerm, stateCode } = req.body; // pass isoCode in stateCode
+    const countryCode = "IN"
+
+    let cities = City.getCitiesOfState(countryCode, stateCode);
+    if (searchTerm) {
+      cities = cities.filter((city) =>
+        city.name.toLowerCase().startsWith(searchTerm.toLowerCase())
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "City fetched successfully.",
+      data: cities,
+    });
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
+module.exports = {addressController, getStates, getCities};
