@@ -336,6 +336,14 @@ const getCities = async (req, res, next) => {
     const { searchTerm, stateCode } = req.query; // pass isoCode in stateCode
     const countryCode = "IN"
 
+    // Check if stateCode is provided
+    if (!stateCode) {
+      return res.status(400).json({
+        success: false,
+        message: "State code (ISO) is required.",
+      });
+    }
+
     let cities = City.getCitiesOfState(countryCode, stateCode);
     if (searchTerm) {
       cities = cities.filter((city) =>
