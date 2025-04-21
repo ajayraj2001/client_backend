@@ -309,7 +309,7 @@ const addressController = {
 
 const getStates = async (req, res, next) => {
   try {
-    const { searchTerm } = req.body; // pass isoCode in countryCode
+    const { searchTerm } = req.query; // pass isoCode in countryCode
     const countryCode = "IN"
 
     let states = State.getStatesOfCountry(countryCode);
@@ -333,7 +333,7 @@ const getStates = async (req, res, next) => {
 
 const getCities = async (req, res, next) => {
   try {
-    const { searchTerm, stateCode } = req.body; // pass isoCode in stateCode
+    const { searchTerm, stateCode } = req.query; // pass isoCode in stateCode
     const countryCode = "IN"
 
     let cities = City.getCitiesOfState(countryCode, stateCode);

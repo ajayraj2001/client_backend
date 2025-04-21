@@ -18,8 +18,8 @@ router.delete('/:addressId',authenticateUser,  addressController.deleteAddress);
 // Set an address as default
 router.patch('/:addressId/set-default',authenticateUser,  addressController.setDefaultAddress);
 
-router.post("/states", getStates);
-router.post("/cities", getCities);
+router.get("/states", getStates);
+router.get("/cities", getCities);
 
 
 module.exports = router;

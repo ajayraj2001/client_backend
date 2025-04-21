@@ -96,7 +96,7 @@ const initializeSocket = (server) => {
           Astrologer.findById(astrologer_id).select('busy commission is_chat_online is_voice_online is_video_online per_min_chat per_min_voice_call per_min_video_call deviceToken').lean()
         ]);
 
-        console.log('here')
+        console.log('here', user, astrologer)
         if (!user || !astrologer) {
           socket.emit('call_error', { message: 'User or astrologer not found' });
           return;
