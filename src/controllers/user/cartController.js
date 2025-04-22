@@ -14,7 +14,7 @@ const cartController = {
       const userId = req.user._id;
 
       // Find or create cart for user
-      let cart = await Cart.findOne({ userId , status: "Active"}).populate({
+      let cart = await Cart.findOne({ userId }).populate({
         path: 'items.productId',
         select: 'name img displayedPrice actualPrice status rating',
       });
