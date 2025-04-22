@@ -1,5 +1,5 @@
 'use strict';
-const {Product, Cart} = require('../../models');
+const { Product, Cart } = require('../../models');
 const mongoose = require('mongoose');
 const { getCurrentIST } = require('../../utils/timeUtils');
 
@@ -55,7 +55,7 @@ const cartController = {
   //     const total = subtotal + gstAmount;
   //     const savedAmount = (displayedPrice - actualPrice) * quantity;
 
-      
+
   //     return {
   //       _id: item._id,
   //       productId: product._id,
@@ -91,15 +91,15 @@ const cartController = {
   //   }
   // },
 
- getCart: async (req, res) => {
+  getCart: async (req, res) => {
     try {
       const userId = req.user._id;
-  
+
       let cart = await Cart.findOne({ userId }).populate({
         path: 'items.productId',
         select: 'name img displayedPrice actualPrice status rating categoryId',
       });
-  
+
       if (!cart) {
         return res.status(200).json({
           success: true,
@@ -116,30 +116,31 @@ const cartController = {
           }
         });
       }
-  
+
       // Filter only active products
       const validItems = cart.items.filter(item => item.productId && item.productId.status === 'Active');
-  
-      let totalItems = 0;
+
       let subtotal = 0;
       let gstAmount = 0;
       let savedAmount = 0;
-  
+
+      // totalItems should be count of unique products
+      const totalItems = validItems.length;
+
       const items = validItems.map(item => {
         const product = item.productId;
         const quantity = item.quantity;
-  
+
         const actualPrice = product.actualPrice;
         const displayedPrice = product.displayedPrice;
         const itemSubtotal = actualPrice * quantity;
         const itemGst = itemSubtotal * 0.18;
         const itemSaved = Math.max((displayedPrice - actualPrice) * quantity, 0);
-  
-        totalItems += quantity;
+
         subtotal += itemSubtotal;
         gstAmount += itemGst;
         savedAmount += itemSaved;
-  
+
         return {
           _id: item._id,
           productId: product._id,
@@ -156,7 +157,7 @@ const cartController = {
           savedAmount: itemSaved
         };
       });
-  
+
       return res.status(200).json({
         success: true,
         cart: {
@@ -180,7 +181,7 @@ const cartController = {
       });
     }
   },
-  
+
   /**
    * Add item to cart
    * @param {Object} req - Request object
@@ -202,7 +203,7 @@ const cartController = {
       }
 
       // Validate product
-      const product = await Product.findOne({ 
+      const product = await Product.findOne({
         _id: productId,
         status: 'Active'
       });
@@ -216,7 +217,7 @@ const cartController = {
 
       // Find or create cart
       let cart = await Cart.findOne({ userId }).session(session);
-      
+
       if (!cart) {
         cart = new Cart({
           userId,
@@ -285,7 +286,7 @@ const cartController = {
       }
 
       const parsedQuantity = parseInt(quantity);
-      
+
       if (isNaN(parsedQuantity) || parsedQuantity < 1) {
         return res.status(400).json({
           success: false,
@@ -295,7 +296,7 @@ const cartController = {
 
       // Find cart
       const cart = await Cart.findOne({ userId });
-      
+
       if (!cart) {
         return res.status(404).json({
           success: false,
@@ -353,7 +354,7 @@ const cartController = {
 
       // Find cart
       const cart = await Cart.findOne({ userId });
-      
+
       if (!cart) {
         return res.status(404).json({
           success: false,
@@ -365,7 +366,7 @@ const cartController = {
       cart.items = cart.items.filter(
         item => item.productId.toString() !== productId
       );
-      
+
       await cart.save();
 
       return res.status(200).json({
@@ -394,7 +395,7 @@ const cartController = {
 
       // Find cart
       const cart = await Cart.findOne({ userId });
-      
+
       if (!cart) {
         return res.status(404).json({
           success: false,
