@@ -66,7 +66,6 @@ const cartController = {
         actualPrice,
         rating,
         quantity,
-        details: product.details,
         subtotal,
         gstAmount,
         total,
