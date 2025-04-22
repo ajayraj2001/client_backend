@@ -184,7 +184,7 @@ const initializeSocket = (server) => {
 
         activeCalls.set(callHistory._id.toString(), callData);
 
-        // console.log('deive token', astrologer.deviceToken)
+        console.log('deive token', astrologer.deviceToken)
 
         const roomStatus = await getRoomStatus(callHistory._id.toString());
         // console.log('Room status after initiation:', roomStatus);
@@ -201,6 +201,7 @@ const initializeSocket = (server) => {
             profile_img: user.profile_img ? user.profile_img : "",  // If user.profile_img exists, use it; otherwise, send an empty string
           }
         });
+        console.log('astrologer.deviceToken',astrologer.deviceToken)
 
         // Set 2-minute auto-reject timer
         const autoRejectTimer = setTimeout(async () => {
@@ -258,8 +259,10 @@ const initializeSocket = (server) => {
           { $set: { status: 'active', start_time: getCurrentIST() } }
         );
 
+        console.log('her is ajay raj checking erorrs ', callData.max_minutes)
         // Set timer for maximum call duration
         const insufficientBalanceTimer = setTimeout(async () => {
+          console.log('khan i sher urh insuccicent balance')
           await handleCallEnd(call_id, 'insufficient_balance', {
             message: 'Call ended - Insufficient balance'
           });
@@ -275,6 +278,7 @@ const initializeSocket = (server) => {
           room_status: await getRoomStatus(call_id)
         });
 
+        console.log('yash kuamr idfning ereroe')
         // // Notify user about call connection (only user needs this for screen transition)
         // const userSocket = userSockets.get(callData.user_id);
         // if (userSocket) {

@@ -6,10 +6,10 @@ const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address } = re
 const { getCurrentIST } = require('../../utils/timeUtils');
 
 // Initialize Razorpay
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET
-// });
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 // Generate unique receipt ID
 const generateReceiptId = () => {
@@ -185,7 +185,7 @@ const paymentController = {
     session.startTransaction();
 
     try {
-      const { products, addressId, deliveryInstructions, fromCart = false } = req.body;
+      const { products, addressId, fromCart = false } = req.body;
       const userId = req.user._id;
 
       // Validate address
@@ -246,7 +246,6 @@ const paymentController = {
             basePrice: basePrice,
             gstAmount: itemGst,
             totalPrice: basePrice + itemGst,
-            img: product.img && product.img.length > 0 ? product.img[0] : ''
           });
         }
       } else {
@@ -299,7 +298,6 @@ const paymentController = {
             basePrice: basePrice,
             gstAmount: itemGst,
             totalPrice: basePrice + itemGst,
-            img: product.img && product.img.length > 0 ? product.img[0] : ''
           });
         }
       }
