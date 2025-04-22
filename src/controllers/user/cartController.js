@@ -9,78 +9,168 @@ const cartController = {
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    */
-  getCart: async (req, res) => {
+  // getCart: async (req, res) => {
+  //   try {
+  //     const userId = req.user._id;
+
+  //     // Find or create cart for user
+  //     let cart = await Cart.findOne({ userId }).populate({
+  //       path: 'items.productId',
+  //       select: 'name img displayedPrice actualPrice status rating',
+  //     });
+
+
+  //       // If no cart found, return empty cart response
+  //   if (!cart) {
+  //     return res.status(200).json({
+  //       success: true,
+  //       cart: {
+  //         _id: "",
+  //         items: [],
+  //         summary: {}
+  //       }
+  //     });
+  //   }
+
+  //        // Filter out inactive/deleted products
+  //   const validItems = cart.items.filter(
+  //     item => item.productId && item.productId.status === 'Active'
+  //   );
+
+  //   // Update only if items were removed
+  //   if (validItems.length !== cart.items.length) {
+  //     cart.items = validItems;
+  //     await cart.save();
+  //   }
+
+  //   const items = validItems.map(item => {
+  //     const product = item.productId;
+  //     const quantity = item.quantity;
+  //     const actualPrice = product.actualPrice;
+  //     const rating = product.rating;
+  //     const displayedPrice = product.displayedPrice;
+
+  //     const subtotal = actualPrice * quantity;
+  //     const gstAmount = subtotal * 0.18;
+  //     const total = subtotal + gstAmount;
+  //     const savedAmount = (displayedPrice - actualPrice) * quantity;
+
+      
+  //     return {
+  //       _id: item._id,
+  //       productId: product._id,
+  //       name: product.name,
+  //       img: Array.isArray(product.img) && product.img.length > 0 ? product.img[0] : '',
+  //       category: product.categoryId?.name || '',
+  //       displayedPrice,
+  //       actualPrice,
+  //       rating,
+  //       quantity,
+  //       subtotal,
+  //       gstAmount,
+  //       total,
+  //       savedAmount
+  //     };
+  //   });
+
+  //   return res.status(200).json({
+  //     success: true,
+  //     cart: {
+  //       _id: cart._id,
+  //       items,
+  //       summary: cart.summary || {}
+  //     }
+  //   });
+  //   } catch (error) {
+  //     console.error('Error fetching cart:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Error fetching cart',
+  //       error: error.message
+  //     });
+  //   }
+  // },
+
+ getCart: async (req, res) => {
     try {
       const userId = req.user._id;
-
-      // Find or create cart for user
+  
       let cart = await Cart.findOne({ userId }).populate({
         path: 'items.productId',
-        select: 'name img displayedPrice actualPrice status rating',
+        select: 'name img displayedPrice actualPrice status rating categoryId',
       });
-
-
-        // If no cart found, return empty cart response
-    if (!cart) {
+  
+      if (!cart) {
+        return res.status(200).json({
+          success: true,
+          cart: {
+            _id: "",
+            items: [],
+            summary: {
+              totalItems: 0,
+              subtotal: 0,
+              gstAmount: 0,
+              totalAmount: 0,
+              savedAmount: 0,
+            }
+          }
+        });
+      }
+  
+      // Filter only active products
+      const validItems = cart.items.filter(item => item.productId && item.productId.status === 'Active');
+  
+      let totalItems = 0;
+      let subtotal = 0;
+      let gstAmount = 0;
+      let savedAmount = 0;
+  
+      const items = validItems.map(item => {
+        const product = item.productId;
+        const quantity = item.quantity;
+  
+        const actualPrice = product.actualPrice;
+        const displayedPrice = product.displayedPrice;
+        const itemSubtotal = actualPrice * quantity;
+        const itemGst = itemSubtotal * 0.18;
+        const itemSaved = Math.max((displayedPrice - actualPrice) * quantity, 0);
+  
+        totalItems += quantity;
+        subtotal += itemSubtotal;
+        gstAmount += itemGst;
+        savedAmount += itemSaved;
+  
+        return {
+          _id: item._id,
+          productId: product._id,
+          name: product.name,
+          img: Array.isArray(product.img) && product.img.length > 0 ? product.img[0] : '',
+          category: product.categoryId?.name || '',
+          displayedPrice,
+          actualPrice,
+          rating: product.rating,
+          quantity,
+          subtotal: itemSubtotal,
+          gstAmount: itemGst,
+          total: itemSubtotal + itemGst,
+          savedAmount: itemSaved
+        };
+      });
+  
       return res.status(200).json({
         success: true,
         cart: {
-          _id: "",
-          items: [],
-          summary: {}
+          _id: cart._id,
+          items,
+          summary: {
+            totalItems,
+            subtotal,
+            gstAmount,
+            totalAmount: subtotal + gstAmount,
+            savedAmount
+          }
         }
       });
-    }
-
-         // Filter out inactive/deleted products
-    const validItems = cart.items.filter(
-      item => item.productId && item.productId.status === 'Active'
-    );
-
-    // Update only if items were removed
-    if (validItems.length !== cart.items.length) {
-      cart.items = validItems;
-      await cart.save();
-    }
-
-    const items = validItems.map(item => {
-      const product = item.productId;
-      const quantity = item.quantity;
-      const actualPrice = product.actualPrice;
-      const rating = product.rating;
-      const displayedPrice = product.displayedPrice;
-
-      const subtotal = actualPrice * quantity;
-      const gstAmount = subtotal * 0.18;
-      const total = subtotal + gstAmount;
-      const savedAmount = (displayedPrice - actualPrice) * quantity;
-
-      
-      return {
-        _id: item._id,
-        productId: product._id,
-        name: product.name,
-        img: Array.isArray(product.img) && product.img.length > 0 ? product.img[0] : '',
-        category: product.categoryId?.name || '',
-        displayedPrice,
-        actualPrice,
-        rating,
-        quantity,
-        subtotal,
-        gstAmount,
-        total,
-        savedAmount
-      };
-    });
-
-    return res.status(200).json({
-      success: true,
-      cart: {
-        _id: cart._id,
-        items,
-        summary: cart.summary || {}
-      }
-    });
     } catch (error) {
       console.error('Error fetching cart:', error);
       return res.status(500).json({
@@ -90,7 +180,7 @@ const cartController = {
       });
     }
   },
-
+  
   /**
    * Add item to cart
    * @param {Object} req - Request object

@@ -64,68 +64,68 @@ const CartSchema = new Schema({
 });
 
 // Pre-save middleware to update summary
-CartSchema.pre('save', async function(next) {
-  if (!this.isModified('items')) return next();
+// CartSchema.pre('save', async function(next) {
+//   if (!this.isModified('items')) return next();
   
-  try {
-    // Get all product IDs from items
-    const productIds = this.items.map(item => item.productId);
+//   try {
+//     // Get all product IDs from items
+//     const productIds = this.items.map(item => item.productId);
     
-    // Fetch all products in one query
-    const products = await mongoose.model('Product').find({
-      _id: { $in: productIds },
-      status: 'Active'
-    });
+//     // Fetch all products in one query
+//     const products = await mongoose.model('Product').find({
+//       _id: { $in: productIds },
+//       status: 'Active'
+//     });
     
-    // Create a map for quick lookups
-    const productMap = products.reduce((map, product) => {
-      map[product._id.toString()] = product;
-      return map;
-    }, {});
+//     // Create a map for quick lookups
+//     const productMap = products.reduce((map, product) => {
+//       map[product._id.toString()] = product;
+//       return map;
+//     }, {});
     
-    // Calculate summary
-    let totalItems = 0;
-    let subtotal = 0;
-    let gstAmount = 0;
-    let savedAmount = 0;
+//     // Calculate summary
+//     let totalItems = 0;
+//     let subtotal = 0;
+//     let gstAmount = 0;
+//     let savedAmount = 0;
     
-    for (const item of this.items) {
-      const product = productMap[item.productId.toString()];
+//     for (const item of this.items) {
+//       const product = productMap[item.productId.toString()];
       
-      // Skip if product not found or inactive
-      if (!product) continue;
+//       // Skip if product not found or inactive
+//       if (!product) continue;
       
-      totalItems += item.quantity;
+//       totalItems += item.quantity;
       
-      // Calculate product amount (without GST)
-      const itemSubtotal = product.actualPrice * item.quantity;
-      subtotal += itemSubtotal;
+//       // Calculate product amount (without GST)
+//       const itemSubtotal = product.actualPrice * item.quantity;
+//       subtotal += itemSubtotal;
       
-      // Calculate GST (18%)
-      const itemGst = itemSubtotal * 0.18;
-      gstAmount += itemGst;
+//       // Calculate GST (18%)
+//       const itemGst = itemSubtotal * 0.18;
+//       gstAmount += itemGst;
       
-      // Calculate saved amount (displayed - actual)
-      const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
-      savedAmount += itemSaved > 0 ? itemSaved : 0;
-    }
+//       // Calculate saved amount (displayed - actual)
+//       const itemSaved = (product.displayedPrice - product.actualPrice) * item.quantity;
+//       savedAmount += itemSaved > 0 ? itemSaved : 0;
+//     }
     
-    // Update summary
-    this.summary = {
-      totalItems,
-      subtotal,
-      gstAmount,
-      totalAmount: subtotal + gstAmount,
-      savedAmount
-    };
+//     // Update summary
+//     this.summary = {
+//       totalItems,
+//       subtotal,
+//       gstAmount,
+//       totalAmount: subtotal + gstAmount,
+//       savedAmount
+//     };
     
-    // Update lastUpdated
-    this.lastUpdated = getCurrentIST();
+//     // Update lastUpdated
+//     this.lastUpdated = getCurrentIST();
     
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+//     next();
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 module.exports = mongoose.model('Cart', CartSchema);
