@@ -47,6 +47,7 @@ const cartController = {
       const product = item.productId;
       const quantity = item.quantity;
       const actualPrice = product.actualPrice;
+      const rating = product.rating;
       const displayedPrice = product.displayedPrice;
 
       const subtotal = actualPrice * quantity;
@@ -63,6 +64,7 @@ const cartController = {
         category: product.categoryId?.name || '',
         displayedPrice,
         actualPrice,
+        rating,
         quantity,
         details: product.details,
         subtotal,
