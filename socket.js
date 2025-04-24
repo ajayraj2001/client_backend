@@ -71,13 +71,10 @@ const initializeSocket = (server) => {
     console.log('Connected:', socket.id);
 
     socket.on('register_user', ({ user_id, user_type }) => {
-      console.log('register user_id', user_id)
-      console.log('register _user_type', user_type)
+      console.log('register user_id', user_id, 'user_type', user_type)
       if (user_type === 'user') {
-        console.log('usre tesifetr s now')
         userSockets.set(user_id, socket.id);
       } else if (user_type === 'astrologer') {
-        console.log('astro tegster now')
         astrologerSockets.set(user_id, socket.id);
       }
 
@@ -86,7 +83,6 @@ const initializeSocket = (server) => {
     });
 
     socket.on('initiate_call', async (data) => {
-      console.log('call, initiaed', data)
       const { user_id, astrologer_id, call_type } = data;
 
       try {
@@ -96,13 +92,11 @@ const initializeSocket = (server) => {
           Astrologer.findById(astrologer_id).select('busy commission is_chat_online is_voice_online is_video_online per_min_chat per_min_voice_call per_min_video_call deviceToken').lean()
         ]);
 
-        console.log('here', user, astrologer)
         if (!user || !astrologer) {
           socket.emit('call_error', { message: 'User or astrologer not found' });
           return;
         }
 
-        console.log('here 2',astrologer.deviceToken)
         // Validate availability
         if (astrologer.busy || !astrologer[`is_${call_type}_online`]) {
           console.log('ghgjg')
@@ -113,7 +107,6 @@ const initializeSocket = (server) => {
           return;
         }
 
-        console.log('here 3')
         if (user.busy) {
           socket.emit('call_rejected', {
             status: 'user_busy',
@@ -122,17 +115,13 @@ const initializeSocket = (server) => {
           return;
         }
 
-        console.log('here 4')
-
         // Handle free call logic
         const isFreeCall = await handleFreeCallLogic(user, user_id);
 
-        console.log('here 5')
         // Calculate maximum possible call duration based on wallet balance
         const rate = astrologer[`per_min_${call_type}`];
         const maxMinutes = isFreeCall ? CONSTANTS.FREE_CALL_MAX_MINIT : Math.floor(user.wallet / rate);
 
-        console.log('here 6')
         // if (!isFreeCall && maxMinutes < 2) {
         //   socket.emit('call_rejected', {
         //     status: 'insufficient_balance',
@@ -141,7 +130,6 @@ const initializeSocket = (server) => {
         //   return;
         // }
 
-        console.log('here 7--------------------', socket.id)
         // Create call record
         const callHistory = await new CallChatHistory({
           user_id,
@@ -186,8 +174,6 @@ const initializeSocket = (server) => {
 
         activeCalls.set(callHistory._id.toString(), callData);
 
-        console.log('deive token', astrologer.deviceToken)
-
         const roomStatus = await getRoomStatus(callHistory._id.toString());
         console.log('Room status after initiation:', roomStatus);
         // Send FCM to astrologer
@@ -203,7 +189,7 @@ const initializeSocket = (server) => {
             profile_img: user.profile_img ? user.profile_img : "",  // If user.profile_img exists, use it; otherwise, send an empty string
           }
         });
-        console.log('astrologer.deviceToken',astrologer.deviceToken)
+        // console.log('astrologer.deviceToken',astrologer.deviceToken)
 
         // Set 2-minute auto-reject timer
         const autoRejectTimer = setTimeout(async () => {
@@ -222,13 +208,13 @@ const initializeSocket = (server) => {
         });  //not needed i think
 
       } catch (error) {
-        console.error('Error in initiate_call:', error);
+        // console.error('Error in initiate_call:', error);
         socket.emit('call_error', { message: 'Failed to initiate call' });
       }
     });
 
     socket.on('accept_call', async ({ call_id }) => {
-      console.log('accept_call------------------------------', call_id, 'socket id ', socket.id)
+      // console.log('accept_call------------------------------', call_id, 'socket id ', socket.id)
       try {
         const callData = activeCalls.get(call_id);
         if (!callData) {
@@ -261,10 +247,10 @@ const initializeSocket = (server) => {
           { $set: { status: 'active', start_time: getCurrentIST() } }
         );
 
-        console.log('her is ajay raj checking erorrs ', callData.max_minutes)
+        // console.log('her is ajay raj checking erorrs ', callData.max_minutes)
         // Set timer for maximum call duration
         const insufficientBalanceTimer = setTimeout(async () => {
-          console.log('khan i sher urh insuccicent balance')
+          // console.log('khan i sher urh insuccicent balance')
           await handleCallEnd(call_id, 'insufficient_balance', {
             message: 'Call ended - Insufficient balance'
           });
@@ -280,7 +266,7 @@ const initializeSocket = (server) => {
           room_status: await getRoomStatus(call_id)
         });
 
-        console.log('yash kuamr idfning ereroe')
+        // console.log('yash kuamr idfning ereroe')
         // // Notify user about call connection (only user needs this for screen transition)
         // const userSocket = userSockets.get(callData.user_id);
         // if (userSocket) {
@@ -300,7 +286,7 @@ const initializeSocket = (server) => {
     socket.on('reject_call', async ({ call_id }) => {
       console.log('reject_call', call_id,'socket.user_type', socket.user_type)
       const status = socket.user_type === 'user' ? 'reject_user' : 'reject_astro';
-      await handleCallEnd(call_id, status, {
+      await handleCallEnd(call_id, status, socket.user_type , {
         message: `Call rejected by ${socket.user_type}`
       });
     });
@@ -309,7 +295,7 @@ const initializeSocket = (server) => {
     socket.on('send_message', async (data) => {
       try {
         const { user_id, astrologer_id, message, sender } = data;
-        console.log('data of send message', data)
+        // console.log('data of send message', data)
         // Create and save message
         const chatMessage = new ChatMessage({
           user_id,
@@ -325,16 +311,16 @@ const initializeSocket = (server) => {
         // Log the recipient socket lookup
         let recipientSocketId;
         if (sender === 'user') {
-          console.log('astrologersocket code map---****',astrologerSockets )
+          // console.log('astrologersocket code map---****',astrologerSockets )
           recipientSocketId = astrologerSockets.get(astrologer_id);
-          console.log('📤 Sending to astro socket:', astrologer_id, recipientSocketId);
+          // console.log('📤 Sending to astro socket:', astrologer_id, recipientSocketId);
         } else {
           recipientSocketId = userSockets.get(user_id);
-          console.log('📤 Sending to user socket:', user_id, recipientSocketId);
+          // console.log('📤 Sending to user socket:', user_id, recipientSocketId);
         }
 
         // Log before emitting
-        console.log('📤 About to emit to socket:', recipientSocketId);
+        // console.log('📤 About to emit to socket:', recipientSocketId);
 
         if (recipientSocketId) {
           io.to(recipientSocketId).emit('receive_message', {
@@ -346,7 +332,7 @@ const initializeSocket = (server) => {
             timestamp: chatMessage.timestamp,
             read: false
           });
-          console.log('✅ Message emitted successfully');
+          // console.log('✅ Message emitted successfully');
         } else {
           console.log('❌ No recipient socket found');
         }
@@ -438,7 +424,7 @@ const initializeSocket = (server) => {
     socket.on('end_call', async ({ call_id }) => {
       console.log('end_call', call_id)
       const status = socket.user_type === 'user' ? 'ended_by_user' : 'ended_by_astrologer';
-      await handleCallEnd(call_id, status, {
+      await handleCallEnd(call_id, status, socket.user_type , {
         message: `Call ended by ${socket.user_type}`
       });
     });
@@ -463,16 +449,16 @@ const initializeSocket = (server) => {
   });
 
   // Helper function to handle call ending
-  async function handleCallEnd(call_id, end_status, { message }) {
-    console.log('1234323223', call_id, 'statsy', end_status)
+  async function handleCallEnd(call_id, end_status, sender , { message }) {
+    console.log('handeEndcall', call_id, 'status', end_status)
 
     const roomStatus = await getRoomStatus(call_id.toString());
-        console.log('Room status after initiation:', roomStatus);
+        // console.log('Room status after initiation:', roomStatus);
 
     
     const callData = activeCalls.get(call_id);
 
-    console.log('callId', callData)
+    // console.log('callId', callData)
     if (!callData) return;
     
 
@@ -487,7 +473,7 @@ const initializeSocket = (server) => {
       let cost = 0;
       let updateData = { status: end_status };
 
-      console.log('end_status---------------------#############', end_status)
+      // console.log('end_status---------------------#############', end_status)
       // Calculate financials if call was connected and ended normally
       const shouldUpdateWallets = callData.start_time &&
         !['auto_rejected', 'reject_user', 'reject_astro', 'auto_cut'].includes(end_status);
@@ -558,12 +544,22 @@ const initializeSocket = (server) => {
           )
         ]);
       }
-      console.log('1234323223')
+
+      let recipientSocketId;
+      if (sender === 'user') {
+        // console.log('astrologersocket code map---****',astrologerSockets )
+        recipientSocketId = astrologerSockets.get(callData.astrologer_id,);
+        // console.log('📤 Sending to astro socket:', astrologer_id, recipientSocketId);
+      } else {
+        recipientSocketId = userSockets.get( callData.user_id,);
+        // console.log('📤 Sending to user socket:', user_id, recipientSocketId);
+      }
 
       const finalRoomStatus = await getRoomStatus(call_id);
-console.log('my name is nahtiny onalaish')
+console.log('my name is anthony gonazalish',recipientSocketId)
       // Notify all participants
-      io.to(`call_${call_id}`).emit('call_ended', {
+      io.to(recipientSocketId).emit('call_ended', {
+      // io.to(`call_${call_id}`).emit('call_ended', {
         call_id,
         status: end_status,
         duration,
@@ -571,6 +567,15 @@ console.log('my name is nahtiny onalaish')
         message,
         final_room_status: finalRoomStatus
       });
+
+// const callRoom = `call_${call_id}`;
+
+// io.to(callRoom).emit('call_ended', {
+//   call_id,
+//   maximum_minutes: callData.max_minutes,
+//   message: 'Call connected',
+//   room_status: await getRoomStatus(call_id)
+// });
 
       // Cleanup
       activeCalls.delete(call_id);
