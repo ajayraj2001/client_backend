@@ -371,6 +371,7 @@ const paymentController = {
 
       return res.status(200).json({
         success: true,
+        message: "Order Created Successfully",
         order: razorpayOrder,
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
