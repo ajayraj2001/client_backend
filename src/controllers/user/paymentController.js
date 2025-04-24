@@ -266,6 +266,7 @@ const paymentController = {
           status: 'Active'
         });
 
+        console.log('productlistr',productList)
         // Create a map for quick lookups
         const productMap = productList.reduce((map, product) => {
           map[product._id.toString()] = product;
@@ -326,11 +327,11 @@ const paymentController = {
       // Format shipping details from address model
       const shippingDetails = {
         name: address.name,
-        phoneNumber: address.mobileNumber,
-        alternatePhoneNumber: address.alternatePhoneNumber || '',
+        mobileNumber: address.mobileNumber,
+        alternateNumber: address.alternateNumber || '',
         address: {
-          addressLine1: address.addressLine1,
-          addressLine2: address.addressLine2 || '',
+          address: address.address,
+          landmark: address.landmark || '',
           city: address.city,
           state: address.state,
           country: address.country || 'India',

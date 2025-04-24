@@ -49,17 +49,17 @@ const ProductTransactionSchema = new Schema({
       type: String,
       required: true
     },
-    phoneNumber: {
+    mobileNumber: {
       type: String,
       required: true
     },
-    alternatePhoneNumber: {
+    alternateNumber: {
       type: String,
-      required: true
+      default: ''
     },
     address: {
-      addressLine1: { type: String, required: true },
-      addressLine2: { type: String, default: '' },
+      address: { type: String, required: true },
+      landmark: { type: String, default: '' },
       city: { type: String, required: true },
       state: { type: String, required: true },
       country: { type: String, default: 'India' },

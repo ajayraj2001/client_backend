@@ -182,12 +182,14 @@ const initializeSocket = (server) => {
           }
         };
 
+        console.log('callData**********.id',callHistory._id)
+
         activeCalls.set(callHistory._id.toString(), callData);
 
         console.log('deive token', astrologer.deviceToken)
 
         const roomStatus = await getRoomStatus(callHistory._id.toString());
-        // console.log('Room status after initiation:', roomStatus);
+        console.log('Room status after initiation:', roomStatus);
         // Send FCM to astrologer
         await sendFCMNotification(astrologer.deviceToken, {
           title: 'Incoming Call',
@@ -208,16 +210,16 @@ const initializeSocket = (server) => {
           await handleCallEnd(callHistory._id.toString(), 'auto_rejected', {
             message: 'Call auto-rejected - no response from astrologer'
           });
-        }, 120000); // 2 minutes
+        }, 12000); // 2 minutes
 
         activeTimers.set(callHistory._id.toString(), { autoRejectTimer });
 
         // Notify user about call initiation with maximum duration
-        // socket.emit('call_initiated', {
-        //   call_id: callHistory._id,
-        //   maximum_minutes: maxMinutes,
-        //   message: 'Calling astrologer... Auto-reject in 2 minutes'
-        // });  //not needed i think
+        socket.emit('call_initiated', {
+          call_id: callHistory._id,
+          maximum_minutes: maxMinutes,
+          message: 'Calling astrologer... Auto-reject in 2 minutes'
+        });  //not needed i think
 
       } catch (error) {
         console.error('Error in initiate_call:', error);
@@ -296,7 +298,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('reject_call', async ({ call_id }) => {
-      console.log('reject_call', call_id)
+      console.log('reject_call', call_id,'socket.user_type', socket.user_type)
       const status = socket.user_type === 'user' ? 'reject_user' : 'reject_astro';
       await handleCallEnd(call_id, status, {
         message: `Call rejected by ${socket.user_type}`
@@ -462,8 +464,17 @@ const initializeSocket = (server) => {
 
   // Helper function to handle call ending
   async function handleCallEnd(call_id, end_status, { message }) {
+    console.log('1234323223', call_id, 'statsy', end_status)
+
+    const roomStatus = await getRoomStatus(call_id.toString());
+        console.log('Room status after initiation:', roomStatus);
+
+    
     const callData = activeCalls.get(call_id);
+
+    console.log('callId', callData)
     if (!callData) return;
+    
 
     try {
       // Clear any active timers
@@ -476,6 +487,7 @@ const initializeSocket = (server) => {
       let cost = 0;
       let updateData = { status: end_status };
 
+      console.log('end_status---------------------#############', end_status)
       // Calculate financials if call was connected and ended normally
       const shouldUpdateWallets = callData.start_time &&
         !['auto_rejected', 'reject_user', 'reject_astro', 'auto_cut'].includes(end_status);
@@ -546,9 +558,10 @@ const initializeSocket = (server) => {
           )
         ]);
       }
+      console.log('1234323223')
 
       const finalRoomStatus = await getRoomStatus(call_id);
-
+console.log('my name is nahtiny onalaish')
       // Notify all participants
       io.to(`call_${call_id}`).emit('call_ended', {
         call_id,
