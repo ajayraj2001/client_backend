@@ -170,7 +170,7 @@ const initializeSocket = (server) => {
           }
         };
 
-        console.log('callData**********.id',callHistory._id)
+        console.log('callData**********.id', callHistory._id)
 
         activeCalls.set(callHistory._id.toString(), callData);
 
@@ -196,7 +196,7 @@ const initializeSocket = (server) => {
           await handleCallEnd(callHistory._id.toString(), 'auto_rejected', {
             message: 'Call auto-rejected - no response from astrologer'
           });
-        }, 12000); // 2 minutes
+        }, 120000); // 2 minutes
 
         activeTimers.set(callHistory._id.toString(), { autoRejectTimer });
 
@@ -284,9 +284,8 @@ const initializeSocket = (server) => {
     });
 
     socket.on('reject_call', async ({ call_id }) => {
-      console.log('reject_call', call_id,'socket.user_type', socket.user_type)
       const status = socket.user_type === 'user' ? 'reject_user' : 'reject_astro';
-      await handleCallEnd(call_id, status, socket.user_type , {
+      await handleCallEnd(call_id, status, socket.user_type, {
         message: `Call rejected by ${socket.user_type}`
       });
     });
@@ -424,7 +423,7 @@ const initializeSocket = (server) => {
     socket.on('end_call', async ({ call_id }) => {
       console.log('end_call', call_id)
       const status = socket.user_type === 'user' ? 'ended_by_user' : 'ended_by_astrologer';
-      await handleCallEnd(call_id, status, socket.user_type , {
+      await handleCallEnd(call_id, status, socket.user_type, {
         message: `Call ended by ${socket.user_type}`
       });
     });
@@ -440,7 +439,7 @@ const initializeSocket = (server) => {
       // Handle any active calls for this socket
       for (const [call_id, callData] of activeCalls.entries()) {
         if (callData.user_socket === socket.id || callData.astrologer_socket === socket.id) {
-          await handleCallEnd(call_id, 'disconnected', {
+          await handleCallEnd(call_id, 'disconnected', socket.user_type, {
             message: `${socket.user_type} disconnected`
           });
         }
@@ -449,18 +448,15 @@ const initializeSocket = (server) => {
   });
 
   // Helper function to handle call ending
-  async function handleCallEnd(call_id, end_status, sender , { message }) {
+  async function handleCallEnd(call_id, end_status, sender, { message }) {
     console.log('handeEndcall', call_id, 'status', end_status)
 
-    const roomStatus = await getRoomStatus(call_id.toString());
-        // console.log('Room status after initiation:', roomStatus);
-
-    
+    // const roomStatus = await getRoomStatus(call_id.toString());
+    // console.log('Room status after initiation:', roomStatus);
     const callData = activeCalls.get(call_id);
 
     // console.log('callId', callData)
     if (!callData) return;
-    
 
     try {
       // Clear any active timers
@@ -551,15 +547,15 @@ const initializeSocket = (server) => {
         recipientSocketId = astrologerSockets.get(callData.astrologer_id,);
         // console.log('📤 Sending to astro socket:', astrologer_id, recipientSocketId);
       } else {
-        recipientSocketId = userSockets.get( callData.user_id,);
+        recipientSocketId = userSockets.get(callData.user_id,);
         // console.log('📤 Sending to user socket:', user_id, recipientSocketId);
       }
 
       const finalRoomStatus = await getRoomStatus(call_id);
-console.log('my name is anthony gonazalish',recipientSocketId)
+      // console.log('my name is anthony gonazalish', recipientSocketId)
       // Notify all participants
-      io.to(recipientSocketId).emit('call_ended', {
       // io.to(`call_${call_id}`).emit('call_ended', {
+        io.to(recipientSocketId).emit('call_ended', {
         call_id,
         status: end_status,
         duration,
@@ -568,14 +564,14 @@ console.log('my name is anthony gonazalish',recipientSocketId)
         final_room_status: finalRoomStatus
       });
 
-// const callRoom = `call_${call_id}`;
+      // const callRoom = `call_${call_id}`;
 
-// io.to(callRoom).emit('call_ended', {
-//   call_id,
-//   maximum_minutes: callData.max_minutes,
-//   message: 'Call connected',
-//   room_status: await getRoomStatus(call_id)
-// });
+      // io.to(callRoom).emit('call_ended', {
+      //   call_id,
+      //   maximum_minutes: callData.max_minutes,
+      //   message: 'Call connected',
+      //   room_status: await getRoomStatus(call_id)
+      // });
 
       // Cleanup
       activeCalls.delete(call_id);
