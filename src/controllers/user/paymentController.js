@@ -29,7 +29,7 @@ const paymentController = {
     session.startTransaction();
 
     try {
-      const { pujaId, selectedProducts, pujaDate, customerDetails, notes } = req.body;
+      const { pujaId, selectedProducts, pujaDate, customerDetails } = req.body;
       const userId = req.user._id;
 
       // Validate puja exists
@@ -48,61 +48,61 @@ const paymentController = {
       const productDetails = [];
 
       // Process selected products
-      if (selectedProducts && selectedProducts.length > 0) {
-        // Get all product IDs
-        const productIds = selectedProducts.map(item => item.productId);
+      // if (selectedProducts && selectedProducts.length > 0) {
+      //   // Get all product IDs
+      //   const productIds = selectedProducts.map(item => item.productId);
 
-        // Fetch all products in one query
-        const products = await Product.find({
-          _id: { $in: productIds },
-          status: 'Active'
-        });
+      //   // Fetch all products in one query
+      //   const products = await Product.find({
+      //     _id: { $in: productIds },
+      //     status: 'Active'
+      //   });
 
-        // Create a map for quick lookups
-        const productMap = products.reduce((map, product) => {
-          map[product._id.toString()] = product;
-          return map;
-        }, {});
+      //   // Create a map for quick lookups
+      //   const productMap = products.reduce((map, product) => {
+      //     map[product._id.toString()] = product;
+      //     return map;
+      //   }, {});
 
-        // Calculate product amounts and validate
-        for (const item of selectedProducts) {
-          const product = productMap[item.productId];
+      //   // Calculate product amounts and validate
+      //   for (const item of selectedProducts) {
+      //     const product = productMap[item.productId];
 
-          if (!product) {
-            return res.status(404).json({
-              success: false,
-              message: `Product with ID ${item.productId} not found or is inactive`
-            });
-          }
+      //     if (!product) {
+      //       return res.status(404).json({
+      //         success: false,
+      //         message: `Product with ID ${item.productId} not found or is inactive`
+      //       });
+      //     }
 
-          const itemTotal = product.actualPrice * item.quantity;
-          orderAmount += itemTotal;
+      //     const itemTotal = product.actualPrice * item.quantity;
+      //     orderAmount += itemTotal;
 
-          productDetails.push({
-            productId: product._id,
-            quantity: item.quantity,
-            price: product.actualPrice,
-            isCompulsory: puja.compulsoryProducts.includes(product._id)
-          });
-        }
-      }
+      //     productDetails.push({
+      //       productId: product._id,
+      //       quantity: item.quantity,
+      //       price: product.actualPrice,
+      //       isCompulsory: puja.compulsoryProducts.includes(product._id)
+      //     });
+      //   }
+      // }
 
-      // Validate compulsory products are included
-      if (puja.compulsoryProducts && puja.compulsoryProducts.length > 0) {
-        const selectedProductIds = productDetails.map(p => p.productId.toString());
+      // // Validate compulsory products are included
+      // if (puja.compulsoryProducts && puja.compulsoryProducts.length > 0) {
+      //   const selectedProductIds = productDetails.map(p => p.productId.toString());
 
-        const missingCompulsoryProducts = puja.compulsoryProducts.filter(
-          id => !selectedProductIds.includes(id.toString())
-        );
+      //   const missingCompulsoryProducts = puja.compulsoryProducts.filter(
+      //     id => !selectedProductIds.includes(id.toString())
+      //   );
 
-        if (missingCompulsoryProducts.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'All compulsory products must be included',
-            missingProducts: missingCompulsoryProducts
-          });
-        }
-      }
+      //   if (missingCompulsoryProducts.length > 0) {
+      //     return res.status(400).json({
+      //       success: false,
+      //       message: 'All compulsory products must be included',
+      //       missingProducts: missingCompulsoryProducts
+      //     });
+      //   }
+      // }
 
       // Calculate GST (18% of base amount)
       const gstAmount = Math.round(orderAmount * 0.18);
@@ -141,7 +141,7 @@ const paymentController = {
         couponCode: '',
         pujaId,
         pujaDate: new Date(pujaDate),
-        selectedProducts: productDetails,
+        // selectedProducts: productDetails,
         customerDetails,
         initiatedAt: getCurrentIST(),
         isPaymentAttempted: false // Default - will be updated when payment is attempted
@@ -152,7 +152,7 @@ const paymentController = {
 
       return res.status(200).json({
         success: true,
-        order: razorpayOrder,
+        order: razorpayOrder.id,
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {

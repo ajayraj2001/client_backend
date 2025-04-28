@@ -18,32 +18,32 @@ const PujaTransactionSchema = new Schema({
     type: Date,
     required: true
   },
-  selectedProducts: [
-    {
-      productId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-      },
-      name: {
-        type: String,
-        required: true
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-        min: 1
-      },
-      price: {
-        type: Number,
-        required: true
-      },
-      isCompulsory: {
-        type: Boolean,
-        default: false
-      }
-    }
-  ],
+  // selectedProducts: [
+  //   {
+  //     productId: {
+  //       type: Schema.Types.ObjectId,
+  //       ref: 'Product',
+  //       required: true
+  //     },
+  //     name: {
+  //       type: String,
+  //       required: true
+  //     },
+  //     quantity: {
+  //       type: Number,
+  //       default: 1,
+  //       min: 1
+  //     },
+  //     price: {
+  //       type: Number,
+  //       required: true
+  //     },
+  //     isCompulsory: {
+  //       type: Boolean,
+  //       default: false
+  //     }
+  //   }
+  // ],
   
   // Customer information
   customerDetails: {
@@ -54,14 +54,6 @@ const PujaTransactionSchema = new Schema({
     phoneNumber: {
       type: String,
       required: true
-    },
-    email: {
-      type: String,
-      default: ''
-    },
-    address: {
-      type: String,
-      default: ''
     }
   },
   
