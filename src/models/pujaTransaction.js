@@ -49,11 +49,11 @@ const PujaTransactionSchema = new Schema({
   customerDetails: {
     name: {
       type: String,
-      required: true
+      default: ""
     },
     phoneNumber: {
       type: String,
-      required: true
+      default: ""
     }
   },
   
