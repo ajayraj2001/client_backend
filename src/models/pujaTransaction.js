@@ -16,7 +16,7 @@ const PujaTransactionSchema = new Schema({
   },
   pujaDate: {
     type: Date,
-    required: true
+    default: null
   },
   // selectedProducts: [
   //   {

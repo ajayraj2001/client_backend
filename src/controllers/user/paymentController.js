@@ -140,7 +140,8 @@ const paymentController = {
         discountAmount: 0,
         couponCode: '',
         pujaId,
-        pujaDate: new Date(pujaDate),
+        // pujaDate: new Date(pujaDate),
+        pujaDate: pujaDate,
         // selectedProducts: productDetails,
         customerDetails,
         initiatedAt: getCurrentIST(),
@@ -152,7 +153,7 @@ const paymentController = {
 
       return res.status(200).json({
         success: true,
-        order: razorpayOrder.id,
+        order: razorpayOrder,
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {
