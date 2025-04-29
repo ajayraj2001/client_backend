@@ -153,7 +153,7 @@ const paymentController = {
 
       return res.status(200).json({
         success: true,
-        order: razorpayOrder,
+        order: razorpayOrder.id,
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {
