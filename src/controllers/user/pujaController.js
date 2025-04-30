@@ -4,12 +4,22 @@ const { Puja } = require('../../models');
 // Get All Pujas
 const getAllPujas = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1; // default page = 1
-    const limit = parseInt(req.query.limit) || 4; // default limit = 10
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 4;
     const skip = (page - 1) * limit;
 
-    const totalCount = await Puja.countDocuments();
-    const pujas = await Puja.find({})
+    const { pujaType } = req.query;
+
+    // Build filter object
+    let filter = {};
+    if (pujaType === 'daily') {
+      filter.isRecurring = true;
+    } else if (pujaType === 'occasionally') {
+      filter.isRecurring = false;
+    }
+
+    const totalCount = await Puja.countDocuments(filter);
+    const pujas = await Puja.find(filter)
       .sort({ _id: -1 })
       .skip(skip)
       .limit(limit)
