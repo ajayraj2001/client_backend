@@ -8,7 +8,7 @@ const getAllPujas = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 4;
     const skip = (page - 1) * limit;
 
-    const { pujaType } = req.query;
+    const { pujaType, search } = req.query;
 
     // Build filter object
     let filter = {};
@@ -16,6 +16,10 @@ const getAllPujas = async (req, res, next) => {
       filter.isRecurring = true;
     } else if (pujaType === 'occasionally') {
       filter.isRecurring = false;
+    }
+
+    if (search) {
+      filter.title = { $regex: search, $options: 'i' }; // case-insensitive search
     }
 
     const totalCount = await Puja.countDocuments(filter);
@@ -40,6 +44,7 @@ const getAllPujas = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Get Puja by ID
 const getPujaById = async (req, res, next) => {
