@@ -39,7 +39,7 @@ const getAllProducts = async (req, res, next) => {
       next(error);
     }
   };
-  
+
 
 const getProductsByCategory = async (req, res, next) => {
     try {

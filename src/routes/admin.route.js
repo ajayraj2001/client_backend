@@ -18,9 +18,11 @@ const productRoutes = require("./adminRoutes/productRoute");
 const transactionRoutes = require("./adminRoutes/transactionRoute");
 const callHistoryRoutes = require("./adminRoutes/callHistoryRoute");
 const siteSettingRoutes = require("./adminRoutes/siteSettingRoute");
+const dashboardRoutes = require("./adminRoutes/dashboardRoute");
 
 // Use the routes
 adminRoute.use("/auth", authRoutes);
+adminRoute.use("/dashboard", dashboardRoutes);
 adminRoute.use("/role", roleRoutes);
 adminRoute.use('/astrologers', astrologerRoutes);
 adminRoute.use('/users', userRoutes);
