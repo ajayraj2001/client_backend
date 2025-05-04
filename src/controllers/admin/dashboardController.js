@@ -1099,7 +1099,7 @@ const getTopSellingProducts = async (req, res, next) => {
     // If needed, get additional product details from Product model
     const topProductsWithDetails = await Promise.all(
       topProducts.map(async (product) => {
-        const productDetails = await Product.findById(product._id).select('name category imageUrl price');
+        const productDetails = await Product.findById(product._id).select('name img actualPrice');
         console.log('prouct detials', productDetails)
         return {
           productId: product._id,
@@ -1108,7 +1108,7 @@ const getTopSellingProducts = async (req, res, next) => {
           totalRevenue: parseFloat(product.totalRevenue.toFixed(2)),
           transactions: product.transactions,
           // Include additional details if available
-          imageUrl: productDetails?.img[0] || '',
+          imageUrl: productDetails?.img?.[0] || '',
           currentPrice: productDetails?.actualPrice || 0
         };
       })
