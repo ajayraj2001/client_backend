@@ -4,26 +4,26 @@ const { authenticateAdmin } = require("../../middlewares");
 const {
     getAdminRevenueDashboard,
     getAdminUserDashboard,
-    getAdminStats
+    getAdminStats,
+//product
+getTopSellingProducts,
+getTrendingProducts,
+getSalesByCategory
+
 } = require("../../controllers/admin/dashboardController");
 
 
 router.get('/revenue', getAdminRevenueDashboard);
 
-/**
- * @route   GET /api/admin/dashboard/users
- * @desc    Get admin user dashboard data
- * @access  Admin only
- * @query   {string} period - Time period (7d, 30d, 12m, this_week, this_month, ytd)
- */
 router.get('/users', getAdminUserDashboard);
 
-/**
- * @route   GET /api/admin/dashboard/stats
- * @desc    Get admin dashboard statistics
- * @access  Admin only
- */
 router.get('/stats', getAdminStats);
 
+//product
+router.get('/top_selling', getTopSellingProducts);
+
+router.get('/trending', getTrendingProducts);
+
+router.get('/sales_by_category', getSalesByCategory);
 
 module.exports = router;

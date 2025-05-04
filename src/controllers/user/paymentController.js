@@ -189,8 +189,10 @@ const paymentController = {
       const { products, addressId, fromCart = false } = req.body;
       const userId = req.user._id;
 
+      console.log('userid', userId)
+
       // Validate address
-      const address = await Address.findOne({ _id: addressId, userId });
+      const address = await Address.findById( addressId ); 
       if (!address) {
         return res.status(404).json({
           success: false,

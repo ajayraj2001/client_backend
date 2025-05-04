@@ -2,7 +2,7 @@ const { ApiError } = require('../../errorHandler');
 const mongoose = require('mongoose');
 const { getCurrentIST } = require('../../utils/timeUtils');
 const { User, Astrologer, CallChatHistory, UserWalletHistory, AstrologerWalletHistory, AdminCommissionHistory, ProductTransaction, 
-  PujaTransaction, } = require('../../models');
+  PujaTransaction, Product } = require('../../models');
 
 const getTodayMetrics = async (req, res) => {
   try {
@@ -144,6 +144,8 @@ const getNotifications = async (req, res) => {
 };
 
 
+
+//for users and revenue chart 
 /**
  * Get admin revenue dashboard data
  * Provides revenue data for different services (calls, products, pujas) 
@@ -1016,6 +1018,495 @@ function getMonthName(date) {
   return months[date.getMonth()];
 }
 
+
+//for trending productsconst mongoose = require('mongoose');
+/**
+ * Get top selling products for admin dashboard
+ * Returns the top products by sales volume for a specified time period
+ */
+const getTopSellingProducts = async (req, res, next) => {
+  try {
+    // Get query parameters with defaults
+    const { period = '7d', limit = 3 } = req.query;
+
+    // Validate input
+    const validPeriods = ['7d', '30d', '12m', 'this_week', 'this_month', 'ytd', 'all_time'];
+    if (!validPeriods.includes(period)) {
+      throw new ApiError('Invalid period parameter. Allowed values: 7d, 30d, 12m, this_week, this_month, ytd, all_time', 400);
+    }
+
+    // Convert limit to number and validate
+    const numLimit = parseInt(limit, 10);
+    if (isNaN(numLimit) || numLimit < 1 || numLimit > 50) {
+      throw new ApiError('Invalid limit parameter. Must be a number between 1 and 50.', 400);
+    }
+
+    // Calculate date range based on period
+    let startDate, endDate;
+    if (period !== 'all_time') {
+      const dateRange = getDateRangeForPeriod(period);
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    }
+
+    // Create the match condition for MongoDB aggregation
+    const matchCondition = {
+      // status: 'COMPLETED' // Only completed transactions
+    };
+
+    // Add date range if not 'all_time'
+    if (period !== 'all_time') {
+      matchCondition.created_at = { $gte: startDate, $lte: endDate };
+    }
+
+    // Aggregate to find top selling products
+    const topProducts = await ProductTransaction.aggregate([
+      // Stage 1: Match completed transactions in the date range
+      { $match: matchCondition },
+      
+      // Stage 2: Unwind products array to treat each product as a separate document
+      { $unwind: '$products' },
+      
+      // Stage 3: Group by product ID and calculate total quantity sold
+      {
+        $group: {
+          _id: '$products.productId',
+          productName: { $first: '$products.name' },
+          totalQuantity: { $sum: '$products.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.unitPrice'] } },
+          transactions: { $sum: 1 }
+        }
+      },
+      
+      // Stage 4: Sort by total quantity in descending order
+      { $sort: { totalQuantity: -1 } },
+      
+      // Stage 5: Limit results to the specified number
+      { $limit: numLimit },
+      
+      // Stage 6: Project only the fields we need
+      {
+        $project: {
+          _id: 1,
+          productName: 1,
+          totalQuantity: 1,
+          totalRevenue: 1,
+          transactions: 1
+        }
+      }
+    ]);
+
+    // If needed, get additional product details from Product model
+    const topProductsWithDetails = await Promise.all(
+      topProducts.map(async (product) => {
+        const productDetails = await Product.findById(product._id).select('name category imageUrl price');
+        
+        return {
+          productId: product._id,
+          name: product.productName,
+          totalQuantity: product.totalQuantity,
+          totalRevenue: parseFloat(product.totalRevenue.toFixed(2)),
+          transactions: product.transactions,
+          // Include additional details if available
+          category: productDetails?.category || '',
+          imageUrl: productDetails?.imageUrl || '',
+          currentPrice: productDetails?.price || 0
+        };
+      })
+    );
+
+    // Build response
+    const response = {
+      success: true,
+      message: `Top ${numLimit} Selling Products for ${getPeriodName(period)}`,
+      data: {
+        period,
+        products: topProductsWithDetails,
+        periodRange: period !== 'all_time' ? {
+          start: startDate,
+          end: endDate
+        } : null
+      }
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get trending products (fastest growing in recent period)
+ * Shows products with the highest growth rate compared to previous period
+ */
+const getTrendingProducts = async (req, res, next) => {
+  try {
+    // Get query parameters with defaults
+    const { period = '7d', limit = 3 } = req.query;
+
+    // Validate input
+    const validPeriods = ['7d', '30d', 'this_month'];
+    if (!validPeriods.includes(period)) {
+      throw new ApiError('Invalid period parameter for trending. Allowed values: 7d, 30d, this_month', 400);
+    }
+
+    // Convert limit to number and validate
+    const numLimit = parseInt(limit, 10);
+    if (isNaN(numLimit) || numLimit < 1 || numLimit > 50) {
+      throw new ApiError('Invalid limit parameter. Must be a number between 1 and 50.', 400);
+    }
+
+    // Calculate current period date range
+    const currentPeriod = getDateRangeForPeriod(period);
+    const currentStartDate = currentPeriod.startDate;
+    const currentEndDate = currentPeriod.endDate;
+
+    // Calculate previous period date range
+    let previousStartDate, previousEndDate;
+    
+    if (period === '7d') {
+      // Previous 7 days
+      previousEndDate = new Date(currentStartDate);
+      previousEndDate.setSeconds(previousEndDate.getSeconds() - 1);
+      previousStartDate = new Date(previousEndDate);
+      previousStartDate.setDate(previousStartDate.getDate() - 7);
+    } else if (period === '30d') {
+      // Previous 30 days
+      previousEndDate = new Date(currentStartDate);
+      previousEndDate.setSeconds(previousEndDate.getSeconds() - 1);
+      previousStartDate = new Date(previousEndDate);
+      previousStartDate.setDate(previousStartDate.getDate() - 30);
+    } else if (period === 'this_month') {
+      // Previous month
+      const currentMonth = currentStartDate.getMonth();
+      const currentYear = currentStartDate.getFullYear();
+      previousStartDate = new Date(currentYear, currentMonth - 1, 1);
+      previousEndDate = new Date(currentYear, currentMonth, 0);
+      previousEndDate.setHours(23, 59, 59, 999);
+    }
+
+    // Get sales data for current period
+    const currentPeriodSales = await getProductSalesForPeriod(currentStartDate, currentEndDate);
+    
+    // Get sales data for previous period
+    const previousPeriodSales = await getProductSalesForPeriod(previousStartDate, previousEndDate);
+
+    // Calculate growth rates
+    const productsWithGrowth = calculateGrowthRates(currentPeriodSales, previousPeriodSales);
+    
+    // Sort by growth rate and limit results
+    const trendingProducts = productsWithGrowth
+      .sort((a, b) => b.growthRate - a.growthRate)
+      .slice(0, numLimit);
+
+    // Get additional product details
+    const trendingProductsWithDetails = await Promise.all(
+      trendingProducts.map(async (product) => {
+        const productDetails = await Product.findById(product.productId).select('name category imageUrl price');
+        
+        return {
+          ...product,
+          category: productDetails?.category || '',
+          imageUrl: productDetails?.imageUrl || '',
+          currentPrice: productDetails?.price || 0
+        };
+      })
+    );
+
+    // Build response
+    const response = {
+      success: true,
+      message: `Trending Products for ${getPeriodName(period)}`,
+      data: {
+        period,
+        products: trendingProductsWithDetails,
+        currentPeriod: {
+          start: currentStartDate,
+          end: currentEndDate
+        },
+        previousPeriod: {
+          start: previousStartDate,
+          end: previousEndDate
+        }
+      }
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get sales by category
+ * Returns sales data grouped by product category
+ */
+const getSalesByCategory = async (req, res, next) => {
+  try {
+    // Get query parameters with defaults
+    const { period = '30d' } = req.query;
+
+    // Validate input
+    const validPeriods = ['7d', '30d', '12m', 'this_week', 'this_month', 'ytd', 'all_time'];
+    if (!validPeriods.includes(period)) {
+      throw new ApiError('Invalid period parameter', 400);
+    }
+
+    // Calculate date range based on period
+    let startDate, endDate;
+    if (period !== 'all_time') {
+      const dateRange = getDateRangeForPeriod(period);
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    }
+
+    // Create the match condition for MongoDB aggregation
+    const matchCondition = {
+      status: 'COMPLETED' // Only completed transactions
+    };
+
+    // Add date range if not 'all_time'
+    if (period !== 'all_time') {
+      matchCondition.created_at = { $gte: startDate, $lte: endDate };
+    }
+
+    // First get all products sold in the period
+    const productSales = await ProductTransaction.aggregate([
+      { $match: matchCondition },
+      { $unwind: '$products' },
+      {
+        $group: {
+          _id: '$products.productId',
+          totalQuantity: { $sum: '$products.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.unitPrice'] } }
+        }
+      }
+    ]);
+
+    // Get product details including category
+    const productIds = productSales.map(p => p._id);
+    const products = await Product.find({ _id: { $in: productIds } }).select('_id name category');
+
+    // Create a map of product ID to category
+    const productCategoryMap = {};
+    products.forEach(product => {
+      productCategoryMap[product._id.toString()] = product.category || 'Uncategorized';
+    });
+
+    // Group sales by category
+    const categorySales = {};
+    productSales.forEach(sale => {
+      const productId = sale._id.toString();
+      const category = productCategoryMap[productId] || 'Uncategorized';
+      
+      if (!categorySales[category]) {
+        categorySales[category] = {
+          totalQuantity: 0,
+          totalRevenue: 0,
+          productCount: 0
+        };
+      }
+      
+      categorySales[category].totalQuantity += sale.totalQuantity;
+      categorySales[category].totalRevenue += sale.totalRevenue;
+      categorySales[category].productCount += 1;
+    });
+
+    // Convert to array and sort by revenue
+    const categorySalesArray = Object.entries(categorySales).map(([category, data]) => ({
+      category,
+      totalQuantity: data.totalQuantity,
+      totalRevenue: parseFloat(data.totalRevenue.toFixed(2)),
+      productCount: data.productCount
+    })).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    // Calculate total revenue across all categories
+    const totalRevenue = categorySalesArray.reduce((sum, cat) => sum + cat.totalRevenue, 0);
+
+    // Add percentage of total revenue
+    const categorySalesWithPercentage = categorySalesArray.map(cat => ({
+      ...cat,
+      percentageOfRevenue: parseFloat(((cat.totalRevenue / totalRevenue) * 100).toFixed(2))
+    }));
+
+    // Build response
+    const response = {
+      success: true,
+      message: `Sales by Category for ${getPeriodName(period)}`,
+      data: {
+        period,
+        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+        categories: categorySalesWithPercentage,
+        periodRange: period !== 'all_time' ? {
+          start: startDate,
+          end: endDate
+        } : null
+      }
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper function to get date range for a specific period
+function getDateRangeForPeriod(period) {
+  const now = getCurrentIST();
+  let startDate, endDate;
+
+  switch (period) {
+    case '7d':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 6); // Last 7 days including today
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case '30d':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 29); // Last 30 days including today
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case '12m':
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 11); // Last 12 months including current month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'this_week':
+      // Start from Monday of current week
+      const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - diff);
+      startDate.setHours(0, 0, 0, 0);
+
+      // End date is Sunday of the same week
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'this_month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+      startDate.setHours(0, 0, 0, 0);
+
+      // Last day of current month
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'ytd':
+      startDate = new Date(now.getFullYear(), 0, 1); // January 1 of current year
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+  }
+
+  return { startDate, endDate };
+}
+
+// Helper function to get product sales data for a specific period
+async function getProductSalesForPeriod(startDate, endDate) {
+  const results = await ProductTransaction.aggregate([
+    {
+      $match: {
+        status: 'COMPLETED',
+        created_at: { $gte: startDate, $lte: endDate }
+      }
+    },
+    { $unwind: '$products' },
+    {
+      $group: {
+        _id: '$products.productId',
+        productName: { $first: '$products.name' },
+        totalQuantity: { $sum: '$products.quantity' },
+        totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.unitPrice'] } },
+        transactions: { $sum: 1 }
+      }
+    }
+  ]);
+
+  return results.map(item => ({
+    productId: item._id,
+    name: item.productName,
+    totalQuantity: item.totalQuantity,
+    totalRevenue: parseFloat(item.totalRevenue.toFixed(2)),
+    transactions: item.transactions
+  }));
+}
+
+// Helper function to calculate growth rates between two periods
+function calculateGrowthRates(currentPeriodSales, previousPeriodSales) {
+  // Create a map of product IDs to previous period sales
+  const previousSalesMap = {};
+  previousPeriodSales.forEach(item => {
+    previousSalesMap[item.productId.toString()] = item;
+  });
+
+  // Calculate growth rate for each product in current period
+  return currentPeriodSales.map(currentItem => {
+    const productId = currentItem.productId.toString();
+    const previousItem = previousSalesMap[productId];
+    
+    let growthRate = 0;
+    let previousQuantity = 0;
+    
+    if (previousItem) {
+      previousQuantity = previousItem.totalQuantity;
+      // Calculate growth rate as a percentage
+      if (previousItem.totalQuantity > 0) {
+        growthRate = ((currentItem.totalQuantity - previousItem.totalQuantity) / previousItem.totalQuantity) * 100;
+      } else {
+        // If previous quantity was 0, this is infinite growth, so cap it at a high value
+        growthRate = 1000; // 1000% growth
+      }
+    } else {
+      // If the product wasn't sold in the previous period, this is new, so 100% growth
+      growthRate = 1000; // 1000% growth
+    }
+
+    return {
+      ...currentItem,
+      previousQuantity,
+      quantityChange: currentItem.totalQuantity - previousQuantity,
+      growthRate: parseFloat(growthRate.toFixed(2))
+    };
+  });
+}
+
+// Helper function to get a readable name for a period
+function getPeriodName(period) {
+  switch (period) {
+    case '7d':
+      return 'Last 7 Days';
+    case '30d':
+      return 'Last 30 Days';
+    case '12m':
+      return 'Last 12 Months';
+    case 'this_week':
+      return 'This Week';
+    case 'this_month':
+      return 'This Month';
+    case 'ytd':
+      return 'Year to Date';
+    case 'all_time':
+      return 'All Time';
+    default:
+      return period;
+  }
+}
+
 module.exports = {
   getTodayMetrics,
   getRealTimeMetrics,
@@ -1024,5 +1515,10 @@ module.exports = {
 //CHART dATA
   getAdminRevenueDashboard, 
   getAdminUserDashboard, 
-  getAdminStats 
+  getAdminStats ,
+
+  //PRODUCTS
+  getTopSellingProducts,
+  getTrendingProducts,
+  getSalesByCategory
 }
