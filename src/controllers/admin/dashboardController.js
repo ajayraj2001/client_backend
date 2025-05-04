@@ -1100,16 +1100,16 @@ const getTopSellingProducts = async (req, res, next) => {
     const topProductsWithDetails = await Promise.all(
       topProducts.map(async (product) => {
         const productDetails = await Product.findById(product._id).select('name category imageUrl price');
-        
+        console.log('prouct detials', productDetails)
         return {
           productId: product._id,
-          name: product.productName,
+          name: productDetails.name,
           totalQuantity: product.totalQuantity,
           totalRevenue: parseFloat(product.totalRevenue.toFixed(2)),
           transactions: product.transactions,
           // Include additional details if available
-          imageUrl: productDetails?.imageUrl || '',
-          currentPrice: productDetails?.price || 0
+          imageUrl: productDetails?.img[0] || '',
+          currentPrice: productDetails?.actualPrice || 0
         };
       })
     );
