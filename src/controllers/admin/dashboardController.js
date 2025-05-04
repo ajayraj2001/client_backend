@@ -1108,7 +1108,6 @@ const getTopSellingProducts = async (req, res, next) => {
           totalRevenue: parseFloat(product.totalRevenue.toFixed(2)),
           transactions: product.transactions,
           // Include additional details if available
-          category: productDetails?.category || '',
           imageUrl: productDetails?.imageUrl || '',
           currentPrice: productDetails?.price || 0
         };
