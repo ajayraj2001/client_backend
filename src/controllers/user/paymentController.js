@@ -682,17 +682,79 @@ const paymentController = {
             .lean(),
           PujaTransaction.countDocuments(query)
         ]);
-      } else if (type === 'PRODUCT') {
-        // Get product transactions
-        [transactions, total] = await Promise.all([
-          ProductTransaction.find(query)
-          .populate('products.productId', 'name img[0]')
-            .sort({ created_at: -1 })
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean(),
-          ProductTransaction.countDocuments(query)
+      // } else if (type === 'PRODUCT') {
+      //   // Get product transactions
+      //   [transactions, total] = await Promise.all([
+      //     ProductTransaction.find(query)
+      //     .populate('products.productId', 'name img[0]')
+      //       .sort({ created_at: -1 })
+      //       .skip(skip)
+      //       .limit(parseInt(limit))
+      //       .lean(),
+      //     ProductTransaction.countDocuments(query)
+      //   ]);
+      // } 
+       } else if (type === 'PRODUCT') {
+        // Define aggregation pipeline to unwind products and handle pagination
+        const aggregationPipeline = [
+          { $match: query },
+          { $unwind: "$products" },
+          {
+            $lookup: {
+              from: 'products', // The collection to join
+              localField: 'products.productId',
+              foreignField: '_id',
+              as: 'productDetails'
+            }
+          },
+          { $unwind: "$productDetails" }, // Unwind the productDetails array
+          {
+            $project: {
+              // Include all necessary transaction fields
+              userId: 1,
+              totalAmount: 1,
+              status: 1,
+              shippingDetails: 1,
+              deliveryStatus: 1,
+              created_at: 1,
+              updated_at: 1,
+              paymentId: 1,
+              orderId: 1,
+              amount: 1,
+              currency: 1,
+              paymentMethod: 1,
+              // Product details
+              product: {
+                productId: "$products.productId",
+                name: "$products.name",
+                quantity: "$products.quantity",
+                unitPrice: "$products.unitPrice",
+                basePrice: "$products.basePrice",
+                gstAmount: "$products.gstAmount",
+                totalPrice: "$products.totalPrice",
+                img: { $arrayElemAt: ["$productDetails.img", 0] } // Get first image
+              }
+            }
+          },
+          { $sort: { created_at: -1 } },
+          { $skip: skip },
+          { $limit: parseInt(limit) }
+        ];
+      
+        // Get total count of products across all matching transactions
+        const countPipeline = [
+          { $match: query },
+          { $unwind: "$products" },
+          { $count: "total" }
+        ];
+      
+        const [transactionsResult, totalResult] = await Promise.all([
+          ProductTransaction.aggregate(aggregationPipeline),
+          ProductTransaction.aggregate(countPipeline)
         ]);
+      
+        transactions = transactionsResult;
+        total = totalResult[0] ? totalResult[0].total : 0;
       } else {
         return res.status(400).json({
           success: false,
