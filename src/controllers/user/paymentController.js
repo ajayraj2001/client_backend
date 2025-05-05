@@ -654,11 +654,12 @@ const paymentController = {
       const userId = req.user._id;
       const { type = 'PUJA', page = 1, limit = 10, status } = req.query;
 
+      console.log('userId',userId)
       const skip = (page - 1) * limit;
       const query = {
         userId,
-        isPaymentAttempted: true, // Only show transactions where payment was attempted
-        status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated (like big apps)
+        // isPaymentAttempted: true, // Only show transactions where payment was attempted
+        // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated (like big apps)
       };
 
       // Add status filter if provided
