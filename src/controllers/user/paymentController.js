@@ -134,6 +134,7 @@ const paymentController = {
         gstAmount,
         shippingCharges,
         receiptId,
+        pujaName: puja.title,
         orderId: razorpayOrder.id,
         paymentId: '',
         status: 'INITIATED',
@@ -685,6 +686,7 @@ const paymentController = {
         // Get product transactions
         [transactions, total] = await Promise.all([
           ProductTransaction.find(query)
+          .populate('products.productId', 'name img[0]')
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(parseInt(limit))

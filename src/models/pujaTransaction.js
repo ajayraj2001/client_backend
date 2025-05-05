@@ -18,6 +18,15 @@ const PujaTransactionSchema = new Schema({
     type: Date,
     default: null
   },
+  pujaName: {
+    type: String,
+    default: ""
+  }, 
+  pujaStatus: {
+    type: String,
+    enum: ['Pending', 'Done'],
+    default: "Pending"
+  }, 
   // selectedProducts: [
   //   {
   //     productId: {
