@@ -6,7 +6,7 @@ const baseTransactionSchema = require('./baseTransactionSchema');
 
 const PujaTransactionSchema = new Schema({
   ...baseTransactionSchema,
-  
+
   // Puja specific fields
   pujaId: {
     type: Schema.Types.ObjectId,
@@ -21,12 +21,12 @@ const PujaTransactionSchema = new Schema({
   pujaName: {
     type: String,
     default: ""
-  }, 
+  },
   pujaStatus: {
     type: String,
     enum: ['Pending', 'Done'],
     default: "Pending"
-  }, 
+  },
   // selectedProducts: [
   //   {
   //     productId: {
@@ -53,7 +53,7 @@ const PujaTransactionSchema = new Schema({
   //     }
   //   }
   // ],
-  
+
   // Customer information
   customerDetails: {
     name: {
@@ -65,11 +65,11 @@ const PujaTransactionSchema = new Schema({
       default: ""
     }
   },
-  
+
 }, {
-  timestamps: { 
-    createdAt: 'created_at', 
-    updatedAt: 'updated_at', 
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     currentTime: getCurrentIST,
   },
 });
@@ -77,7 +77,7 @@ const PujaTransactionSchema = new Schema({
 // Create TTL index to automatically delete abandoned transactions after 24 hours
 // Only applies to transactions where isPaymentAttempted is false
 PujaTransactionSchema.index(
-  { initiatedAt: 1 }, 
+  { initiatedAt: 1 },
   { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
 );
 

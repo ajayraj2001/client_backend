@@ -6,7 +6,7 @@ const baseTransactionSchema = require('./baseTransactionSchema');
 
 const ProductTransactionSchema = new Schema({
   ...baseTransactionSchema,
-  
+
   // Product specific fields
   products: [
     {
@@ -28,6 +28,10 @@ const ProductTransactionSchema = new Schema({
         type: Number,
         required: true
       },
+      displayedPrice: {
+        type: Number,
+        required: true
+      },
       basePrice: {
         type: Number,
         required: true
@@ -42,7 +46,7 @@ const ProductTransactionSchema = new Schema({
       }
     }
   ],
-  
+
   // Shipping details
   shippingDetails: {
     name: {
@@ -66,37 +70,37 @@ const ProductTransactionSchema = new Schema({
       pincode: { type: String, required: true }
     }
   },
-  
+
   // Delivery tracking
   deliveryStatus: {
     type: String,
     enum: ['PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
     default: 'PROCESSING'
   },
-  
+
   // trackingId: {
   //   type: String,
   //   default: ''
   // },
-  
+
   // courierName: {
   //   type: String,
   //   default: ''
   // },
-  
+
   estimatedDelivery: {
     type: Date,
     default: null
-  },  
+  },
   deliveryDate: {
     type: Date,
     default: null
   },
 
 }, {
-  timestamps: { 
-    createdAt: 'created_at', 
-    updatedAt: 'updated_at', 
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     currentTime: getCurrentIST,
   },
 });
@@ -104,7 +108,7 @@ const ProductTransactionSchema = new Schema({
 // Create TTL index to automatically delete abandoned transactions after 24 hours
 // Only applies to transactions where isPaymentAttempted is false
 ProductTransactionSchema.index(
-  { initiatedAt: 1 }, 
+  { initiatedAt: 1 },
   { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
 );
 

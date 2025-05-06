@@ -5,6 +5,16 @@ const mongoose = require('mongoose');
 const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address } = require('../../models');
 const { getCurrentIST } = require('../../utils/timeUtils');
 
+
+const TRANSACTION_TYPES = {
+  PUJA: 'PUJA',
+  PRODUCT: 'PRODUCT'
+};
+
+const applyGST = (price, rate = 18) => {
+  return price + Math.round(price * (rate / 100));
+};
+
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -106,7 +116,7 @@ const paymentController = {
 
       // Calculate GST (18% of base amount)
       const gstAmount = Math.round(orderAmount * 0.18);
-      
+
       // Calculate total amount (base + GST)
       const totalAmount = orderAmount + gstAmount;
 
@@ -190,10 +200,8 @@ const paymentController = {
       const { products, addressId, fromCart = false } = req.body;
       const userId = req.user._id;
 
-      console.log('userid', userId)
-
       // Validate address
-      const address = await Address.findById( addressId ); 
+      const address = await Address.findById(addressId);
       if (!address) {
         return res.status(404).json({
           success: false,
@@ -238,6 +246,7 @@ const paymentController = {
           const basePrice = product.actualPrice * quantity;
           const itemGst = Math.round(basePrice * 0.18);
           const itemSaved = (product.displayedPrice - product.actualPrice) * quantity;
+          const discountPrice = (product.displayedPrice - product.actualPrice) * quantity;
 
           orderAmount += basePrice;
           savedAmount += itemSaved > 0 ? itemSaved : 0;
@@ -247,6 +256,7 @@ const paymentController = {
             name: product.name,
             quantity: quantity,
             unitPrice: product.actualPrice,
+            displayedPrice: product.displayedPrice,
             basePrice: basePrice,
             gstAmount: itemGst,
             totalPrice: basePrice + itemGst,
@@ -270,7 +280,7 @@ const paymentController = {
           status: 'Active'
         });
 
-        console.log('productlistr',productList)
+        console.log('productlistr', productList)
         // Create a map for quick lookups
         const productMap = productList.reduce((map, product) => {
           map[product._id.toString()] = product;
@@ -309,10 +319,10 @@ const paymentController = {
 
       // Calculate GST (18% of base amount)
       const gstAmount = Math.round(orderAmount * 0.18);
-      
+
       // Calculate shipping charges (if any)
       const shippingCharges = orderAmount < 500 ? 40 : 0; // Free shipping over ₹500
-      
+
       // Calculate total amount (base + GST + shipping)
       const totalAmount = orderAmount + gstAmount + shippingCharges;
 
@@ -580,9 +590,9 @@ const paymentController = {
       // Find transaction by Razorpay order ID
       const pujaTransaction = await PujaTransaction.findOne({ orderId });
       const productTransaction = await ProductTransaction.findOne({ orderId });
-      
+
       const transaction = pujaTransaction || productTransaction;
-      
+
       if (!transaction) {
         console.error(`Transaction not found for order ID: ${orderId}`);
         return res.status(404).json({ success: false, message: 'Transaction not found' });
@@ -603,7 +613,7 @@ const paymentController = {
           transaction.paymentId = paymentId;
           transaction.completedAt = getCurrentIST();
           transaction.isPaymentAttempted = true;
-          
+
           // Clear cart if it's a product transaction from cart
           if (productTransaction && transaction._fromCart) {
             await Cart.updateOne(
@@ -631,7 +641,7 @@ const paymentController = {
       }
 
       await transaction.save();
-      
+
       // Respond to Razorpay with 200 OK
       return res.status(200).json({ success: true });
 
@@ -650,89 +660,325 @@ const paymentController = {
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    */
+  // getTransactionHistory: async (req, res) => {
+  //   try {
+  //     const userId = req.user._id;
+  //     const { type = 'PUJA', page = 1, limit = 10, status } = req.query;
+
+  //     console.log('userId', userId)
+  //     const skip = (page - 1) * limit;
+  //     const query = {
+  //       userId,
+  //       // isPaymentAttempted: true, // Only show transactions where payment was attempted
+  //       // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated (like big apps)
+  //     };
+
+  //     // Add status filter if provided
+  //     if (status) {
+  //       query.status = status;
+  //     }
+
+  //     let transactions = [];
+  //     let total = 0;
+
+  //     if (type === 'PUJA') {
+  //       // Get puja transactions with populated puja details
+  //       [transactions, total] = await Promise.all([
+  //         PujaTransaction.find(query)
+  //           .populate('pujaId', 'title pujaImage')
+  //           .sort({ created_at: -1 })
+  //           .skip(skip)
+  //           .limit(parseInt(limit))
+  //           .lean(),
+  //         PujaTransaction.countDocuments(query)
+  //       ]);
+  //       // } else if (type === 'PRODUCT') {
+  //       //   // Get product transactions
+  //       //   [transactions, total] = await Promise.all([
+  //       //     ProductTransaction.find(query)
+  //       //     .populate('products.productId', 'name img[0]')
+  //       //       .sort({ created_at: -1 })
+  //       //       .skip(skip)
+  //       //       .limit(parseInt(limit))
+  //       //       .lean(),
+  //       //     ProductTransaction.countDocuments(query)
+  //       //   ]);
+  //       // } 
+  //     } else if (type === 'PRODUCT') {
+  //       // Define aggregation pipeline to unwind products and handle pagination
+  //       const aggregationPipeline = [
+  //         { $match: query },
+  //         { $unwind: "$products" },
+  //         {
+  //           $lookup: {
+  //             from: 'products', // The collection to join
+  //             localField: 'products.productId',
+  //             foreignField: '_id',
+  //             as: 'productDetails'
+  //           }
+  //         },
+  //         { $unwind: "$productDetails" }, // Unwind the productDetails array
+  //         {
+  //           $project: {
+  //             // Include all necessary transaction fields
+  //             userId: 1,
+  //             totalAmount: 1,
+  //             status: 1,
+  //             shippingDetails: 1,
+  //             deliveryStatus: 1,
+  //             created_at: 1,
+  //             updated_at: 1,
+  //             paymentId: 1,
+  //             orderId: 1,
+  //             amount: 1,
+  //             currency: 1,
+  //             paymentMethod: 1,
+  //             // Product details
+  //             product: {
+  //               productId: "$products.productId",
+  //               name: "$products.name",
+  //               quantity: "$products.quantity",
+  //               unitPrice: "$products.unitPrice",
+  //               basePrice: "$products.basePrice",
+  //               gstAmount: "$products.gstAmount",
+  //               totalPrice: "$products.totalPrice",
+  //               img: { $arrayElemAt: ["$productDetails.img", 0] } // Get first image
+  //             }
+  //           }
+  //         },
+  //         { $sort: { created_at: -1 } },
+  //         { $skip: skip },
+  //         { $limit: parseInt(limit) }
+  //       ];
+
+  //       // Get total count of products across all matching transactions
+  //       const countPipeline = [
+  //         { $match: query },
+  //         { $unwind: "$products" },
+  //         { $count: "total" }
+  //       ];
+
+  //       const [transactionsResult, totalResult] = await Promise.all([
+  //         ProductTransaction.aggregate(aggregationPipeline),
+  //         ProductTransaction.aggregate(countPipeline)
+  //       ]);
+
+  //       transactions = transactionsResult;
+  //       total = totalResult[0] ? totalResult[0].total : 0;
+  //     } else {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+  //       });
+  //     }
+
+  //     return res.status(200).json({
+  //       success: true,
+  //       transactions,
+  //       pagination: {
+  //         totalItems: total,
+  //         currentPage: parseInt(page),
+  //         totalPages: Math.ceil(total / limit),
+  //         limit: parseInt(limit)
+  //       }
+  //     });
+
+  //   } catch (error) {
+  //     console.error('Error fetching transaction history:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Error fetching transaction history',
+  //       error: error.message
+  //     });
+  //   }
+  // },
+
+  //main one
+  // getTransactionHistory: async (req, res) => {
+  //   try {
+  //     const userId = req.user._id;
+  //     const { type = 'PRODUCT', page = 1, limit = 10, status } = req.query;
+
+  //     console.log('userId', userId);
+  //     const skip = (page - 1) * limit;
+  //     const query = {
+  //       userId,
+  //       // isPaymentAttempted: true, // Only show transactions where payment was attempted
+  //       // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
+  //     };
+
+  //     // Add status filter if provided
+  //     if (status) {
+  //       query.status = status;
+  //     }
+
+  //     let transactions = [];
+  //     let total = 0;
+
+  //     if (type === 'PUJA') {
+  //       // Get puja transactions with populated puja details
+  //       [transactions, total] = await Promise.all([
+  //         PujaTransaction.find(query)
+  //           .select('pujaName pujaId pujaStatus pujaDate status')
+  //           .populate('pujaId', 'title pujaImage rating')
+  //           .sort({ created_at: -1 })
+  //           .skip(skip)
+  //           .limit(parseInt(limit))
+  //           .lean(),
+  //         PujaTransaction.countDocuments(query)
+  //       ]);
+
+
+  //     } else if (type === 'PRODUCT') {
+  //       // Define aggregation pipeline to unwind products and handle pagination
+  //       // This is the key part - it unwraps each product in an order to a separate line item
+  //       // Just like Flipkart does, even if they were purchased together
+  //       const aggregationPipeline = [
+  //         { $match: query },
+  //         { $unwind: "$products" }, // This creates separate entries for each product in an order
+  //         {
+  //           $lookup: {
+  //             from: 'products', // The collection to join
+  //             localField: 'products.productId',
+  //             foreignField: '_id',
+  //             as: 'productDetails'
+  //           }
+  //         },
+  //         { $unwind: "$productDetails" }, // Unwind the productDetails array
+  //         {
+  //           $project: {
+  //             // Include all necessary transaction fields
+  //             _id: 1,
+  //             userId: 1,
+  //             // Product details
+  //             product: {
+  //               productId: "$products.productId",
+  //               name: "$products.name",
+  //               quantity: "$products.quantity",
+  //               unitPrice: "$products.unitPrice",
+  //               img: { $arrayElemAt: ["$productDetails.img", 0] } // Get first image
+  //             },
+  //           }
+  //         },
+  //         { $sort: { created_at: -1 } },
+  //         { $skip: skip },
+  //         { $limit: parseInt(limit) }
+  //       ];
+
+  //       // Get total count of products across all matching transactions
+  //       const countPipeline = [
+  //         { $match: query },
+  //         { $unwind: "$products" },
+  //         { $count: "total" }
+  //       ];
+
+  //       const [transactionsResult, totalResult] = await Promise.all([
+  //         ProductTransaction.aggregate(aggregationPipeline),
+  //         ProductTransaction.aggregate(countPipeline)
+  //       ]);
+
+  //       transactions = transactionsResult;
+  //       total = totalResult[0] ? totalResult[0].total : 0;
+
+  //       // Further format the results to match Flipkart's format
+  //       // If you have multiple quantities of the same product, create separate entries
+  //       // This is critical to match exactly what you're seeing in Flipkart
+  //       let expandedTransactions = [];
+
+  //       for (const transaction of transactions) {
+  //         // Create a separate entry for each quantity (just like Flipkart does)
+  //         // This means if someone ordered 2 of the same thing, show 2 separate entries
+  //         for (let i = 0; i < transaction.product.quantity; i++) {
+  //           // Make a copy of the transaction for each quantity
+  //           const singleUnitTransaction = { ...transaction };
+
+  //           // Adjust the single unit price and quantity info
+  //           singleUnitTransaction.product = {
+  //             ...transaction.product,
+  //             quantity: 1,
+  //           };
+  //           expandedTransactions.push(singleUnitTransaction);
+  //         }
+  //       }
+
+  //       // Use the expanded list and apply pagination again if needed
+  //       transactions = expandedTransactions.slice(0, parseInt(limit));
+  //       total = expandedTransactions.length;
+  //     } else {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+  //       });
+  //     }
+
+  //     return res.status(200).json({
+  //       success: true,
+  //       transactions,
+  //       pagination: {
+  //         totalItems: total,
+  //         currentPage: parseInt(page),
+  //         totalPages: Math.ceil(total / limit),
+  //         limit: parseInt(limit)
+  //       }
+  //     });
+
+  //   } catch (error) {
+  //     console.error('Error fetching transaction history:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Error fetching transaction history',
+  //       error: error.message
+  //     });
+  //   }
+  // },
+
+
+
+
   getTransactionHistory: async (req, res) => {
     try {
       const userId = req.user._id;
-      const { type = 'PUJA', page = 1, limit = 10, status } = req.query;
+      const { type = TRANSACTION_TYPES.PRODUCT, page = 1, limit = 10, status } = req.query;
 
-      console.log('userId',userId)
       const skip = (page - 1) * limit;
-      const query = {
-        userId,
-        // isPaymentAttempted: true, // Only show transactions where payment was attempted
-        // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated (like big apps)
-      };
-
-      // Add status filter if provided
-      if (status) {
-        query.status = status;
-      }
+      const query = { userId };
+      if (status) query.status = status;
 
       let transactions = [];
       let total = 0;
 
-      if (type === 'PUJA') {
-        // Get puja transactions with populated puja details
+      if (type === TRANSACTION_TYPES.PUJA) {
         [transactions, total] = await Promise.all([
           PujaTransaction.find(query)
-            .populate('pujaId', 'title pujaImage')
+            .select('pujaName pujaId pujaStatus pujaDate status')
+            .populate('pujaId', 'title pujaImage rating')
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(parseInt(limit))
             .lean(),
           PujaTransaction.countDocuments(query)
         ]);
-      // } else if (type === 'PRODUCT') {
-      //   // Get product transactions
-      //   [transactions, total] = await Promise.all([
-      //     ProductTransaction.find(query)
-      //     .populate('products.productId', 'name img[0]')
-      //       .sort({ created_at: -1 })
-      //       .skip(skip)
-      //       .limit(parseInt(limit))
-      //       .lean(),
-      //     ProductTransaction.countDocuments(query)
-      //   ]);
-      // } 
-       } else if (type === 'PRODUCT') {
-        // Define aggregation pipeline to unwind products and handle pagination
+      } else if (type === TRANSACTION_TYPES.PRODUCT) {
         const aggregationPipeline = [
           { $match: query },
           { $unwind: "$products" },
           {
             $lookup: {
-              from: 'products', // The collection to join
+              from: 'products',
               localField: 'products.productId',
               foreignField: '_id',
               as: 'productDetails'
             }
           },
-          { $unwind: "$productDetails" }, // Unwind the productDetails array
+          { $unwind: "$productDetails" },
           {
             $project: {
-              // Include all necessary transaction fields
-              userId: 1,
-              totalAmount: 1,
-              status: 1,
-              shippingDetails: 1,
               deliveryStatus: 1,
-              created_at: 1,
-              updated_at: 1,
-              paymentId: 1,
-              orderId: 1,
-              amount: 1,
-              currency: 1,
-              paymentMethod: 1,
-              // Product details
               product: {
-                productId: "$products.productId",
                 name: "$products.name",
-                quantity: "$products.quantity",
                 unitPrice: "$products.unitPrice",
-                basePrice: "$products.basePrice",
-                gstAmount: "$products.gstAmount",
-                totalPrice: "$products.totalPrice",
-                img: { $arrayElemAt: ["$productDetails.img", 0] } // Get first image
+                quantity: "$products.quantity",
+                img: { $arrayElemAt: ["$productDetails.img", 0] }
               }
             }
           },
@@ -740,21 +986,34 @@ const paymentController = {
           { $skip: skip },
           { $limit: parseInt(limit) }
         ];
-      
-        // Get total count of products across all matching transactions
+
         const countPipeline = [
           { $match: query },
           { $unwind: "$products" },
           { $count: "total" }
         ];
-      
+
         const [transactionsResult, totalResult] = await Promise.all([
           ProductTransaction.aggregate(aggregationPipeline),
           ProductTransaction.aggregate(countPipeline)
         ]);
-      
-        transactions = transactionsResult;
-        total = totalResult[0] ? totalResult[0].total : 0;
+
+        const expandedTransactions = [];
+
+        for (const transaction of transactionsResult) {
+          for (let i = 0; i < transaction.product.quantity; i++) {
+            expandedTransactions.push({
+              _id: transaction._id,
+              name: transaction.product.name,
+              img: transaction.product.img,
+              deliveryStatus: transaction.deliveryStatus,
+              totalPrice: applyGST(transaction.product.unitPrice)
+            });
+          }
+        }
+
+        transactions = expandedTransactions;
+        total = expandedTransactions.length;
       } else {
         return res.status(400).json({
           success: false,
@@ -782,6 +1041,7 @@ const paymentController = {
       });
     }
   },
+
 
   /**
    * Get transaction details
@@ -1039,14 +1299,14 @@ const paymentController = {
       if (transaction.orderId && transaction.status !== 'COMPLETED') {
         try {
           const razorpayOrder = await razorpay.orders.fetch(transaction.orderId);
-          
+
           // If order is paid but our transaction isn't marked as completed
           if (razorpayOrder.status === 'paid' && transaction.status !== 'COMPLETED') {
             // Fetch payment details to get the payment ID
             const payments = await razorpay.orders.fetchPayments(transaction.orderId);
             if (payments.items && payments.items.length > 0) {
               const payment = payments.items[0]; // Get the first payment
-              
+
               // Update transaction
               transaction.status = 'COMPLETED';
               transaction.paymentId = payment.id;
@@ -1083,7 +1343,7 @@ const paymentController = {
       });
     }
   },
-  
+
   /**
    * Handle payment failures
    * @param {Object} req - Request object
@@ -1125,7 +1385,7 @@ const paymentController = {
         transaction.failureCode = error?.code || 'UNKNOWN';
         transaction.failureSource = error?.source || 'user';
         transaction.failedAt = getCurrentIST();
-        
+
         await transaction.save();
       }
 
@@ -1147,7 +1407,7 @@ const paymentController = {
       });
     }
   },
-  
+
   /**
    * Get payment stats for admin dashboard
    * @param {Object} req - Request object
@@ -1164,21 +1424,21 @@ const paymentController = {
       }
 
       const { startDate, endDate } = req.query;
-      
+
       // Default to last 30 days if no dates provided
       const end = endDate ? new Date(endDate) : new Date();
       const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
+
       // Set time to start and end of day
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
-      
+
       // Query for completed transactions within date range
       const query = {
         status: 'COMPLETED',
         completedAt: { $gte: start, $lte: end }
       };
-      
+
       // Get stats for both transaction types
       const [pujaStats, productStats] = await Promise.all([
         PujaTransaction.aggregate([
@@ -1207,15 +1467,15 @@ const paymentController = {
           }
         ])
       ]);
-      
+
       // Calculate statistics
       const pujaTotal = pujaStats.length > 0 ? pujaStats[0] : { count: 0, totalAmount: 0, orderAmount: 0, gstAmount: 0 };
       const productTotal = productStats.length > 0 ? productStats[0] : { count: 0, totalAmount: 0, orderAmount: 0, gstAmount: 0, shippingCharges: 0 };
-      
+
       // Get daily statistics for chart
       const dailyStats = await Promise.all([
         PujaTransaction.aggregate([
-          { 
+          {
             $match: {
               ...query
             }
@@ -1230,7 +1490,7 @@ const paymentController = {
           { $sort: { _id: 1 } }
         ]),
         ProductTransaction.aggregate([
-          { 
+          {
             $match: {
               ...query
             }
@@ -1245,7 +1505,7 @@ const paymentController = {
           { $sort: { _id: 1 } }
         ])
       ]);
-      
+
       return res.status(200).json({
         success: true,
         stats: {
@@ -1258,7 +1518,7 @@ const paymentController = {
           product: {
             count: productTotal.count,
             totalAmount: productTotal.totalAmount,
-            orderAmount: productTotal.orderAmount, 
+            orderAmount: productTotal.orderAmount,
             gstAmount: productTotal.gstAmount,
             shippingCharges: productTotal.shippingCharges
           },
@@ -1272,7 +1532,7 @@ const paymentController = {
           }
         }
       });
-      
+
     } catch (error) {
       console.error('Error getting payment stats:', error);
       return res.status(500).json({
