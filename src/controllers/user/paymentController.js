@@ -280,7 +280,6 @@ const paymentController = {
           status: 'Active'
         });
 
-        console.log('productlistr', productList)
         // Create a map for quick lookups
         const productMap = productList.reduce((map, product) => {
           map[product._id.toString()] = product;
@@ -950,8 +949,8 @@ const paymentController = {
       if (type === TRANSACTION_TYPES.PUJA) {
         [transactions, total] = await Promise.all([
           PujaTransaction.find(query)
-            .select('pujaName pujaId pujaStatus pujaDate status')
-            .populate('pujaId', 'title pujaImage rating')
+            .select('pujaName pujaId pujaStatus pujaDate status rating')
+            .populate('pujaId', 'title pujaImage _id')
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(parseInt(limit))
@@ -975,9 +974,12 @@ const paymentController = {
             $project: {
               deliveryStatus: 1,
               product: {
+                _id: "$products._id",
+                productId: "$products.productId",
                 name: "$products.name",
                 unitPrice: "$products.unitPrice",
                 quantity: "$products.quantity",
+                rating: "$products.rating",
                 img: { $arrayElemAt: ["$productDetails.img", 0] }
               }
             }
@@ -1001,12 +1003,16 @@ const paymentController = {
         const expandedTransactions = [];
 
         for (const transaction of transactionsResult) {
+          console.log('trancton', transaction)
           for (let i = 0; i < transaction.product.quantity; i++) {
             expandedTransactions.push({
-              _id: transaction._id,
+              transactionId: transaction._id,
+              _id: transaction.product._id,
+              productId: transaction.product.productId,
               name: transaction.product.name,
               img: transaction.product.img,
               deliveryStatus: transaction.deliveryStatus,
+              rating: transaction.rating,
               totalPrice: applyGST(transaction.product.unitPrice)
             });
           }
@@ -1048,35 +1054,118 @@ const paymentController = {
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    */
-  getTransactionDetails: async (req, res) => {
+  getProductDetailsFromOrder: async (req, res) => {
     try {
-      const { id, type } = req.params;
       const userId = req.user._id;
+      const { transactionId, productInstanceId } = req.params;
 
-      let transaction;
+      // Find the transaction by ID and user
+      const transaction = await ProductTransaction.findById(transactionId)
+        .populate('products.productId', 'img title');
 
-      if (type === 'PUJA') {
-        transaction = await PujaTransaction.findOne({
-          _id: id,
-          userId,
-          isPaymentAttempted: true, // Only show transactions where payment was attempted
-          status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
-        })
-          .populate('pujaId', 'title pujaImage aboutPuja shortDescription')
-          .populate('selectedProducts.productId', 'name img');
-      } else if (type === 'PRODUCT') {
-        transaction = await ProductTransaction.findOne({
-          _id: id,
-          userId,
-          isPaymentAttempted: true, // Only show transactions where payment was attempted
-          status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
-        });
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid transaction type. Must be PUJA or PRODUCT'
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Order not found' });
+      }
+
+      const targetItem = transaction.products.find(p => p._id.toString() === productInstanceId);
+      console.log('targetItem', targetItem)
+
+      if (!targetItem) {
+        return res.status(404).json({ success: false, message: 'Product not found in this order' });
+      }
+
+      const mainProduct = {
+        _id: targetItem._id,
+        productId: targetItem.productId._id,
+        name: targetItem.name,
+        img: targetItem.productId?.img[0] || '',
+        unitPrice: targetItem.unitPrice,
+        displayedPrice: targetItem.displayedPrice,
+        gstAmount: targetItem.gstAmount,
+        totalPrice: applyGST(targetItem.unitPrice),
+        quantity: 1,
+        estimatedDelivery: targetItem.estimatedDelivery,
+        deliveryDate: targetItem.deliveryDate,
+        deliveryStatus: targetItem.deliveryStatus,
+      };
+
+      const otherItemsInOrder = [];
+
+      // Add remaining copies of same product (split per quantity)
+      for (let i = 1; i < targetItem.quantity; i++) {
+        otherItemsInOrder.push({
+          // _id: `${targetItem._id}_copy_${i}`, // virtual ID
+          _id: targetItem._id,
+          productId: targetItem.productId._id,
+          name: targetItem.name,
+          img: targetItem.productId?.img[0] || '',
+          estimatedDelivery: targetItem.estimatedDelivery,
+          deliveryDate: targetItem.deliveryDate,
+          deliveryStatus: targetItem.deliveryStatus,
+          // unitPrice: targetItem.unitPrice,
+          // displayedPrice: targetItem.displayedPrice,
+          // gstAmount: targetItem.gstAmount,
+          // totalPrice: applyGST(targetItem.unitPrice),
+          // quantity: 1
         });
       }
+
+      // Add other products from this order
+      for (const item of transaction.products) {
+        if (item._id.toString() === productInstanceId) continue;
+
+        for (let i = 0; i < item.quantity; i++) {
+          otherItemsInOrder.push({
+            _id: targetItem._id,
+            productId: item.productId._id,
+            name: item.name,
+            img: item.productId?.img[0] || '',
+            estimatedDelivery: targetItem.estimatedDelivery,
+            deliveryDate: targetItem.deliveryDate,
+            deliveryStatus: targetItem.deliveryStatus,
+            // unitPrice: item.unitPrice,
+            // displayedPrice: targetItem.displayedPrice,
+            // gstAmount: targetItem.gstAmount,
+            // totalPrice: applyGST(item.unitPrice),
+            // quantity: 1
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        mainProduct,
+        otherItemsInOrder,
+        orderInfo: {
+          transactionId: transaction._id,
+          orderId: transaction.orderId,
+          orderDate: transaction.created_at,
+          status: transaction.status,
+          shippingDetails: transaction.shippingDetails,
+          shippingCharges: transaction.shippingCharges,
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in getProductDetailsFromOrder:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+
+
+  getPujaDetailsFromOrder: async (req, res) => {
+    try {
+      const { pujaID } = req.params;
+      const userId = req.user._id;
+
+
+      const transaction = await PujaTransaction.findById(pujaID)
+        .populate('pujaId', 'title pujaImage aboutPuja shortDescription')
 
       if (!transaction) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });

@@ -23,10 +23,6 @@ const baseTransactionSchema = {
     type: Number,
     required: true
   },
-  shippingCharges: {
-    type: Number,
-    required: true
-  },
   receiptId: {
     type: String,
     default: ''

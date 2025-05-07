@@ -27,7 +27,7 @@ const productSchema = new Schema({
     },
     rating: {
         type: Number,
-         default: 0
+        default: 0
     },
     img: {
         type: [String], // Array of image paths

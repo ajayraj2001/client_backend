@@ -27,6 +27,10 @@ const PujaTransactionSchema = new Schema({
     enum: ['Pending', 'Done'],
     default: "Pending"
   },
+  rating: {
+    type: Number,
+    default: 0
+  },
   // selectedProducts: [
   //   {
   //     productId: {

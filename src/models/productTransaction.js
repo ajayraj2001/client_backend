@@ -7,6 +7,11 @@ const baseTransactionSchema = require('./baseTransactionSchema');
 const ProductTransactionSchema = new Schema({
   ...baseTransactionSchema,
 
+  shippingCharges: {
+    type: Number,
+    default: 0
+  },
+
   // Product specific fields
   products: [
     {
@@ -23,6 +28,10 @@ const ProductTransactionSchema = new Schema({
         type: Number,
         required: true,
         min: 1
+      },
+      rating: {
+        type: Number,
+        default: 0
       },
       unitPrice: {
         type: Number,
@@ -43,7 +52,22 @@ const ProductTransactionSchema = new Schema({
       totalPrice: {
         type: Number,
         required: true
-      }
+      },
+
+      estimatedDelivery: {
+        type: Date,
+        default: null
+      },
+      deliveryDate: {
+        type: Date,
+        default: null
+      },
+      // Delivery tracking
+      deliveryStatus: {
+        type: String,
+        enum: ['PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
+        default: 'PROCESSING'
+      },
     }
   ],
 
@@ -70,32 +94,15 @@ const ProductTransactionSchema = new Schema({
       pincode: { type: String, required: true }
     }
   },
-
-  // Delivery tracking
-  deliveryStatus: {
-    type: String,
-    enum: ['PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
-    default: 'PROCESSING'
-  },
-
   // trackingId: {
   //   type: String,
-  //   default: ''
+  //   default: ''  
   // },
 
   // courierName: {
   //   type: String,
   //   default: ''
   // },
-
-  estimatedDelivery: {
-    type: Date,
-    default: null
-  },
-  deliveryDate: {
-    type: Date,
-    default: null
-  },
 
 }, {
   timestamps: {
