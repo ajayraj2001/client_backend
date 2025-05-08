@@ -247,7 +247,7 @@ const paymentController = {
           const itemGst = Math.round(basePrice * 0.18);
           const itemSaved = (product.displayedPrice - product.actualPrice) * quantity;
           const discountPrice = (product.displayedPrice - product.actualPrice) * quantity;
-
+          // console.log('product', product)
           orderAmount += basePrice;
           savedAmount += itemSaved > 0 ? itemSaved : 0;
 
@@ -309,6 +309,7 @@ const paymentController = {
             name: product.name,
             quantity: item.quantity,
             unitPrice: product.actualPrice,
+            displayedPrice: product.displayedPrice,
             basePrice: basePrice,
             gstAmount: itemGst,
             totalPrice: basePrice + itemGst,
