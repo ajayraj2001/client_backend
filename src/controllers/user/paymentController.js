@@ -937,16 +937,22 @@ const paymentController = {
   getTransactionHistory: async (req, res) => {
     try {
       const userId = req.user._id;
-      const { type = TRANSACTION_TYPES.PRODUCT, page = 1, limit = 10, status } = req.query;
+      const { type = "PUJA", page = 1, limit = 10, status } = req.query;
 
       const skip = (page - 1) * limit;
       const query = { userId };
+
+      // const query = {
+      //       userId,
+      //       // isPaymentAttempted: true, // Only show transactions where payment was attempted
+      //       // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
+      //     };
       if (status) query.status = status;
 
       let transactions = [];
       let total = 0;
 
-      if (type === TRANSACTION_TYPES.PUJA) {
+      if (type === 'PUJA') {
         [transactions, total] = await Promise.all([
           PujaTransaction.find(query)
             .select('pujaName pujaId pujaStatus pujaDate status rating')
@@ -957,7 +963,7 @@ const paymentController = {
             .lean(),
           PujaTransaction.countDocuments(query)
         ]);
-      } else if (type === TRANSACTION_TYPES.PRODUCT) {
+      } else if (type === 'PRODUCT') {
         const aggregationPipeline = [
           { $match: query },
           { $unwind: "$products" },

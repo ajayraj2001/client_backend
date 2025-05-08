@@ -114,10 +114,10 @@ const ProductTransactionSchema = new Schema({
 
 // Create TTL index to automatically delete abandoned transactions after 24 hours
 // Only applies to transactions where isPaymentAttempted is false
-ProductTransactionSchema.index(
-  { initiatedAt: 1 },
-  { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
-);
+// ProductTransactionSchema.index(
+//   { initiatedAt: 1 },
+//   { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
+// );
 
 // Create compound indexes for common query patterns
 ProductTransactionSchema.index({ userId: 1, status: 1, created_at: -1 });

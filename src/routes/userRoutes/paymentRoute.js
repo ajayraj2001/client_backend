@@ -29,7 +29,6 @@ router.get('/getPujaDetailsFromOrder/:pujaID', authenticateUser, paymentControll
 // Cancel transaction
 router.post('/cancel_transaction/:type/:id', authenticateUser, paymentController.cancelTransaction);
 
-
 // Admin-only routes
 router.post('/refund_transaction/:type/:id', paymentController.refundTransaction);
 router.get('/stats', paymentController.getPaymentStats);

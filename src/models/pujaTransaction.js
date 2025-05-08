@@ -80,10 +80,10 @@ const PujaTransactionSchema = new Schema({
 
 // Create TTL index to automatically delete abandoned transactions after 24 hours
 // Only applies to transactions where isPaymentAttempted is false
-PujaTransactionSchema.index(
-  { initiatedAt: 1 },
-  { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
-);
+// PujaTransactionSchema.index(
+//   { initiatedAt: 1 },
+//   { expireAfterSeconds: 86400, partialFilterExpression: { isPaymentAttempted: false } }
+// );
 
 // Create compound indexes for common query patterns
 PujaTransactionSchema.index({ userId: 1, status: 1, created_at: -1 });
