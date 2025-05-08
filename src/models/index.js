@@ -24,6 +24,8 @@ const Cart = require("./cart");
 const Address = require("./address");
 const PujaTransaction = require("./pujaTransaction");
 const ProductTransaction = require("./productTransaction");
+const PujaReview = require("./pujaReview");
+const ProductReview = require("./productReview");
 const { UserSetting, AstroSetting } = require("./siteSetting");
 
 module.exports = {
@@ -54,6 +56,8 @@ module.exports = {
   Cart,
   Address,
   PujaTransaction,
-  ProductTransaction
+  ProductTransaction,
+  PujaReview,
+  ProductReview
 };
 

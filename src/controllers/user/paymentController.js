@@ -986,6 +986,7 @@ const paymentController = {
                 name: "$products.name",
                 unitPrice: "$products.unitPrice",
                 quantity: "$products.quantity",
+                deliveryStatus: "$products.deliveryStatus",
                 rating: "$products.rating",
                 img: { $arrayElemAt: ["$productDetails.img", 0] }
               }
