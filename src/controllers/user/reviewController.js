@@ -382,12 +382,13 @@ exports.submitProductReview = async (req, res) => {
         }
 
         // Verify the transaction exists, belongs to the user, and is completed
-        const transaction = await ProductTransaction.findOne({
-            _id: transactionId,
-            userId: userId,
-            status: 'COMPLETED',
-            'products.productId': productId
-        });
+        // const transaction = await ProductTransaction.findOne({
+        //     _id: transactionId,
+        //     userId: userId,
+        //     status: 'COMPLETED',
+        //     'products.productId': productId
+        // });
+        const transaction = await ProductTransaction.findById(transactionId);
 
         if (!transaction) {
             return res.status(404).json({
