@@ -111,7 +111,7 @@ const getProductById = async (req, res, next) => {
         }
 
         const latestReviews = await ProductReview.find({ productId: id, status: 'Active' })
-            .populate('userId', 'fullName avatar')
+            .populate('userId', 'name profile_img')
             .sort({ created_at: -1 })
             .limit(5);
 
