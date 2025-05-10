@@ -47,19 +47,51 @@ const getAllPujas = async (req, res, next) => {
 
 
 // Get Puja by ID
+// const getPujaById = async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
+
+//     const puja = await Puja.findById(id).populate('compulsoryProducts.productId optionalProducts.productId');
+//     if (!puja) {
+//       throw new ApiError('Puja not found', 404);
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Puja fetched successfully',
+//       data: puja,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getPujaById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const puja = await Puja.findById(id).populate('compulsoryProducts.productId optionalProducts.productId');
+    // Fetch the puja with populated products
+    const puja = await Puja.findById(id)
+      .populate('compulsoryProducts.productId')
+      .populate('optionalProducts.productId');
+
     if (!puja) {
       throw new ApiError('Puja not found', 404);
     }
 
+    // Fetch latest 5 reviews for the puja
+    const reviews = await PujaReview.find({ pujaId: id, status: 'Active' })
+      .populate('userId', 'name profile_img') // Include user info like name/avatar
+      .sort({ created_at: -1 })
+      .limit(5);
+
     return res.status(200).json({
       success: true,
       message: 'Puja fetched successfully',
-      data: puja,
+      data: {
+        puja,
+        latestReviews: reviews,
+      },
     });
   } catch (error) {
     next(error);

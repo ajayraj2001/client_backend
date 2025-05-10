@@ -4,41 +4,41 @@ const { Product } = require('../../models');
 // Get All Products
 const getAllProducts = async (req, res, next) => {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-  
-      const { search } = req.query;
-  
-      // Build search filter
-      const filter = {};
-      if (search) {
-        filter.name = { $regex: search, $options: 'i' }; // case-insensitive search
-      }
-  
-      const totalCount = await Product.countDocuments(filter);
-  
-      const products = await Product.find(filter)
-        .sort({ _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('categoryId', 'name image');
-  
-      return res.status(200).json({
-        success: true,
-        message: 'Products fetched successfully',
-        data: products,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const { search } = req.query;
+
+        // Build search filter
+        const filter = {};
+        if (search) {
+            filter.name = { $regex: search, $options: 'i' }; // case-insensitive search
+        }
+
+        const totalCount = await Product.countDocuments(filter);
+
+        const products = await Product.find(filter)
+            .sort({ _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('categoryId', 'name image');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Products fetched successfully',
+            data: products,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        });
     } catch (error) {
-      next(error);
+        next(error);
     }
-  };
+};
 
 
 const getProductsByCategory = async (req, res, next) => {
@@ -60,7 +60,7 @@ const getProductsByCategory = async (req, res, next) => {
         // Get total count in the category
         const totalCount = await Product.countDocuments({ categoryId });
 
-        const products = await Product.find({ status: "Active",categoryId })
+        const products = await Product.find({ status: "Active", categoryId })
             .sort({ _id: -1 })
             .skip(skip)
             .limit(limit)
@@ -82,6 +82,29 @@ const getProductsByCategory = async (req, res, next) => {
 };
 
 // Get Product by ID
+// const getProductById = async (req, res, next) => {
+//     try {
+//         const { id } = req.params;
+
+//         const product = await Product.findById(id).populate('categoryId', 'name image');
+//         if (!product) {
+//             throw new ApiError('Product not found', 404);
+//         }
+
+//         return res.status(200).json({
+//             success: true,
+//             message: 'Product fetched successfully',
+//             data: product,
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
+
+const Product = require('../models/Product');
+const ProductReview = require('../models/ProductReview');
+const ApiError = require('../utils/ApiError');
+
 const getProductById = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -91,15 +114,24 @@ const getProductById = async (req, res, next) => {
             throw new ApiError('Product not found', 404);
         }
 
+        const latestReviews = await ProductReview.find({ productId: id, status: 'Active' })
+            .populate('userId', 'fullName avatar')
+            .sort({ created_at: -1 })
+            .limit(5);
+
         return res.status(200).json({
             success: true,
             message: 'Product fetched successfully',
-            data: product,
+            data: {
+                product,
+                latestReviews,
+            },
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 module.exports = {
     getAllProducts,
