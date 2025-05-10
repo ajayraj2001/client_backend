@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Puja } = require('../../models');
+const { Puja, PujaReview } = require('../../models');
 
 // Get All Pujas
 const getAllPujas = async (req, res, next) => {

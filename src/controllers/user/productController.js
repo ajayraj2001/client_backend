@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Product } = require('../../models');
+const { Product, ProductReview } = require('../../models');
 
 // Get All Products
 const getAllProducts = async (req, res, next) => {
@@ -100,10 +100,6 @@ const getProductsByCategory = async (req, res, next) => {
 //         next(error);
 //     }
 // };
-
-const Product = require('../models/Product');
-const ProductReview = require('../models/ProductReview');
-const ApiError = require('../utils/ApiError');
 
 const getProductById = async (req, res, next) => {
     try {
