@@ -59,16 +59,19 @@ const PujaTransactionSchema = new Schema({
   // ],
 
   // Customer information
-  customerDetails: {
-    name: {
-      type: String,
-      default: ""
-    },
-    phoneNumber: {
-      type: String,
-      default: ""
+  customerDetails: [
+    {
+      fullName: { type: String, default: "" },
+      gender: { type: String, enum: ["Male", "Female", "Other"], default: "Male" },
+      relation: { type: String, default: "" },
+      gotram: { type: String, default: "" },
+      dob: { type: Date, default: null },
+      tob: { type: String, default: "" }, // time of birth
+      zodiacSign: { type: String, default: "" },
+      fathersName: { type: String, default: "" },
+      address: { type: String, default: "" },
     }
-  },
+  ] 
 
 }, {
   timestamps: {
