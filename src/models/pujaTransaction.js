@@ -70,6 +70,7 @@ const PujaTransactionSchema = new Schema({
       zodiacSign: { type: String, default: "" },
       fathersName: { type: String, default: "" },
       address: { type: String, default: "" },
+      motive: { type: String, default: "" },
     }
   ] 
 
