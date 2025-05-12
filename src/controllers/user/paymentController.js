@@ -1043,7 +1043,7 @@ const paymentController = {
 
 
       const transaction = await PujaTransaction.findById(pujaID)
-        .populate('pujaId', 'title pujaImage aboutPuja shortDescription')
+        .populate('pujaId', 'title pujaImage aboutPuja shortDescription customerDetails')
 
       if (!transaction) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });
