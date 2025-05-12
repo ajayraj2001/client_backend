@@ -5,7 +5,7 @@ const { Puja, PujaReview } = require('../../models');
 const getAllPujas = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 4;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const { pujaType, search } = req.query;
