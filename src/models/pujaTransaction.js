@@ -18,6 +18,10 @@ const PujaTransactionSchema = new Schema({
     type: Date,
     default: null
   },
+  pujaTime: {
+    type: String,
+    default: ""
+  },
   pujaName: {
     type: String,
     default: ""
