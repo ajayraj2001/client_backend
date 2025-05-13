@@ -65,7 +65,7 @@ const ProductTransactionSchema = new Schema({
       // Delivery tracking
       deliveryStatus: {
         type: String,
-        enum: ['PROCESSING', 'PACKED', 'SHIPPED', 'OUT FOR DELIVERY', 'DELIVERED', 'CANCELLED'],
+        enum: ['PROCESSING', 'SHIPPED', 'OUT FOR DELIVERY', 'DELIVERED', 'CANCELLED'],
         default: 'PROCESSING'
       },
     }
