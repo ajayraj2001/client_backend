@@ -24,7 +24,7 @@ const PujaTransactionSchema = new Schema({
   },
   pujaStatus: {
     type: String,
-    enum: ['Pending', 'Done'],
+    enum: ['Pending', 'Completed'],
     default: "Pending"
   },
   rating: {
@@ -72,7 +72,7 @@ const PujaTransactionSchema = new Schema({
       address: { type: String, default: "" },
       motive: { type: String, default: "" },
     }
-  ] 
+  ]
 
 }, {
   timestamps: {
