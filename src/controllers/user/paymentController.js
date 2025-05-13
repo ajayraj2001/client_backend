@@ -368,9 +368,6 @@ const paymentController = {
         couponCode: '',
         products: productItems,
         shippingDetails,
-        deliveryStatus: 'PROCESSING',
-        estimatedDelivery: null,
-        deliveryDate: null,
         initiatedAt: getCurrentIST(),
         isPaymentAttempted: false
       });
