@@ -721,6 +721,7 @@ const paymentController = {
                 unitPrice: "$products.unitPrice",
                 quantity: "$products.quantity",
                 deliveryStatus: "$products.deliveryStatus",
+                deliveryDate: "$products.deliveryDate",
                 rating: "$products.rating",
                 img: { $arrayElemAt: ["$productDetails.img", 0] }
               }
@@ -761,7 +762,8 @@ const paymentController = {
               productId: transaction.product.productId,
               name: transaction.product.name,
               img: transaction.product.img,
-              deliveryStatus: transaction.deliveryStatus,
+              deliveryStatus: transaction.product.deliveryStatus,
+              deliveryDate: transaction.product.deliveryDate,
               rating: transaction.rating,
               totalPrice: applyGST(transaction.product.unitPrice)
             });
