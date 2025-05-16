@@ -1,7 +1,6 @@
 const express = require("express");
 const astrologerRoute = express.Router();
 
-const { authenticateAstrologer } = require("../middlewares");
 
 // Import the separate route files
 const authRoutes = require("./astrologerRoutes/authRoute");

@@ -84,14 +84,14 @@ const initializeSocket = (server) => {
 
     socket.on('initiate_call', async (data) => {
       const { user_id, astrologer_id, call_type } = data;
-
+      console.log('data', data)
       try {
         // Validate users and check availability
         const [user, astrologer] = await Promise.all([
           User.findById(user_id).select('name profile_img busy wallet free_calls_used_today last_free_call_reset').lean(),
           Astrologer.findById(astrologer_id).select('busy commission is_chat_online is_voice_online is_video_online per_min_chat per_min_voice_call per_min_video_call deviceToken').lean()
         ]);
-
+        console.log('user, astrologer', user, astrologer)
         if (!user || !astrologer) {
           socket.emit('call_error', { message: 'User or astrologer not found' });
           return;
@@ -214,7 +214,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('accept_call', async ({ call_id }) => {
-      // console.log('accept_call------------------------------', call_id, 'socket id ', socket.id)
+      console.log('accept_call------------------------------  nw onebuajay raj ', call_id, 'socket id ', socket.id)
       try {
         const callData = activeCalls.get(call_id);
         if (!callData) {
@@ -247,7 +247,7 @@ const initializeSocket = (server) => {
           { $set: { status: 'active', start_time: getCurrentIST() } }
         );
 
-        // console.log('her is ajay raj checking erorrs ', callData.max_minutes)
+        console.log('saket kuamr pahtkak---------- ', callData.max_minutes)
         // Set timer for maximum call duration
         const insufficientBalanceTimer = setTimeout(async () => {
           // console.log('khan i sher urh insuccicent balance')
@@ -266,7 +266,7 @@ const initializeSocket = (server) => {
           room_status: await getRoomStatus(call_id)
         });
 
-        // console.log('yash kuamr idfning ereroe')
+        console.log('call_connceted i tink here ***********************')
         // // Notify user about call connection (only user needs this for screen transition)
         // const userSocket = userSockets.get(callData.user_id);
         // if (userSocket) {
@@ -555,7 +555,7 @@ const initializeSocket = (server) => {
       // console.log('my name is anthony gonazalish', recipientSocketId)
       // Notify all participants
       // io.to(`call_${call_id}`).emit('call_ended', {
-        io.to(recipientSocketId).emit('call_ended', {
+      io.to(recipientSocketId).emit('call_ended', {
         call_id,
         status: end_status,
         duration,

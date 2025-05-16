@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const { connectToDatabase } = require('./config');
 const app = require('./src/app');
 const scripts = require('./src/scripts');
-const {initializeSocket} = require('./socket'); // Import Socket.IO setup
-const {cleanupPendingTransactions} = require('./src/controllers/cronJobs/cronJobController')
+const { initializeSocket } = require('./socket'); // Import Socket.IO setup
+const { cleanupPendingTransactions } = require('./src/controllers/cronJobs/cronJobController')
 
 const { PORT } = process.env || 5001;
 
@@ -13,7 +13,7 @@ const { PORT } = process.env || 5001;
     console.log('Initializing server');
     await connectToDatabase();
     await scripts();
-    
+
     // Start the cron job for cleaning up pending transactions
     cleanupPendingTransactions();
 

@@ -1,8 +1,6 @@
 const express = require("express");
 const userRoute = express.Router();
 
-const { authenticateUser } = require("../middlewares");
-
 // Import the separate route files
 const authRoutes = require("./userRoutes/authRoute");
 const dashboardRoutes = require("./userRoutes/dashboardRoute");
