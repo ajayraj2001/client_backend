@@ -83,10 +83,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('initiate_call', async (data) => {
-      let { user_id, astrologer_id, call_type } = data;
-
-      user_id = "682605dd67a84e5947ea4bdc"
-      astrologer_id = "67b2e48b094a099dcf83352b"
+      const { user_id, astrologer_id, call_type } = data;
       console.log('data', data)
       try {
         // Validate users and check availability
