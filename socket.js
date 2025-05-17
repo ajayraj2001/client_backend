@@ -170,7 +170,7 @@ const initializeSocket = (server) => {
           }
         };
 
-        console.log('callData**********.id', callHistory._id)
+        console.log('astrologer.deviceToken', astrologer.deviceToken)
 
         activeCalls.set(callHistory._id.toString(), callData);
 

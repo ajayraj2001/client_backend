@@ -4,9 +4,14 @@ const { Category } = require('../../models');
 // Get All Categories
 const getAllCategories = async (req, res, next) => {
     try {
-        const categories = await Category.find({ status: "Active" })
-        .sort({ _id: -1 })
-        .select('name image');      
+        const search = req.query.search || "";
+
+        const categories = await Category.find({
+            status: "Active",
+            name: { $regex: search, $options: "i" }, // case-insensitive search
+        })
+            .sort({ _id: -1 })
+            .select('name image');
 
         return res.status(200).json({
             success: true,
@@ -17,6 +22,7 @@ const getAllCategories = async (req, res, next) => {
         next(error);
     }
 };
+
 
 // Get Category by ID
 const getCategoryById = async (req, res, next) => {
