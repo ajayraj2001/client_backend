@@ -6,9 +6,9 @@ const serviceAccount = require('../../config/astro-setu-232cc-firebase-adminsdk-
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
 }
 
 /**
@@ -60,17 +60,24 @@ const sendFCMNotification = async (deviceToken, payload) => {
 };
 
 
-// const deviceToken = "fDUUSjL6QVKCzCAK2pBCH7:APA91bH15YajLzzNoUj6eq0y46oucfO9bGcfofJDF5Kd1ZCmGcrCqzcP_nZeB-Qt6UoPy_ZHpmMlfD0bOUKLhPUgi8BYrCejZO-KeZqVX7Nlvh6tO3ux1gk"
-// sendFCMNotification(deviceToken, {
-//   title: 'Incoming Call', // Static title
-//   body: 'You have an incoming call', // Static body
-//   call_id: '67aa2bd5e588b1080e03a2c9', // Static call ID
-//   call_type: 'chat', // Static call type
-//   user_info: { // Static user info
-//     name: 'John Doe',
-//     number: '+1234567890',
-//     profile_img: '/astro_profile_images/1739777163175.jpg',
-//   },
-// });
+// const deviceToken = "chwPUrP7R7qnxE1LGD-LXf:APA91bHoRtvoyqkF0QxgRSQDK35mFFOms-i9PX6LRGL06QUBTbNboSSNIy5_vZNBSVlKk_KVEFPGzi1q5rzqhilFACjpcoqKXZhe8hBSEISI2m6MTnWuleU"
+// const call_type = "chat"
+(async () => {
+  const deviceToken = "f8n4nzdKRb-SZJCuSR4YDm:APA91bGlb1KRBTmf_jN7S5mgBCvWu89UGBO6bmZ3qqBHbOBi7LjlSEQItOWtL8jtSQjqhHqYtDWsQ6nj2PZdzlQeDT45_f0Q8J5pcpEwvJex7FNbp8tBoSE"
+  const call_type = "chat";
+
+  await sendFCMNotification(deviceToken, {
+    title: 'Incoming Call',
+    body: `Incoming ${call_type} call from user`,
+    call_id: '3213123',
+    call_type,
+    maximum_minutes: "10",
+    user_info: {
+      user_id: "1123213",
+      name: "Ajay Raj",
+      profile_img: ""
+    }
+  });
+})();
 
 module.exports = { sendFCMNotification };
