@@ -62,22 +62,22 @@ const sendFCMNotification = async (deviceToken, payload) => {
 
 // const deviceToken = "chwPUrP7R7qnxE1LGD-LXf:APA91bHoRtvoyqkF0QxgRSQDK35mFFOms-i9PX6LRGL06QUBTbNboSSNIy5_vZNBSVlKk_KVEFPGzi1q5rzqhilFACjpcoqKXZhe8hBSEISI2m6MTnWuleU"
 // const call_type = "chat"
-(async () => {
-  const deviceToken = "f8n4nzdKRb-SZJCuSR4YDm:APA91bGlb1KRBTmf_jN7S5mgBCvWu89UGBO6bmZ3qqBHbOBi7LjlSEQItOWtL8jtSQjqhHqYtDWsQ6nj2PZdzlQeDT45_f0Q8J5pcpEwvJex7FNbp8tBoSE"
-  const call_type = "chat";
+// (async () => {
+//   const deviceToken = "f8n4nzdKRb-SZJCuSR4YDm:APA91bGlb1KRBTmf_jN7S5mgBCvWu89UGBO6bmZ3qqBHbOBi7LjlSEQItOWtL8jtSQjqhHqYtDWsQ6nj2PZdzlQeDT45_f0Q8J5pcpEwvJex7FNbp8tBoSE"
+//   const call_type = "chat";
 
-  await sendFCMNotification(deviceToken, {
-    title: 'Incoming Call',
-    body: `Incoming ${call_type} call from user`,
-    call_id: '3213123',
-    call_type,
-    maximum_minutes: "10",
-    user_info: {
-      user_id: "1123213",
-      name: "Ajay Raj",
-      profile_img: ""
-    }
-  });
-})();
+//   await sendFCMNotification(deviceToken, {
+//     title: 'Incoming Call',
+//     body: `Incoming ${call_type} call from user`,
+//     call_id: '3213123',
+//     call_type,
+//     maximum_minutes: "10",
+//     user_info: {
+//       user_id: "1123213",
+//       name: "Ajay Raj",
+//       profile_img: ""
+//     }
+//   });
+// })();
 
 module.exports = { sendFCMNotification };
