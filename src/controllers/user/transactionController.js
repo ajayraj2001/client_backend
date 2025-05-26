@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { PendingTransaction , UserWalletHistory, User} = require('../../models');
+const { PendingTransaction, UserWalletHistory, User } = require('../../models');
 const razorpay = require('../paymentGateway/razorpay');
 
 // Initiate Recharge
@@ -48,12 +48,12 @@ const getWalletHistory = async (req, res, next) => {
 
     // Fetch the user's wallet history
     const walletHistory = await UserWalletHistory.find({ user_id })
-    .sort({ timestamp: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
-     // Fetch total count for pagination
-     const totalRecords = await UserWalletHistory.countDocuments({ user_id: id });
+    // Fetch total count for pagination
+    const totalRecords = await UserWalletHistory.countDocuments({ user_id });
 
     // Fetch the user's current wallet balance from the User model (if stored separately)
     // const user = await User.findById(user_id).select('wallet');
