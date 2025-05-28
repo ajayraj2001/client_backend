@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllPujas,
   getPujaById,
+  getPujaBySlug
 } = require('../../controllers/user/pujaController');
 const { authenticateUser } = require('../../middlewares');
 
@@ -11,6 +12,6 @@ router.get('/', getAllPujas);
 
 // Get a specific puja by ID
 router.get('/:id', getPujaById);
-
+router.get('/slug/:slug', getPujaBySlug);
 
 module.exports = router;

@@ -46,25 +46,36 @@ const getAllPujas = async (req, res, next) => {
 };
 
 
-// Get Puja by ID
-// const getPujaById = async (req, res, next) => {
-//   try {
-//     const { id } = req.params;
+const getPujaBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
 
-//     const puja = await Puja.findById(id).populate('compulsoryProducts.productId optionalProducts.productId');
-//     if (!puja) {
-//       throw new ApiError('Puja not found', 404);
-//     }
+    const puja = await Puja.findOne({ slug })
+      .populate('compulsoryProducts', 'name')
+      .populate('optionalProducts', 'name');
 
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Puja fetched successfully',
-//       data: puja,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+    if (!puja) {
+      throw new ApiError('Puja not found', 404);
+    }
+
+    const reviews = await PujaReview.find({ pujaId: puja._id, status: 'Active' })
+      .populate('userId', 'name profile_img')
+      .sort({ created_at: -1 })
+      .limit(5);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Puja fetched successfully',
+      data: {
+        puja,
+        latestReviews: reviews,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 const getPujaById = async (req, res, next) => {
   try {
@@ -101,4 +112,5 @@ const getPujaById = async (req, res, next) => {
 module.exports = {
   getAllPujas,
   getPujaById,
+  getPujaBySlug
 };

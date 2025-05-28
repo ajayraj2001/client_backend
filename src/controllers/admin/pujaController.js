@@ -1,5 +1,6 @@
 const { ApiError } = require('../../errorHandler');
 const { Puja } = require('../../models');
+const slugify = require('slugify')
 const { getMultipleFilesUploader, deleteFile } = require('../../middlewares');
 
 // Multer setup for puja image uploads
@@ -11,183 +12,202 @@ const uploadPujaFiles = getMultipleFilesUploader([
 // Create Puja
 const createPuja = async (req, res, next) => {
   uploadPujaFiles(req, res, async (err) => {
-      if (err) {
-          console.error('Multer Error:', err);
-          return next(new ApiError(err.message, 400));
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
+
+    let pujaImagePath = '';
+    let bannerImagePaths = [];
+
+    try {
+      const {
+        title,
+        slug,
+        aboutPuja,
+        shortDescription,
+        benifits,
+        faq,
+        status,
+        displayedPrice,
+        actualPrice,
+        compulsoryProducts,
+        optionalProducts,
+      } = req.body;
+
+      const finalSlug = slug || slugify(title, { lower: true, strict: true });
+
+      // Check for duplicate slug
+      const existing = await Puja.findOne({ slug: finalSlug });
+      if (existing) {
+        return next(new ApiError('Slug already exists, please choose another one', 400));
       }
 
-      let pujaImagePath = '';
-      let bannerImagePaths = [];
+      const isRecurring = req.body.isRecurring === 'true'; // Convert string to boolean
 
-      try {
-          const {
-              title,
-              slug,
-              aboutPuja,
-              shortDescription,
-              benifits,
-              faq,
-              status,
-              displayedPrice,
-              actualPrice,
-              compulsoryProducts,
-              optionalProducts,
-          } = req.body;
+      const pujaDate = isRecurring ? null : req.body.pujaDate;
 
-          const isRecurring = req.body.isRecurring === 'true'; // Convert string to boolean
-
-          const pujaDate = isRecurring ? null : req.body.pujaDate;
-
-          // Save file paths if files are uploaded
-          if (req.files?.pujaImage) {
-              pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
-          }
-          if (req.files?.bannerImages) {
-              bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
-          }
-
-          // Create new puja
-          const puja = new Puja({
-              title,
-              slug,
-              pujaDate,
-              aboutPuja,
-              shortDescription,
-              displayedPrice,
-              actualPrice,
-              status,
-              isRecurring,
-              pujaImage: pujaImagePath,
-              bannerImages: bannerImagePaths,
-              benifits: benifits ? JSON.parse(benifits) : [],
-              faq: faq ? JSON.parse(faq) : [],
-              compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : [],
-              optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : []
-          });
-
-          await puja.save();
-
-          const populatedPuja = await Puja.findById(id)
-          .populate('compulsoryProducts', 'name')
-          .populate('optionalProducts', 'name');
-        
-
-          return res.status(201).json({
-              success: true,
-              message: 'Puja created successfully',
-              data: populatedPuja,
-          });
-
-      } catch (error) {
-          // Delete uploaded files if an error occurs
-          if (pujaImagePath) await deleteFile(pujaImagePath);
-          if (bannerImagePaths.length > 0) {
-              await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
-          }
-          next(error);
+      // Save file paths if files are uploaded
+      if (req.files?.pujaImage) {
+        pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
       }
+      if (req.files?.bannerImages) {
+        bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
+      }
+
+      // Create new puja
+      const puja = new Puja({
+        title,
+        slug: finalSlug,
+        pujaDate,
+        aboutPuja,
+        shortDescription,
+        displayedPrice,
+        actualPrice,
+        status,
+        isRecurring,
+        pujaImage: pujaImagePath,
+        bannerImages: bannerImagePaths,
+        benifits: benifits ? JSON.parse(benifits) : [],
+        faq: faq ? JSON.parse(faq) : [],
+        compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : [],
+        optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : []
+      });
+
+      await puja.save();
+
+      const populatedPuja = await Puja.findById(id)
+        .populate('compulsoryProducts', 'name')
+        .populate('optionalProducts', 'name');
+
+
+      return res.status(201).json({
+        success: true,
+        message: 'Puja created successfully',
+        data: populatedPuja,
+      });
+
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (pujaImagePath) await deleteFile(pujaImagePath);
+      if (bannerImagePaths.length > 0) {
+        await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
+      }
+      next(error);
+    }
   });
 };
 
 // Update Puja
 const updatePuja = async (req, res, next) => {
   uploadPujaFiles(req, res, async (err) => {
-      if (err) {
-          console.error('Multer Error:', err);
-          return next(new ApiError(err.message, 400));
+    if (err) {
+      console.error('Multer Error:', err);
+      return next(new ApiError(err.message, 400));
+    }
+
+    let pujaImagePath = '';
+    let bannerImagePaths = [];
+
+    try {
+      const { id } = req.params;
+      const {
+        title,
+        slug,
+        aboutPuja,
+        shortDescription,
+        benifits,
+        faq,
+        status,
+        displayedPrice,
+        actualPrice,
+        compulsoryProducts,
+        optionalProducts,
+      } = req.body;
+
+      // Find the existing puja
+      const existingPuja = await Puja.findById(id);
+      if (!existingPuja) {
+        throw new ApiError('Puja not found', 404);
       }
 
-      let pujaImagePath = '';
-      let bannerImagePaths = [];
+      let finalSlug = slug || existingPuja.slug;
 
-      try {
-          const { id } = req.params;
-          const {
-              title,
-              slug,
-              aboutPuja,
-              shortDescription,
-              benifits,
-              faq,
-              status,
-              displayedPrice,
-              actualPrice,
-              compulsoryProducts,
-              optionalProducts,
-          } = req.body;
-
-           // Convert `isRecurring` to a boolean
-           const isRecurring = req.body.isRecurring === 'true';
-
-          // Find the existing puja
-          const existingPuja = await Puja.findById(id);
-          if (!existingPuja) {
-              throw new ApiError('Puja not found', 404);
-          }
-
-           // Set `pujaDate` based on `isRecurring`
-           const pujaDate = isRecurring ? null : req.body.pujaDate || existingPuja.pujaDate;
-
-          // Save new file paths if files are uploaded
-          if (req.files?.pujaImage) {
-              pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
-          }
-          if (req.files?.bannerImages) {
-              bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
-          }
-
-          // Update the puja
-          const updateData = {
-              title: title || existingPuja.title,
-              slug: slug || existingPuja.slug,
-              pujaDate,
-              aboutPuja: aboutPuja || existingPuja.aboutPuja,
-              shortDescription: shortDescription || existingPuja.shortDescription,
-              displayedPrice: displayedPrice || existingPuja.displayedPrice,
-              actualPrice: actualPrice || existingPuja.actualPrice,
-              status: status || existingPuja.status,
-              isRecurring,
-              pujaImage: pujaImagePath || existingPuja.pujaImage,
-              bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
-              benifits: benifits ? JSON.parse(benifits) : existingPuja.benifits,
-              faq: faq ? JSON.parse(faq) : existingPuja.faq,
-              compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : existingPuja.compulsoryProducts,
-              optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : existingPuja.optionalProducts,
-          };
-
-          const puja = await Puja.findByIdAndUpdate(
-            id, 
-            updateData, 
-            { new: true }
-        ).populate('compulsoryProducts', 'name')
-         .populate('optionalProducts', 'name');
-
-          if (!puja) {
-              throw new ApiError('Error updating puja', 500);
-          }
-
-          // Delete old files if new ones are uploaded
-          if (req.files?.pujaImage && existingPuja.pujaImage) {
-              await deleteFile(existingPuja.pujaImage);
-          }
-          if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
-              await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
-          }
-
-          return res.status(200).json({
-              success: true,
-              message: 'Puja updated successfully',
-              data: puja,
-          });
-
-      } catch (error) {
-          // Delete uploaded files if an error occurs
-          if (pujaImagePath) await deleteFile(pujaImagePath);
-          if (bannerImagePaths.length > 0) {
-              await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
-          }
-          next(error);
+      if (slug && slug !== existingPuja.slug) {
+        finalSlug = slugify(slug, { lower: true, strict: true });
+        const duplicate = await Puja.findOne({ slug: finalSlug, _id: { $ne: id } });
+        if (duplicate) {
+          return next(new ApiError('Slug already exists, choose a unique one', 400));
+        }
       }
+
+      // Convert `isRecurring` to a boolean
+      const isRecurring = req.body.isRecurring === 'true';
+
+
+      // Set `pujaDate` based on `isRecurring`
+      const pujaDate = isRecurring ? null : req.body.pujaDate || existingPuja.pujaDate;
+
+      // Save new file paths if files are uploaded
+      if (req.files?.pujaImage) {
+        pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
+      }
+      if (req.files?.bannerImages) {
+        bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
+      }
+
+      // Update the puja
+      const updateData = {
+        title: title || existingPuja.title,
+        slug: finalSlug,
+        pujaDate,
+        aboutPuja: aboutPuja || existingPuja.aboutPuja,
+        shortDescription: shortDescription || existingPuja.shortDescription,
+        displayedPrice: displayedPrice || existingPuja.displayedPrice,
+        actualPrice: actualPrice || existingPuja.actualPrice,
+        status: status || existingPuja.status,
+        isRecurring,
+        pujaImage: pujaImagePath || existingPuja.pujaImage,
+        bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
+        benifits: benifits ? JSON.parse(benifits) : existingPuja.benifits,
+        faq: faq ? JSON.parse(faq) : existingPuja.faq,
+        compulsoryProducts: compulsoryProducts ? JSON.parse(compulsoryProducts) : existingPuja.compulsoryProducts,
+        optionalProducts: optionalProducts ? JSON.parse(optionalProducts) : existingPuja.optionalProducts,
+      };
+
+      const puja = await Puja.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      ).populate('compulsoryProducts', 'name')
+        .populate('optionalProducts', 'name');
+
+      if (!puja) {
+        throw new ApiError('Error updating puja', 500);
+      }
+
+      // Delete old files if new ones are uploaded
+      if (req.files?.pujaImage && existingPuja.pujaImage) {
+        await deleteFile(existingPuja.pujaImage);
+      }
+      if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
+        await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Puja updated successfully',
+        data: puja,
+      });
+
+    } catch (error) {
+      // Delete uploaded files if an error occurs
+      if (pujaImagePath) await deleteFile(pujaImagePath);
+      if (bannerImagePaths.length > 0) {
+        await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
+      }
+      next(error);
+    }
   });
 };
 
@@ -223,8 +243,8 @@ const deletePuja = async (req, res, next) => {
 const getAllPujas = async (req, res, next) => {
   try {
     const pujas = await Puja.find({})
-    .sort({ _id: -1 })
-    .populate('compulsoryProducts.productId optionalProducts.productId');  
+      .sort({ _id: -1 })
+      .populate('compulsoryProducts.productId optionalProducts.productId');
 
     return res.status(200).json({
       success: true,
