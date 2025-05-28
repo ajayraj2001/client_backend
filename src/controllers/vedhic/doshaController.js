@@ -49,7 +49,7 @@ fetchSingleDosha = async ({ type, dob, tob, lat, lon, lang }) => {
 };
 
 
-exports.getAllDoshas = async (req, res) => {
+getAllDoshas = async (req, res) => {
     try {
         const { dob, tob, lat, lon, lang = 'en' } = req.query;
         if (!dob || !tob || !lat || !lon) {
@@ -64,7 +64,7 @@ exports.getAllDoshas = async (req, res) => {
     }
 };
 
-exports.getSingleDosha = async (req, res) => {
+getSingleDosha = async (req, res) => {
     try {
         const { type, dob, tob, lat, lon, lang = 'en' } = req.body;
         const validTypes = ['mangal', 'kaalsarp', 'manglik', 'pitra'];
@@ -127,6 +127,8 @@ const getCombinedDoshas = async (req, res) => {
 
 module.exports = {
     getCombinedDoshas,
+    getSingleDosha,
+    getAllDoshas
 };
 
 
