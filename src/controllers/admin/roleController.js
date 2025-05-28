@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { Admin } = require('../../models');
 const { getCurrentIST } = require('../../utils/timeUtils');
-const {ApiError} = require('../../errorHandler');
+const { ApiError } = require('../../errorHandler');
 const { getFileUploader, deleteFile } = require('../../middlewares');
 
 // Multer setup for profile image upload
@@ -184,7 +184,6 @@ const updateSubAdminStatus = async (req, res, next) => {
         next(error);
     }
 };
-
 
 module.exports = {
     createSubAdmin,

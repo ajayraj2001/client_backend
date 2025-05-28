@@ -1,4 +1,5 @@
 const apiClient = require('../../utils/appClient');
+const axios = require('axios');
 
 const BASE_URL = 'https://api.vedicastroapi.com/v3-json/dosha';
 
@@ -82,5 +83,51 @@ exports.getSingleDosha = async (req, res) => {
         res.status(500).json({ error: 'Something went wrong' });
     }
 };
+
+const getCombinedDoshas = async (req, res) => {
+    try {
+        const { dob, tob, lat, lon, tz, lang = 'en' } = req.query;
+        const apiKey = process.env.VEDIC_ASTRO_API_KEY;
+
+        if (!dob || !tob || !lat || !lon || !tz) {
+            return res.status(400).json({ message: 'Missing required query parameters.' });
+        }
+
+        const baseURL = 'https://api.vedicastroapi.com/v3-json/dosha';
+        const commonParams = `dob=${dob}&tob=${tob}&lat=${lat}&lon=${lon}&tz=${tz}&api_key=${apiKey}&lang=${lang}`;
+
+        // Prepare all three API requests
+        const mangalURL = `${baseURL}/mangal-dosh?${commonParams}`;
+        const kaalsarpURL = `${baseURL}/kaalsarp-dosh?${commonParams}`;
+        const pitraURL = `${baseURL}/pitra-dosh?${commonParams}`;
+
+        // Parallel requests
+        const [mangalRes, kaalsarpRes, pitraRes] = await Promise.all([
+            axios.get(mangalURL),
+            axios.get(kaalsarpURL),
+            axios.get(pitraURL),
+        ]);
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                mangalDosh: mangalRes.data.response,
+                kaalsarpDosh: kaalsarpRes.data.response,
+                pitraDosh: pitraRes.data.response,
+            },
+        });
+    } catch (err) {
+        console.error('Error fetching doshas:', err?.response?.data || err.message);
+        return res.status(500).json({
+            message: 'Failed to fetch dosha details',
+            error: err?.response?.data || err.message,
+        });
+    }
+};
+
+module.exports = {
+    getCombinedDoshas,
+};
+
 
 
