@@ -10,7 +10,7 @@ const endpoints = {
     pitra: 'pitra-dosh'
 };
 
-fetchAllDoshas = async ({ dob, tob, lat, lon, lang }) => {
+const fetchAllDoshas = async ({ dob, tob, lat, lon, lang }) => {
     const params = {
         dob,
         tob,
@@ -30,7 +30,7 @@ fetchAllDoshas = async ({ dob, tob, lat, lon, lang }) => {
     return Object.assign({}, ...results);
 };
 
-fetchSingleDosha = async ({ type, dob, tob, lat, lon, lang }) => {
+const fetchSingleDosha = async ({ type, dob, tob, lat, lon, lang }) => {
     const endpoint = endpoints[type];
     if (!endpoint) throw new Error('Invalid dosha type');
 
@@ -49,7 +49,7 @@ fetchSingleDosha = async ({ type, dob, tob, lat, lon, lang }) => {
 };
 
 
-getAllDoshas = async (req, res) => {
+const getAllDoshas = async (req, res) => {
     try {
         const { dob, tob, lat, lon, lang = 'en' } = req.query;
         if (!dob || !tob || !lat || !lon) {
@@ -64,7 +64,7 @@ getAllDoshas = async (req, res) => {
     }
 };
 
-getSingleDosha = async (req, res) => {
+const getSingleDosha = async (req, res) => {
     try {
         const { type, dob, tob, lat, lon, lang = 'en' } = req.body;
         const validTypes = ['mangal', 'kaalsarp', 'manglik', 'pitra'];
