@@ -34,115 +34,231 @@ const paymentController = {
    * @param {Object} req - Request object
    * @param {Object} res - Response object
    */
+  // createPujaOrder: async (req, res) => {
+  //   const session = await mongoose.startSession();
+  //   session.startTransaction();
+
+  //   try {
+  //     const { pujaId, selectedProducts, pujaDate, customerDetails } = req.body;
+  //     const userId = req.user._id;
+
+  //     // Validate puja exists
+  //     const puja = await Puja.findById(pujaId);
+  //     if (!puja) {
+  //       return res.status(404).json({ success: false, message: 'Puja not found' });
+  //     }
+
+  //     // Check if puja is active
+  //     if (puja.status !== 'Active') {
+  //       return res.status(400).json({ success: false, message: 'This puja is currently unavailable' });
+  //     }
+
+  //     // Calculate puja amount (base price without GST)
+  //     let orderAmount = puja.actualPrice;
+  //     const productDetails = [];
+
+  //     // Process selected products
+  //     // if (selectedProducts && selectedProducts.length > 0) {
+  //     //   // Get all product IDs
+  //     //   const productIds = selectedProducts.map(item => item.productId);
+
+  //     //   // Fetch all products in one query
+  //     //   const products = await Product.find({
+  //     //     _id: { $in: productIds },
+  //     //     status: 'Active'
+  //     //   });
+
+  //     //   // Create a map for quick lookups
+  //     //   const productMap = products.reduce((map, product) => {
+  //     //     map[product._id.toString()] = product;
+  //     //     return map;
+  //     //   }, {});
+
+  //     //   // Calculate product amounts and validate
+  //     //   for (const item of selectedProducts) {
+  //     //     const product = productMap[item.productId];
+
+  //     //     if (!product) {
+  //     //       return res.status(404).json({
+  //     //         success: false,
+  //     //         message: `Product with ID ${item.productId} not found or is inactive`
+  //     //       });
+  //     //     }
+
+  //     //     const itemTotal = product.actualPrice * item.quantity;
+  //     //     orderAmount += itemTotal;
+
+  //     //     productDetails.push({
+  //     //       productId: product._id,
+  //     //       quantity: item.quantity,
+  //     //       price: product.actualPrice,
+  //     //       isCompulsory: puja.compulsoryProducts.includes(product._id)
+  //     //     });
+  //     //   }
+  //     // }
+
+  //     // // Validate compulsory products are included
+  //     // if (puja.compulsoryProducts && puja.compulsoryProducts.length > 0) {
+  //     //   const selectedProductIds = productDetails.map(p => p.productId.toString());
+
+  //     //   const missingCompulsoryProducts = puja.compulsoryProducts.filter(
+  //     //     id => !selectedProductIds.includes(id.toString())
+  //     //   );
+
+  //     //   if (missingCompulsoryProducts.length > 0) {
+  //     //     return res.status(400).json({
+  //     //       success: false,
+  //     //       message: 'All compulsory products must be included',
+  //     //       missingProducts: missingCompulsoryProducts
+  //     //     });
+  //     //   }
+  //     // }
+
+  //     // Calculate GST (18% of base amount)
+  //     const gstAmount = Math.round(orderAmount * 0.18);
+
+  //     // Calculate total amount (base + GST)
+  //     const totalAmount = orderAmount + gstAmount;
+
+  //     // No shipping charges for pujas
+  //     const shippingCharges = 0;
+
+  //     // Create Razorpay order
+  //     const receiptId = generateReceiptId();
+  //     const razorpayOrder = await razorpay.orders.create({
+  //       amount: totalAmount * 100, // Convert to paisa
+  //       currency: 'INR',
+  //       receipt: receiptId,
+  //       notes: {
+  //         userId: userId.toString(),
+  //         pujaId: pujaId,
+  //         type: 'PUJA_TRANSACTION'
+  //       }
+  //     });
+
+  //     // Create transaction record
+  //     const transaction = new PujaTransaction({
+  //       userId,
+  //       totalAmount,
+  //       orderAmount,
+  //       gstAmount,
+  //       shippingCharges,
+  //       receiptId,
+  //       pujaName: puja.title,
+  //       orderId: razorpayOrder.id,
+  //       paymentId: '',
+  //       status: 'INITIATED',
+  //       discountAmount: 0,
+  //       couponCode: '',
+  //       pujaId,
+  //       // pujaDate: new Date(pujaDate),
+  //       pujaDate: pujaDate,
+  //       // selectedProducts: productDetails,
+  //       customerDetails,
+  //       initiatedAt: getCurrentIST(),
+  //       isPaymentAttempted: false // Default - will be updated when payment is attempted
+  //     });
+
+  //     await transaction.save({ session });
+  //     await session.commitTransaction();
+
+  //     return res.status(200).json({
+  //       success: true,
+  //       order: razorpayOrder.id,
+  //       transactionId: transaction._id,
+  //       key: process.env.RAZORPAY_KEY_ID,
+  //       orderSummary: {
+  //         orderAmount,
+  //         gstAmount,
+  //         totalAmount
+  //       }
+  //     });
+
+  //   } catch (error) {
+  //     await session.abortTransaction();
+  //     console.error('Error creating puja order:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Error creating order',
+  //       error: error.message
+  //     });
+  //   } finally {
+  //     session.endSession();
+  //   }
+  // },
+
+
   createPujaOrder: async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      const { pujaId, selectedProducts, pujaDate, customerDetails } = req.body;
+      const { pujaId, packageId, selectedOfferings = [], pujaDate, customerDetails = [] } = req.body;
       const userId = req.user._id;
 
-      // Validate puja exists
       const puja = await Puja.findById(pujaId);
       if (!puja) {
         return res.status(404).json({ success: false, message: 'Puja not found' });
       }
 
-      // Check if puja is active
       if (puja.status !== 'Active') {
         return res.status(400).json({ success: false, message: 'This puja is currently unavailable' });
       }
 
-      // Calculate puja amount (base price without GST)
-      let orderAmount = puja.actualPrice;
-      const productDetails = [];
+      // 1. Find selected package by ID
+      const selectedPackage = puja.packages.find(p => p._id.toString() === packageId);
+      if (!selectedPackage) {
+        return res.status(400).json({ success: false, message: 'Invalid package selected' });
+      }
 
-      // Process selected products
-      // if (selectedProducts && selectedProducts.length > 0) {
-      //   // Get all product IDs
-      //   const productIds = selectedProducts.map(item => item.productId);
+      let orderAmount = selectedPackage.price;
 
-      //   // Fetch all products in one query
-      //   const products = await Product.find({
-      //     _id: { $in: productIds },
-      //     status: 'Active'
-      //   });
+      // 2. Process offerings by IDs
+      const offeringMap = puja.offerings.reduce((map, offering) => {
+        map[offering._id.toString()] = offering;
+        return map;
+      }, {});
 
-      //   // Create a map for quick lookups
-      //   const productMap = products.reduce((map, product) => {
-      //     map[product._id.toString()] = product;
-      //     return map;
-      //   }, {});
+      const selectedOfferingDetails = [];
+      for (const offeringId of selectedOfferings) {
+        const offering = offeringMap[offeringId];
+        if (!offering) {
+          return res.status(400).json({ success: false, message: `Offering with ID "${offeringId}" not found` });
+        }
 
-      //   // Calculate product amounts and validate
-      //   for (const item of selectedProducts) {
-      //     const product = productMap[item.productId];
+        selectedOfferingDetails.push({
+          id: offering._id,
+          header: offering.header,
+          headerHindi: offering.headerHindi || '',
+          price: offering.price || 0,
+          image: offering.image || ''
+        });
 
-      //     if (!product) {
-      //       return res.status(404).json({
-      //         success: false,
-      //         message: `Product with ID ${item.productId} not found or is inactive`
-      //       });
-      //     }
+        orderAmount += offering.price || 0;
+      }
 
-      //     const itemTotal = product.actualPrice * item.quantity;
-      //     orderAmount += itemTotal;
-
-      //     productDetails.push({
-      //       productId: product._id,
-      //       quantity: item.quantity,
-      //       price: product.actualPrice,
-      //       isCompulsory: puja.compulsoryProducts.includes(product._id)
-      //     });
-      //   }
-      // }
-
-      // // Validate compulsory products are included
-      // if (puja.compulsoryProducts && puja.compulsoryProducts.length > 0) {
-      //   const selectedProductIds = productDetails.map(p => p.productId.toString());
-
-      //   const missingCompulsoryProducts = puja.compulsoryProducts.filter(
-      //     id => !selectedProductIds.includes(id.toString())
-      //   );
-
-      //   if (missingCompulsoryProducts.length > 0) {
-      //     return res.status(400).json({
-      //       success: false,
-      //       message: 'All compulsory products must be included',
-      //       missingProducts: missingCompulsoryProducts
-      //     });
-      //   }
-      // }
-
-      // Calculate GST (18% of base amount)
+      // 3. GST and total
       const gstAmount = Math.round(orderAmount * 0.18);
-
-      // Calculate total amount (base + GST)
       const totalAmount = orderAmount + gstAmount;
-
-      // No shipping charges for pujas
-      const shippingCharges = 0;
-
-      // Create Razorpay order
       const receiptId = generateReceiptId();
+
       const razorpayOrder = await razorpay.orders.create({
-        amount: totalAmount * 100, // Convert to paisa
+        amount: totalAmount * 100,
         currency: 'INR',
         receipt: receiptId,
         notes: {
           userId: userId.toString(),
-          pujaId: pujaId,
+          pujaId,
           type: 'PUJA_TRANSACTION'
         }
       });
 
-      // Create transaction record
+      // 4. Save transaction
       const transaction = new PujaTransaction({
         userId,
         totalAmount,
         orderAmount,
         gstAmount,
-        shippingCharges,
         receiptId,
         pujaName: puja.title,
         orderId: razorpayOrder.id,
@@ -151,12 +267,17 @@ const paymentController = {
         discountAmount: 0,
         couponCode: '',
         pujaId,
-        // pujaDate: new Date(pujaDate),
-        pujaDate: pujaDate,
-        // selectedProducts: productDetails,
+        pujaDate,
         customerDetails,
         initiatedAt: getCurrentIST(),
-        isPaymentAttempted: false // Default - will be updated when payment is attempted
+        isPaymentAttempted: false,
+        package: {
+          id: selectedPackage._id,
+          type: selectedPackage.type,
+          price: selectedPackage.price,
+          members: selectedPackage.members
+        },
+        selectedOfferings: selectedOfferingDetails
       });
 
       await transaction.save({ session });

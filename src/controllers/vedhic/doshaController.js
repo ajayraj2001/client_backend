@@ -48,7 +48,6 @@ const fetchSingleDosha = async ({ type, dob, tob, lat, lon, lang }) => {
     return result;
 };
 
-
 const getAllDoshas = async (req, res) => {
     try {
         const { dob, tob, lat, lon, lang = 'en' } = req.query;
