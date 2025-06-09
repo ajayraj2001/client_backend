@@ -229,9 +229,7 @@ const paymentController = {
         selectedOfferingDetails.push({
           id: offering._id,
           header: offering.header,
-          headerHindi: offering.headerHindi || '',
           price: offering.price || 0,
-          image: offering.image || ''
         });
 
         orderAmount += offering.price || 0;
