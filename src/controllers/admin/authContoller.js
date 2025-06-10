@@ -358,10 +358,14 @@ const getAdminDashboardChartData = async (req, res, next) => {
         let matchQuery = {
             $expr: {
                 $and: [
-                    { $gte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } }, 
-                            moment(startDate).format('YYYY-MM-DD')] },
-                    { $lte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } }, 
-                            moment(endDate).format('YYYY-MM-DD')] }
+                    {
+                        $gte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+                        moment(startDate).format('YYYY-MM-DD')]
+                    },
+                    {
+                        $lte: [{ $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+                        moment(endDate).format('YYYY-MM-DD')]
+                    }
                 ]
             }
         };
@@ -373,7 +377,7 @@ const getAdminDashboardChartData = async (req, res, next) => {
         };
 
         let dateMap = {};
-        
+
         if (isYearly) {
             for (let i = 0; i < 12; i++) {
                 let month = moment().month(i).format('MMMM');
@@ -385,7 +389,7 @@ const getAdminDashboardChartData = async (req, res, next) => {
         } else {
             let currentDate = moment(startDate).startOf('day');
             const endMoment = moment(endDate).startOf('day');
-            
+
             while (currentDate.isSameOrBefore(endMoment, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
                 dateMap[dateStr] = {
@@ -523,7 +527,7 @@ const getAdminDashboardChartData = async (req, res, next) => {
 //         };
 
 //         let dateMap = {};
-        
+
 //         if (isYearly) {
 //             for (let i = 0; i < 12; i++) {
 //                 let month = moment().month(i).format('MMMM');
