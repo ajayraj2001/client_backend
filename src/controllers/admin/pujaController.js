@@ -353,6 +353,9 @@ const updatePuja = async (req, res, next) => {
         pujaDate
       } = req.body;
 
+      console.log('offerings', req.body.offerings)
+      console.log('req.file', req.file)
+
       const existingPuja = await Puja.findById(id);
       if (!existingPuja) throw new ApiError('Puja not found', 404);
 
