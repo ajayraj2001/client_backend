@@ -163,7 +163,7 @@ const pujaSchema = new Schema({
         {
             type: {
                 type: String,
-                enum: ['Individual', 'Family', 'Joint Family'],
+                // enum: ['Individual', 'Family', 'Joint Family'],
                 required: true,
             },
             price: {
