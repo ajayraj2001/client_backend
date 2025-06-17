@@ -244,6 +244,11 @@ const createPuja = async (req, res, next) => {
         pujaDate
       } = req.body;
 
+      console.log('rq.file at top', req.body.packages)
+      console.log('rq.file at bottom', req.body.isPopular)
+      console.log('offerings', req.body.offerings)
+      console.log('req.file', req.files)
+
       const finalSlug = slug || slugify(title, { lower: true, strict: true });
 
       const existing = await Puja.findOne({ slug: finalSlug });
@@ -357,7 +362,7 @@ const updatePuja = async (req, res, next) => {
       console.log('rq.file at top', req.body.packages)
       console.log('rq.file at bottom', req.body.isPopular)
       console.log('offerings', req.body.offerings)
-      console.log('req.file', req.file)
+      console.log('req.file', req.files)
 
       const existingPuja = await Puja.findById(id);
       if (!existingPuja) throw new ApiError('Puja not found', 404);
