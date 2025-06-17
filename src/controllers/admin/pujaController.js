@@ -495,7 +495,6 @@ const getAllPujas = async (req, res, next) => {
   try {
     const pujas = await Puja.find({})
       .sort({ _id: -1 })
-      .populate('compulsoryProducts.productId optionalProducts.productId');
 
     return res.status(200).json({
       success: true,
