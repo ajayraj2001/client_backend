@@ -199,6 +199,7 @@ const pujaSchema = new Schema({
             headerHindi: { type: String, default: '' },
             description: { type: String, required: true },
             descriptionHindi: { type: String, default: '' },
+            price: { type: String, default: '0' },
             image: { type: String, default: '' } // image path for the offering
         }
     ],

@@ -11,7 +11,7 @@ const {
 const { authenticateAdmin } = require('../../middlewares');
 
 // Create a new puja
-router.post('/', authenticateAdmin, createPuja);
+router.post('/', createPuja);
 
 // Update a puja
 router.put('/:id', authenticateAdmin, updatePuja);
