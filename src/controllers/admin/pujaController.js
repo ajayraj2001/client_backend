@@ -221,7 +221,7 @@ const createPuja = async (req, res, next) => {
 
     let pujaImagePath = '';
     let bannerImagePaths = [];
-
+    console.log('yuhhhjhjkh', req.body)
     try {
       const {
         title,
@@ -309,6 +309,7 @@ const createPuja = async (req, res, next) => {
       });
 
     } catch (error) {
+      console.log('ereore', error)
       if (pujaImagePath) await deleteFile(pujaImagePath);
       if (bannerImagePaths.length > 0) {
         await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
