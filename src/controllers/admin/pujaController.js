@@ -296,7 +296,7 @@ const createPuja = async (req, res, next) => {
         // isRecurring: parsedBoolean,
         pujaImage: pujaImagePath,
         bannerImages: bannerImagePaths,
-        benefits: benifits ? JSON.parse(benefits) : [],
+        benefits: benefits ? JSON.parse(benefits) : [],
         pujaProcess: pujaProcess ? JSON.parse(pujaProcess) : [],
         faq: faq ? JSON.parse(faq) : [],
         packages: packages ? JSON.parse(packages) : [],
