@@ -350,7 +350,6 @@ const updatePuja = async (req, res, next) => {
         status,
         displayedPrice,
         actualPrice,
-        // isRecurring,
         pujaDate
       } = req.body;
 

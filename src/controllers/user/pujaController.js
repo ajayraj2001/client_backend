@@ -111,9 +111,9 @@ const getAllPujas = async (req, res, next) => {
 const getPujaBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
-    const lang = req.query.lang || 'en'; // default to English
+    const lang = req.query.lang || 'en';
 
-    const puja = await Puja.findOne({ slug })
+    const puja = await Puja.findOne({ slug });
 
     if (!puja) {
       throw new ApiError('Puja not found', 404);
@@ -139,9 +139,8 @@ const getPujaBySlug = async (req, res, next) => {
       location: getField(puja.location, puja.locationHindi),
       aboutPuja: getField(puja.aboutPuja, puja.aboutPujaHindi),
       shortDescription: getField(puja.shortDescription, puja.shortDescriptionHindi),
-      compulsoryProducts: puja.compulsoryProducts,
-      optionalProducts: puja.optionalProducts,
       isPopular: puja.isPopular,
+      status: puja.status,
       packages: puja.packages,
       benefits: puja.benefits.map(b => ({
         header: getField(b.header, b.headerHindi),
@@ -156,6 +155,12 @@ const getPujaBySlug = async (req, res, next) => {
         question: getField(f.question, f.questionHindi),
         answer: getField(f.answer, f.answerHindi)
       })),
+      offerings: puja.offerings.map(o => ({
+        header: getField(o.header, o.headerHindi),
+        description: getField(o.description, o.descriptionHindi),
+        price: o.price,
+        image: o.image
+      }))
     };
 
     return res.status(200).json({
@@ -170,7 +175,6 @@ const getPujaBySlug = async (req, res, next) => {
     next(error);
   }
 };
-
 
 
 
