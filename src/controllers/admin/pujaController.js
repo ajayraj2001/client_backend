@@ -221,7 +221,7 @@ const createPuja = async (req, res, next) => {
 
     let pujaImagePath = '';
     let bannerImagePaths = [];
-    console.log('yuhhhjhjkh', req.body)
+    console.log('create ', req.body)
     try {
       const {
         title,
@@ -244,9 +244,9 @@ const createPuja = async (req, res, next) => {
         pujaDate
       } = req.body;
 
-      console.log('rq.file at top', req.body.packages)
-      console.log('rq.file at bottom', req.body.isPopular)
-      console.log('offerings', req.body.offerings)
+      console.log('rq.create at top', req.body.packages)
+      console.log('rq.create at bottom', req.body.isPopular)
+      console.log('create offerings', req.body.offerings)
       console.log('req.file', req.files)
 
       const finalSlug = slug || slugify(title, { lower: true, strict: true });
