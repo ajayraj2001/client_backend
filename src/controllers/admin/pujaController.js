@@ -511,7 +511,7 @@ const getPujaById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const puja = await Puja.findById(id).populate('compulsoryProducts.productId optionalProducts.productId');
+    const puja = await Puja.findById(id);
     if (!puja) {
       throw new ApiError('Puja not found', 404);
     }
