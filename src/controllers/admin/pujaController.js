@@ -377,9 +377,9 @@ const updatePuja = async (req, res, next) => {
       }
 
       // isPopular fallback logic
-      const isPopular = req.body.hasOwnProperty('isPopular')
-        ? req.body.isPopular === 'true'
-        : existingPuja.isPopular;
+      // const isPopular = req.body.hasOwnProperty('isPopular')
+      //   ? req.body.isPopular === 'true'
+      //   : existingPuja.isPopular;
 
       // const parsedBoolean = isRecurring === 'true';
       // const finalDate = parsedBoolean ? null : pujaDate || existingPuja.pujaDate;
@@ -435,7 +435,7 @@ const updatePuja = async (req, res, next) => {
         actualPrice: actualPrice || existingPuja.actualPrice,
         status: status || existingPuja.status,
         // isRecurring: parsedBoolean,
-        isPopular,
+        isPopular: 'isPopular' in req.body ? req.body.isPopular === 'true' : existingPuja.isPopular,
         pujaImage: pujaImagePath || existingPuja.pujaImage,
         bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
         benefits: benefits ? JSON.parse(benefits) : existingPuja.benefits,
