@@ -325,6 +325,148 @@ const createPuja = async (req, res, next) => {
 };
 
 
+// const updatePuja = async (req, res, next) => {
+//   uploadPujaFiles(req, res, async (err) => {
+//     if (err) {
+//       console.error('Multer Error:', err);
+//       return next(new ApiError(err.message, 400));
+//     }
+
+//     let pujaImagePath = '';
+//     let bannerImagePaths = [];
+
+//     try {
+//       const { id } = req.params;
+
+//       const {
+//         title,
+//         titleHindi,
+//         slug,
+//         aboutPuja,
+//         aboutPujaHindi,
+//         shortDescription,
+//         shortDescriptionHindi,
+//         location,
+//         locationHindi,
+//         benefits,
+//         pujaProcess,
+//         faq,
+//         packages,
+//         status,
+//         displayedPrice,
+//         actualPrice,
+//         pujaDate
+//       } = req.body;
+
+
+//       console.log('rq.file at top', req.body.packages)
+//       console.log('rq.file at bottom', req.body.isPopular)
+//       console.log('offerings', req.body.offerings)
+//       console.log('req.file', req.files)
+
+//       const existingPuja = await Puja.findById(id);
+//       if (!existingPuja) throw new ApiError('Puja not found', 404);
+
+//       let finalSlug = slug || existingPuja.slug;
+//       if (slug && slug !== existingPuja.slug) {
+//         finalSlug = slugify(slug, { lower: true, strict: true });
+//         const duplicate = await Puja.findOne({ slug: finalSlug, _id: { $ne: id } });
+//         if (duplicate) {
+//           return next(new ApiError('Slug already exists, choose a unique one', 400));
+//         }
+//       }
+
+//       if (req.files?.pujaImage) {
+//         pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
+//       }
+//       if (req.files?.bannerImages) {
+//         bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
+//       }
+
+
+//       let updatedOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
+
+//       const oldOfferings = existingPuja.offerings || [];
+//       const offeringImages = req.files?.offeringsImages || [];
+
+//       // Loop through updated offerings
+//       updatedOfferings = await Promise.all(
+//         updatedOfferings.map(async (offering, index) => {
+//           const oldOffering = oldOfferings[index];
+//           const newImageFile = offeringImages[index];
+
+//           // If a new image is uploaded
+//           if (newImageFile) {
+//             // Delete the old image if it exists
+//             if (oldOffering && oldOffering.image) {
+//               await deleteFile(oldOffering.image);
+//             }
+//             offering.image = `/puja_offerings/${newImageFile.filename}`;
+//           } else {
+//             // If no new image, retain old image if exists
+//             offering.image = oldOffering?.image || '';
+//           }
+
+//           return offering;
+//         })
+//       );
+
+
+//       const updateData = {
+//         title: title || existingPuja.title,
+//         titleHindi: titleHindi || existingPuja.titleHindi,
+//         slug: finalSlug,
+//         pujaDate: pujaDate || existingPuja.pujaDate,
+//         aboutPuja: aboutPuja || existingPuja.aboutPuja,
+//         aboutPujaHindi: aboutPujaHindi || existingPuja.aboutPujaHindi,
+//         shortDescription: shortDescription || existingPuja.shortDescription,
+//         shortDescriptionHindi: shortDescriptionHindi || existingPuja.shortDescriptionHindi,
+//         location: location || existingPuja.location,
+//         locationHindi: locationHindi || existingPuja.locationHindi,
+//         displayedPrice: displayedPrice || existingPuja.displayedPrice,
+//         actualPrice: actualPrice || existingPuja.actualPrice,
+//         status: status || existingPuja.status,
+//         // isRecurring: parsedBoolean,
+//         isPopular: 'isPopular' in req.body ? req.body.isPopular === 'true' : existingPuja.isPopular,
+//         pujaImage: pujaImagePath || existingPuja.pujaImage,
+//         bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
+//         benefits: benefits ? JSON.parse(benefits) : existingPuja.benefits,
+//         pujaProcess: pujaProcess ? JSON.parse(pujaProcess) : existingPuja.pujaProcess,
+//         faq: faq ? JSON.parse(faq) : existingPuja.faq,
+//         packages: packages ? JSON.parse(packages) : existingPuja.packages,
+//         offerings: updatedOfferings,
+//       };
+
+//       const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true })
+
+//       if (!updatedPuja) throw new ApiError('Error updating puja', 500);
+
+//       if (req.files?.pujaImage && existingPuja.pujaImage) {
+//         await deleteFile(existingPuja.pujaImage);
+//       }
+//       if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
+//         await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
+//       }
+
+//       return res.status(200).json({
+//         success: true,
+//         message: 'Puja updated successfully',
+//         data: updatedPuja,
+//       });
+
+//     } catch (error) {
+//       if (pujaImagePath) await deleteFile(pujaImagePath);
+//       if (bannerImagePaths.length > 0) {
+//         await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
+//       }
+//       next(error);
+//     }
+//   });
+// };
+
+
+// Delete Puja
+
 const updatePuja = async (req, res, next) => {
   uploadPujaFiles(req, res, async (err) => {
     if (err) {
@@ -355,14 +497,8 @@ const updatePuja = async (req, res, next) => {
         status,
         displayedPrice,
         actualPrice,
-        pujaDate
+        pujaDate,
       } = req.body;
-
-
-      console.log('rq.file at top', req.body.packages)
-      console.log('rq.file at bottom', req.body.isPopular)
-      console.log('offerings', req.body.offerings)
-      console.log('req.file', req.files)
 
       const existingPuja = await Puja.findById(id);
       if (!existingPuja) throw new ApiError('Puja not found', 404);
@@ -376,14 +512,6 @@ const updatePuja = async (req, res, next) => {
         }
       }
 
-      // isPopular fallback logic
-      // const isPopular = req.body.hasOwnProperty('isPopular')
-      //   ? req.body.isPopular === 'true'
-      //   : existingPuja.isPopular;
-
-      // const parsedBoolean = isRecurring === 'true';
-      // const finalDate = parsedBoolean ? null : pujaDate || existingPuja.pujaDate;
-
       if (req.files?.pujaImage) {
         pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
       }
@@ -391,27 +519,44 @@ const updatePuja = async (req, res, next) => {
         bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
       }
 
-
+      // === ✅ Offerings Image Handling Logic ===
       let updatedOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
-
       const oldOfferings = existingPuja.offerings || [];
       const offeringImages = req.files?.offeringsImages || [];
 
-      // Loop through updated offerings
-      updatedOfferings = await Promise.all(
-        updatedOfferings.map(async (offering, index) => {
-          const oldOffering = oldOfferings[index];
-          const newImageFile = offeringImages[index];
+      let offeringImageIndex = 0;
 
-          // If a new image is uploaded
-          if (newImageFile) {
-            // Delete the old image if it exists
-            if (oldOffering && oldOffering.image) {
+      // Map old offerings by _id for lookup
+      const oldOfferingMap = {};
+      oldOfferings.forEach(off => {
+        if (off._id) oldOfferingMap[off._id.toString()] = off;
+      });
+
+      // Delete removed offerings' images
+      const updatedIds = updatedOfferings.filter(o => o._id).map(o => o._id.toString());
+      const deletedOfferings = oldOfferings.filter(
+        o => o._id && !updatedIds.includes(o._id.toString())
+      );
+
+      await Promise.all(
+        deletedOfferings.map(async (off) => {
+          if (off.image) await deleteFile(off.image);
+        })
+      );
+
+      // Process and assign offering images
+      updatedOfferings = await Promise.all(
+        updatedOfferings.map(async (offering) => {
+          const oldOffering = offering._id ? oldOfferingMap[offering._id] : null;
+          const hasNewImage = offeringImages[offeringImageIndex];
+
+          if (hasNewImage) {
+            if (oldOffering?.image) {
               await deleteFile(oldOffering.image);
             }
-            offering.image = `/puja_offerings/${newImageFile.filename}`;
+            offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
+            offeringImageIndex++;
           } else {
-            // If no new image, retain old image if exists
             offering.image = oldOffering?.image || '';
           }
 
@@ -419,7 +564,7 @@ const updatePuja = async (req, res, next) => {
         })
       );
 
-
+      // === ✅ Build Final Update Data ===
       const updateData = {
         title: title || existingPuja.title,
         titleHindi: titleHindi || existingPuja.titleHindi,
@@ -434,7 +579,6 @@ const updatePuja = async (req, res, next) => {
         displayedPrice: displayedPrice || existingPuja.displayedPrice,
         actualPrice: actualPrice || existingPuja.actualPrice,
         status: status || existingPuja.status,
-        // isRecurring: parsedBoolean,
         isPopular: 'isPopular' in req.body ? req.body.isPopular === 'true' : existingPuja.isPopular,
         pujaImage: pujaImagePath || existingPuja.pujaImage,
         bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
@@ -445,13 +589,15 @@ const updatePuja = async (req, res, next) => {
         offerings: updatedOfferings,
       };
 
-      const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true })
-
+      const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
       if (!updatedPuja) throw new ApiError('Error updating puja', 500);
 
+      // Delete old puja image if replaced
       if (req.files?.pujaImage && existingPuja.pujaImage) {
         await deleteFile(existingPuja.pujaImage);
       }
+
+      // Delete old banner images if replaced
       if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
         await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
       }
@@ -473,7 +619,6 @@ const updatePuja = async (req, res, next) => {
 };
 
 
-// Delete Puja
 const deletePuja = async (req, res, next) => {
   try {
     const { id } = req.params;
