@@ -14,7 +14,7 @@ const { authenticateAdmin } = require('../../middlewares');
 router.post('/', createPuja);
 
 // Update a puja
-router.put('/:id', authenticateAdmin, updatePuja);
+router.put('/:id', updatePuja);
 
 // Delete a puja
 router.delete('/:id', authenticateAdmin, deletePuja);
