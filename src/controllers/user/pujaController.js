@@ -134,27 +134,63 @@ const getPujaBySlug = async (req, res, next) => {
 const getPujaById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const lang = req.query.lang || 'en';
 
-    // Fetch the puja with populated products
     const puja = await Puja.findById(id)
-      .populate('compulsoryProducts.productId')
-      .populate('optionalProducts.productId');
 
     if (!puja) {
       throw new ApiError('Puja not found', 404);
     }
 
-    // Fetch latest 5 reviews for the puja
-    const reviews = await PujaReview.find({ pujaId: id, status: 'Active' })
-      .populate('userId', 'name profile_img') // Include user info like name/avatar
+    const reviews = await PujaReview.find({ pujaId: puja._id, status: 'Active' })
+      .populate('userId', 'name profile_img')
       .sort({ created_at: -1 })
       .limit(5);
+
+    const getField = (en, hi) => (lang === 'hi' ? hi : en);
+
+    const formatted = {
+      _id: puja._id,
+      title: getField(puja.title, puja.titleHindi),
+      pujaImage: puja.pujaImage,
+      slug: puja.slug,
+      displayedPrice: puja.displayedPrice,
+      actualPrice: puja.actualPrice,
+      rating: puja.rating,
+      bannerImages: puja.bannerImages,
+      pujaDate: puja.pujaDate,
+      location: getField(puja.location, puja.locationHindi),
+      aboutPuja: getField(puja.aboutPuja, puja.aboutPujaHindi),
+      shortDescription: getField(puja.shortDescription, puja.shortDescriptionHindi),
+      isPopular: puja.isPopular,
+      status: puja.status,
+      packages: puja.packages,
+      benefits: puja.benefits.map(b => ({
+        header: getField(b.header, b.headerHindi),
+        description: getField(b.description, b.descriptionHindi)
+      })),
+      pujaProcess: puja.pujaProcess.map(p => ({
+        stepNumber: p.stepNumber,
+        title: getField(p.title, p.titleHindi),
+        description: getField(p.description, p.descriptionHindi)
+      })),
+      faq: puja.faq.map(f => ({
+        question: getField(f.question, f.questionHindi),
+        answer: getField(f.answer, f.answerHindi)
+      })),
+      offerings: puja.offerings.map(o => ({
+        header: getField(o.header, o.headerHindi),
+        description: getField(o.description, o.descriptionHindi),
+        price: o.price,
+        image: o.image
+      }))
+    };
 
     return res.status(200).json({
       success: true,
       message: 'Puja fetched successfully',
       data: {
-        puja,
+        puja: formatted,
         latestReviews: reviews,
       },
     });
