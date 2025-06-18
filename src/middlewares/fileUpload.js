@@ -1,6 +1,6 @@
 const multer = require('multer');
 const fs = require('fs');
-const {ApiError} = require('../errorHandler')
+const { ApiError } = require('../errorHandler')
 
 function getFileUploader(fieldName, publicDirName = '', mimetypes) {
   if (!mimetypes) mimetypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif', 'image/jfif', 'application/octet-stream'];
@@ -12,15 +12,12 @@ function getFileUploader(fieldName, publicDirName = '', mimetypes) {
       cb(null, `public/${publicDirName}`);
     },
     filename: function (req, file, cb) {
-      const { originalname } = file;
-      let fileExt = '.jpeg';
-      const extI = originalname.lastIndexOf('.');
-      if (extI !== -1) {
-        fileExt = originalname.substring(extI).toLowerCase();
-      }
-      const fileName = `${Date.now()}${fileExt}`;
+      const ext = path.extname(file.originalname).toLowerCase();
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      const fileName = `${file.fieldname}-${uniqueSuffix}${ext}`;
+      console.log(`Generated filename for ${file.originalname}: ${fileName}`);
       cb(null, fileName);
-    },
+    }
   });
   const upload = multer({
     storage: storage,
@@ -34,4 +31,4 @@ function getFileUploader(fieldName, publicDirName = '', mimetypes) {
   return upload;
 }
 
-module.exports = {getFileUploader};
+module.exports = { getFileUploader };
