@@ -18,6 +18,7 @@ const deleteFile = (filePath) => {
     const normalizedFilePath = filePath.startsWith('/') ? filePath.slice(1) : filePath; // Remove leading slash
     const fullPath = path.join(BASE_PATH, 'public', normalizedFilePath); // Construct the full path based on the base path
 
+    console.log('fullpath', fullPath)
     fs.access(fullPath, fs.constants.F_OK, (err) => {
       if (err) {
         console.log('File does not exist:', fullPath); // Log if file does not exist
@@ -36,4 +37,4 @@ const deleteFile = (filePath) => {
   });
 };
 
-module.exports = {deleteFile};
+module.exports = { deleteFile };
