@@ -553,73 +553,73 @@ const updatePuja = async (req, res, next) => {
           const hasNewImage = offeringImages[offeringImageIndex];
 
           console.log('hey udyud', hasNewImage, 'valeus if ghe ', offeringImageIndex)
-          console.log('hey syaduahs shrikant', offeringImages[offeringImageIndex];)
+          console.log('hey syaduahs shrikant', offeringImages[offeringImageIndex])
 
           if (hasNewImage) {
-        if (oldOffering?.image) {
-          await deleteFile(oldOffering.image);
-        }
-        offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
-        offeringImageIndex++;
-      } else {
-        offering.image = oldOffering?.image || '';
-      }
+            if (oldOffering?.image) {
+              await deleteFile(oldOffering.image);
+            }
+            offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
+            offeringImageIndex++;
+          } else {
+            offering.image = oldOffering?.image || '';
+          }
 
-      return offering;
-    })
+          return offering;
+        })
       );
 
-// === ✅ Build Final Update Data ===
-const updateData = {
-  title: title || existingPuja.title,
-  titleHindi: titleHindi || existingPuja.titleHindi,
-  slug: finalSlug,
-  pujaDate: pujaDate || existingPuja.pujaDate,
-  aboutPuja: aboutPuja || existingPuja.aboutPuja,
-  aboutPujaHindi: aboutPujaHindi || existingPuja.aboutPujaHindi,
-  shortDescription: shortDescription || existingPuja.shortDescription,
-  shortDescriptionHindi: shortDescriptionHindi || existingPuja.shortDescriptionHindi,
-  location: location || existingPuja.location,
-  locationHindi: locationHindi || existingPuja.locationHindi,
-  displayedPrice: displayedPrice || existingPuja.displayedPrice,
-  actualPrice: actualPrice || existingPuja.actualPrice,
-  status: status || existingPuja.status,
-  isPopular: 'isPopular' in req.body ? req.body.isPopular === 'true' : existingPuja.isPopular,
-  pujaImage: pujaImagePath || existingPuja.pujaImage,
-  bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
-  benefits: benefits ? JSON.parse(benefits) : existingPuja.benefits,
-  pujaProcess: pujaProcess ? JSON.parse(pujaProcess) : existingPuja.pujaProcess,
-  faq: faq ? JSON.parse(faq) : existingPuja.faq,
-  packages: packages ? JSON.parse(packages) : existingPuja.packages,
-  offerings: updatedOfferings,
-};
+      // === ✅ Build Final Update Data ===
+      const updateData = {
+        title: title || existingPuja.title,
+        titleHindi: titleHindi || existingPuja.titleHindi,
+        slug: finalSlug,
+        pujaDate: pujaDate || existingPuja.pujaDate,
+        aboutPuja: aboutPuja || existingPuja.aboutPuja,
+        aboutPujaHindi: aboutPujaHindi || existingPuja.aboutPujaHindi,
+        shortDescription: shortDescription || existingPuja.shortDescription,
+        shortDescriptionHindi: shortDescriptionHindi || existingPuja.shortDescriptionHindi,
+        location: location || existingPuja.location,
+        locationHindi: locationHindi || existingPuja.locationHindi,
+        displayedPrice: displayedPrice || existingPuja.displayedPrice,
+        actualPrice: actualPrice || existingPuja.actualPrice,
+        status: status || existingPuja.status,
+        isPopular: 'isPopular' in req.body ? req.body.isPopular === 'true' : existingPuja.isPopular,
+        pujaImage: pujaImagePath || existingPuja.pujaImage,
+        bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingPuja.bannerImages,
+        benefits: benefits ? JSON.parse(benefits) : existingPuja.benefits,
+        pujaProcess: pujaProcess ? JSON.parse(pujaProcess) : existingPuja.pujaProcess,
+        faq: faq ? JSON.parse(faq) : existingPuja.faq,
+        packages: packages ? JSON.parse(packages) : existingPuja.packages,
+        offerings: updatedOfferings,
+      };
 
-const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
-if (!updatedPuja) throw new ApiError('Error updating puja', 500);
+      const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
+      if (!updatedPuja) throw new ApiError('Error updating puja', 500);
 
-// Delete old puja image if replaced
-if (req.files?.pujaImage && existingPuja.pujaImage) {
-  await deleteFile(existingPuja.pujaImage);
-}
+      // Delete old puja image if replaced
+      if (req.files?.pujaImage && existingPuja.pujaImage) {
+        await deleteFile(existingPuja.pujaImage);
+      }
 
-// Delete old banner images if replaced
-if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
-  await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
-}
+      // Delete old banner images if replaced
+      if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
+        await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
+      }
 
-return res.status(200).json({
-  success: true,
-  message: 'Puja updated successfully',
-  data: updatedPuja,
-});
+      return res.status(200).json({
+        success: true,
+        message: 'Puja updated successfully',
+        data: updatedPuja,
+      });
 
     } catch (error) {
-  if (pujaImagePath) await deleteFile(pujaImagePath);
-  if (bannerImagePaths.length > 0) {
-    await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
-  }
-  next(error);
-}
+      if (pujaImagePath) await deleteFile(pujaImagePath);
+      if (bannerImagePaths.length > 0) {
+        await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
+      }
+      next(error);
+    }
   });
 };
 
