@@ -497,7 +497,7 @@ const updatePuja = async (req, res, next) => {
         status,
         displayedPrice,
         actualPrice,
-        pujaDate,
+        pujaDate
       } = req.body;
 
       const existingPuja = await Puja.findById(id);
@@ -512,64 +512,70 @@ const updatePuja = async (req, res, next) => {
         }
       }
 
+      // Handle image paths
       if (req.files?.pujaImage) {
         pujaImagePath = `/puja_images/${req.files.pujaImage[0].filename}`;
       }
+
       if (req.files?.bannerImages) {
         bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
       }
 
-      console.log('req/files_puja cbadn', req.files)
-
-      // === ✅ Offerings Image Handling Logic ===
-      let updatedOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
+      // === Offerings Logic ===
+      const newOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
       const oldOfferings = existingPuja.offerings || [];
       const offeringImages = req.files?.offeringsImages || [];
 
-      let offeringImageIndex = 0;
-
-      // Map old offerings by _id for lookup
+      // Create map of old offerings by _id for quick lookup
       const oldOfferingMap = {};
-      oldOfferings.forEach(off => {
-        if (off._id) oldOfferingMap[off._id.toString()] = off;
+      oldOfferings.forEach(o => {
+        if (o._id) oldOfferingMap[o._id.toString()] = o;
       });
 
-      // Delete removed offerings' images
-      const updatedIds = updatedOfferings.filter(o => o._id).map(o => o._id.toString());
-      const deletedOfferings = oldOfferings.filter(
-        o => o._id && !updatedIds.includes(o._id.toString())
-      );
+      let offeringImageIndex = 0;
 
-      await Promise.all(
-        deletedOfferings.map(async (off) => {
-          if (off.image) await deleteFile(off.image);
-        })
-      );
+      const updatedOfferings = await Promise.all(
+        newOfferings.map(async (offering) => {
+          const existing = offering._id ? oldOfferingMap[offering._id] : null;
 
-      // Process and assign offering images
-      updatedOfferings = await Promise.all(
-        updatedOfferings.map(async (offering) => {
-          const oldOffering = offering._id ? oldOfferingMap[offering._id] : null;
-          const hasNewImage = offeringImages[offeringImageIndex];
-
-          console.log('hey udyud', hasNewImage, 'valeus if ghe ', offeringImageIndex)
-          console.log('hey syaduahs shrikant', offeringImages[offeringImageIndex])
-
-          if (hasNewImage) {
-            if (oldOffering?.image) {
-              await deleteFile(oldOffering.image);
+          // New offering (no _id)
+          if (!offering._id) {
+            if (offeringImages[offeringImageIndex]) {
+              offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
+              offeringImageIndex++;
+            } else {
+              offering.image = '';
             }
-            offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
-            offeringImageIndex++;
-          } else {
-            offering.image = oldOffering?.image || '';
+          }
+
+          // Existing offering
+          else {
+            if (offeringImages[offeringImageIndex]) {
+              if (existing?.image) await deleteFile(existing.image);
+              offering.image = `/puja_offerings/${offeringImages[offeringImageIndex].filename}`;
+              offeringImageIndex++;
+            } else {
+              offering.image = existing?.image || '';
+            }
           }
 
           return offering;
         })
       );
 
-      // === ✅ Build Final Update Data ===
+      // Delete any old offering not present in the updated list
+      const updatedIds = newOfferings.map(o => o._id).filter(Boolean);
+      const deletedOldOfferings = oldOfferings.filter(
+        old => !updatedIds.includes(old._id.toString())
+      );
+
+      await Promise.all(deletedOldOfferings.map(async (deleted) => {
+        if (deleted.image) {
+          await deleteFile(deleted.image);
+        }
+      }));
+
+      // === Final Data ===
       const updateData = {
         title: title || existingPuja.title,
         titleHindi: titleHindi || existingPuja.titleHindi,
@@ -597,12 +603,12 @@ const updatePuja = async (req, res, next) => {
       const updatedPuja = await Puja.findByIdAndUpdate(id, updateData, { new: true });
       if (!updatedPuja) throw new ApiError('Error updating puja', 500);
 
-      // Delete old puja image if replaced
+      // Delete replaced puja image
       if (req.files?.pujaImage && existingPuja.pujaImage) {
         await deleteFile(existingPuja.pujaImage);
       }
 
-      // Delete old banner images if replaced
+      // Delete replaced banner images
       if (req.files?.bannerImages && existingPuja.bannerImages.length > 0) {
         await Promise.all(existingPuja.bannerImages.map(path => deleteFile(path)));
       }
