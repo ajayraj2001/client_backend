@@ -111,6 +111,7 @@ const getPujaBySlug = async (req, res, next) => {
         answer: getField(f.answer, f.answerHindi)
       })),
       offerings: puja.offerings.map(o => ({
+        _id: o._id,
         header: getField(o.header, o.headerHindi),
         description: getField(o.description, o.descriptionHindi),
         price: o.price,
