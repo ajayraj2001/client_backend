@@ -287,7 +287,7 @@ const paymentController = {
         transactionId: transaction._id,
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {
-          orderAmount,
+          orderAmount: selectedPackage.price,
           totalAmount
         }
       });
