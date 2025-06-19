@@ -519,6 +519,8 @@ const updatePuja = async (req, res, next) => {
         bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
       }
 
+      console.log('req/files_puja cbadn', req.files)
+
       // === ✅ Offerings Image Handling Logic ===
       let updatedOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
       const oldOfferings = existingPuja.offerings || [];
