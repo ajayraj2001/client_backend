@@ -189,9 +189,9 @@ const paymentController = {
 
 
   createPujaOrder: async (req, res) => {
+    console.log('hi jkaan')
     const session = await mongoose.startSession();
     session.startTransaction();
-
     try {
       const { pujaId, packageId, selectedOfferings = [], customerDetails = [] } = req.body;
       const userId = req.user._id;
@@ -229,10 +229,10 @@ const paymentController = {
         selectedOfferingDetails.push({
           id: offering._id,
           header: offering.header,
-          price: offering.price || 0,
+          price: Number(offering.price) || 0,
         });
 
-        orderAmount += offering.price || 0;
+        orderAmount += Number(offering.price) || 0;
       }
 
       // 3. GST and total
@@ -288,7 +288,6 @@ const paymentController = {
         key: process.env.RAZORPAY_KEY_ID,
         orderSummary: {
           orderAmount,
-          gstAmount,
           totalAmount
         }
       });
