@@ -19,10 +19,10 @@ const baseTransactionSchema = {
     type: Number,
     required: true
   },
-  gstAmount: {
-    type: Number,
-    required: true
-  },
+  // gstAmount: {
+  //   type: Number,
+  //   required: true
+  // },
   receiptId: {
     type: String,
     default: ''

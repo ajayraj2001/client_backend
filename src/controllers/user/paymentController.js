@@ -193,7 +193,7 @@ const paymentController = {
     session.startTransaction();
 
     try {
-      const { pujaId, packageId, selectedOfferings = [], pujaDate, customerDetails = [] } = req.body;
+      const { pujaId, packageId, selectedOfferings = [], customerDetails = [] } = req.body;
       const userId = req.user._id;
 
       const puja = await Puja.findById(pujaId);
@@ -236,8 +236,8 @@ const paymentController = {
       }
 
       // 3. GST and total
-      const gstAmount = Math.round(orderAmount * 0.18);
-      const totalAmount = orderAmount + gstAmount;
+      // const gstAmount = Math.round(orderAmount * 0.18);
+      const totalAmount = orderAmount;
       const receiptId = generateReceiptId();
 
       const razorpayOrder = await razorpay.orders.create({
@@ -255,8 +255,8 @@ const paymentController = {
       const transaction = new PujaTransaction({
         userId,
         totalAmount,
-        orderAmount,
-        gstAmount,
+        orderAmount: selectedPackage.price,
+        // gstAmount,
         receiptId,
         pujaName: puja.title,
         orderId: razorpayOrder.id,
@@ -265,7 +265,7 @@ const paymentController = {
         discountAmount: 0,
         couponCode: '',
         pujaId,
-        pujaDate,
+        pujaDate: puja.pujaDate,
         customerDetails,
         initiatedAt: getCurrentIST(),
         isPaymentAttempted: false,
