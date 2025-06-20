@@ -26,6 +26,10 @@ const PujaTransactionSchema = new Schema({
     type: String,
     default: ""
   },
+  location: {
+    type: String,
+    default: ""
+  },
   pujaStatus: {
     type: String,
     enum: ['Pending', 'Completed'],

@@ -19,7 +19,8 @@ router.post('/payment_failure', paymentController.handlePaymentFailure);
 router.get('/check_status/:type/:transactionId', paymentController.checkPaymentStatus);
 
 // Get transaction history
-router.get('/transactions', authenticateUser, paymentController.getTransactionHistory);
+router.get('/puja_transactions', authenticateUser, paymentController.getPujaTransactionHistory);
+router.get('/puja_transaction_details/:transactionId', authenticateUser, paymentController.getPujaTransactionDetails);
 router.get('/getProductDetailsFromOrder/:transactionId/:productInstanceId', authenticateUser, paymentController.getProductDetailsFromOrder);
 router.get('/getPujaDetailsFromOrder/:pujaID', authenticateUser, paymentController.getPujaDetailsFromOrder);
 
