@@ -221,7 +221,7 @@ const createPuja = async (req, res, next) => {
 
     let pujaImagePath = '';
     let bannerImagePaths = [];
-    console.log('create ', req.body)
+
     try {
       const {
         title,
@@ -243,11 +243,6 @@ const createPuja = async (req, res, next) => {
         // isRecurring,
         pujaDate
       } = req.body;
-
-      console.log('rq.create at top', req.body.packages)
-      console.log('rq.create at bottom', req.body.isPopular)
-      console.log('create offerings', req.body.offerings)
-      console.log('req.file', req.files)
 
       const finalSlug = slug || slugify(title, { lower: true, strict: true });
 
@@ -518,8 +513,6 @@ const updatePuja = async (req, res, next) => {
       if (req.files?.bannerImages) {
         bannerImagePaths = req.files.bannerImages.map(file => `/puja_banners/${file.filename}`);
       }
-
-      console.log('req/files_puja cbadn', req.files)
 
       // Parse new offerings
       let newOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];

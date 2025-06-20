@@ -1,19 +1,15 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const { getCurrentIST } = require('../utils/timeUtils'); 
+const { getCurrentIST } = require('../utils/timeUtils');
 
 const bannerSchema = new Schema({
-  link: {
-    type: String,
-    default: '',
-  },
   type: {
     type: String,
     enum: ['app', 'web'], // Only allow 'app' or 'web'
     default: 'app',
   },
   img: {
-    type: String, // Array of image URLs
+    type: String, // Image URL
     default: "",
   },
   status: {
@@ -21,10 +17,24 @@ const bannerSchema = new Schema({
     enum: ['Active', 'Inactive'], // Only allow 'Active' or 'Inactive'
     default: 'Inactive',
   },
+  // New fields for redirect functionality
+  redirectType: {
+    type: String,
+    enum: ['none', 'Puja', 'Product', 'external'], // Redirect types
+    default: 'none',
+  },
+  redirectId: {
+    type: String, // ID of specific puja or product (optional)
+    default: null,
+  },
+  redirectUrl: {
+    type: String, // External URL for external redirect type
+    default: null,
+  },
 }, {
-  timestamps: { 
-    createdAt: 'created_at', 
-    updatedAt: 'updated_at', 
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     currentTime: getCurrentIST, // Use IST for timestamps
   },
 });
