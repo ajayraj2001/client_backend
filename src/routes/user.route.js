@@ -4,6 +4,7 @@ const userRoute = express.Router();
 // Import the separate route files
 const authRoutes = require("./userRoutes/authRoute");
 const dashboardRoutes = require("./userRoutes/dashboardRoute");
+const blogRoutes = require("./userRoutes/blogRoute");
 const astrologerRoutes = require("./userRoutes/astrologerRoute");
 const transactionRoutes = require("./userRoutes/transactionRoute");
 const chatRoutes = require("./userRoutes/chatRoutes");
@@ -20,6 +21,7 @@ const productReviewRoutes = require('./userRoutes/productReview');
 // Use the routes
 userRoute.use("/auth", authRoutes); // For authentication routes
 userRoute.use("/dashboard", dashboardRoutes); // For dashboard routes
+userRoute.use("/blog", blogRoutes); // For dashboard routes
 userRoute.use("/astrologers", astrologerRoutes); // For astrologer routes
 userRoute.use("/transactions", transactionRoutes); // For transaction routes
 userRoute.use("/chat", chatRoutes); // For chat routes

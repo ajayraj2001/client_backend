@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticateAdmin } = require("../../middlewares");
+
 const {
   createBlog,
   updateBlog,
@@ -8,14 +9,14 @@ const {
   getAllBlogs,
   getBlogById,
   updateBlogStatus,
-} = require("../../controllers/admin/blogController");
+  getActiveBlogs,
+} = require('../../controllers/admin/blogController');
 
-// Blog management routes
 router.post('/', authenticateAdmin, createBlog);
+router.get('/:id', authenticateAdmin, getAllBlogs);
+router.get('/:id', authenticateAdmin, getBlogById);
 router.put('/:id', authenticateAdmin, updateBlog);
 router.delete('/:id', authenticateAdmin, deleteBlog);
-router.get('/', authenticateAdmin, getAllBlogs);
-router.get('/:id', authenticateAdmin, getBlogById);
-router.put('/status/:id', authenticateAdmin, updateBlogStatus);
+router.patch('/:id/status', authenticateAdmin, updateBlogStatus);
 
 module.exports = router;

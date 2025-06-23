@@ -16,7 +16,6 @@ function getFileUploader(fieldName, publicDirName = '', mimetypes) {
       const ext = path.extname(file.originalname).toLowerCase();
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
       const fileName = `${file.fieldname}-${uniqueSuffix}${ext}`;
-      console.log(`Generated filename for ${file.originalname}: ${fileName}`);
       cb(null, fileName);
     }
   });

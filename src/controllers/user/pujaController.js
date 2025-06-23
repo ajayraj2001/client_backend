@@ -1,5 +1,6 @@
 const { ApiError } = require('../../errorHandler');
 const { Puja, PujaReview } = require('../../models');
+
 const getAllPujas = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
