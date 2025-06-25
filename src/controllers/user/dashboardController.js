@@ -64,6 +64,7 @@ const getHomePageData = async (req, res, next) => {
       slug: puja.slug,
       pujaImage: puja.pujaImage,
       displayedPrice: puja.displayedPrice,
+      rating: puja.rating,
       actualPrice: puja.actualPrice,
       pujaDate: puja.pujaDate,
       shortDescription: puja.shortDescription,
