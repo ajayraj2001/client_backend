@@ -15,7 +15,7 @@ const {
 router.post('/', authenticateAdmin, createBlog);
 router.get('/:id', authenticateAdmin, getAllBlogs);
 router.get('/:id', authenticateAdmin, getBlogById);
-router.put('/:id', authenticateAdmin, updateBlog);
+router.put('/:id', updateBlog);
 router.delete('/:id', authenticateAdmin, deleteBlog);
 router.patch('/:id/status', authenticateAdmin, updateBlogStatus);
 
