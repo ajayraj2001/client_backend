@@ -45,7 +45,7 @@ const getHomePageData = async (req, res, next) => {
 
     // ===== 1. PUJAS =====
     const allPujas = await Puja.find({})
-      .select('title pujaImage slug displayedPrice actualPrice pujaDate shortDescription isPopular')
+      .select('title pujaImage slug displayedPrice actualPrice pujaDate rating shortDescription isPopular')
       .lean();
 
     const popularPujas = allPujas
