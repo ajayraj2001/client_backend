@@ -111,8 +111,6 @@ const updateBlog = async (req, res, next) => {
             const { id } = req.params;
             const { title, slug, excerpt, author, html, status, tags } = req.body;
 
-
-            console.log('slug', slug)
             const existingBlog = await Blog.findById(id);
             if (!existingBlog) {
                 throw new ApiError('Blog not found', 404);
@@ -121,14 +119,12 @@ const updateBlog = async (req, res, next) => {
             let finalSlug = existingBlog.slug;
 
             if (slug && slug !== existingBlog.slug) {
-                console.log('heys budyd')
                 const existingSlug = await Blog.findOne({ slug, _id: { $ne: id } });
                 if (existingSlug) {
                     throw new ApiError('Slug already exists. Please choose a different slug.', 400);
                 }
                 finalSlug = slug;
-            } else if (!slug && title !== existingBlog.title) {
-                console.log('2222222222222')
+            }  else if (!slug && title && title !== existingBlog.title) {
                 const baseSlug = generateSlug(title);
                 finalSlug = await ensureUniqueSlug(baseSlug, id);
             }
