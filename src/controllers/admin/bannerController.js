@@ -15,16 +15,17 @@ const createBanner = async (req, res, next) => {
 
     let bannerImgPath = '';
     try {
-      const { type, status, redirectType, redirectId, redirectUrl } = req.body;
+      // const { type, status, redirectType, redirectId, redirectUrl } = req.body;
+      const { type, status, redirectUrl } = req.body;
 
-      // Validate redirect data
-      if (redirectType === 'external' && !redirectUrl) {
-        return next(new ApiError('Redirect URL is required for external redirect type', 400));
-      }
+      // // Validate redirect data
+      // if (redirectType === 'external' && !redirectUrl) {
+      //   return next(new ApiError('Redirect URL is required for external redirect type', 400));
+      // }
 
-      if ((redirectType === 'puja' || redirectType === 'product') && redirectId && !mongoose.Types.ObjectId.isValid(redirectId)) {
-        return next(new ApiError('Invalid redirect ID format', 400));
-      }
+      // if ((redirectType === 'puja' || redirectType === 'product') && redirectId && !mongoose.Types.ObjectId.isValid(redirectId)) {
+      //   return next(new ApiError('Invalid redirect ID format', 400));
+      // }
 
       // Save file paths if files are uploaded
       if (req.file) {
@@ -36,9 +37,10 @@ const createBanner = async (req, res, next) => {
         type,
         img: bannerImgPath,
         status,
-        redirectType: redirectType || 'none',
-        redirectId: redirectType === 'none' ? null : redirectId,
-        redirectUrl: redirectType === 'external' ? redirectUrl : null,
+        // redirectType: redirectType || 'none',
+        // redirectId: redirectType === 'none' ? null : redirectId,
+        // redirectUrl: redirectType === 'external' ? redirectUrl : null,
+        redirectUrl: redirectUrl
       });
 
       await banner.save();
@@ -72,7 +74,8 @@ const updateBanner = async (req, res, next) => {
     let bannerImgPath = '';
     try {
       const { id } = req.params;
-      const { type, status, redirectType, redirectId, redirectUrl } = req.body;
+      // const { type, status, redirectType, redirectId, redirectUrl } = req.body;
+      const { type, status, redirectUrl } = req.body;
 
       // Find the existing banner
       const existingBanner = await Banner.findById(id);
@@ -81,13 +84,13 @@ const updateBanner = async (req, res, next) => {
       }
 
       // Validate redirect data
-      if (redirectType === 'external' && !redirectUrl) {
-        return next(new ApiError('Redirect URL is required for external redirect type', 400));
-      }
+      // if (redirectType === 'external' && !redirectUrl) {
+      //   return next(new ApiError('Redirect URL is required for external redirect type', 400));
+      // }
 
-      if ((redirectType === 'puja' || redirectType === 'product') && redirectId && !mongoose.Types.ObjectId.isValid(redirectId)) {
-        return next(new ApiError('Invalid redirect ID format', 400));
-      }
+      // if ((redirectType === 'puja' || redirectType === 'product') && redirectId && !mongoose.Types.ObjectId.isValid(redirectId)) {
+      //   return next(new ApiError('Invalid redirect ID format', 400));
+      // }
 
       // Save new file path if a file is uploaded
       if (req.file) {
@@ -99,9 +102,10 @@ const updateBanner = async (req, res, next) => {
         type: type || existingBanner.type,
         img: bannerImgPath || existingBanner.img,
         status: status || existingBanner.status,
-        redirectType: redirectType !== undefined ? redirectType : existingBanner.redirectType,
-        redirectId: redirectType === 'none' ? null : (redirectId !== undefined ? redirectId : existingBanner.redirectId),
-        redirectUrl: redirectType === 'external' ? redirectUrl : (redirectType === 'none' ? null : existingBanner.redirectUrl),
+        redirectUrl: redirectUrl || existingBanner.redirectUrl,
+        // redirectType: redirectType !== undefined ? redirectType : existingBanner.redirectType,
+        // redirectId: redirectType === 'none' ? null : (redirectId !== undefined ? redirectId : existingBanner.redirectId),
+        // redirectUrl: redirectType === 'external' ? redirectUrl : (redirectType === 'none' ? null : existingBanner.redirectUrl),
       };
 
       // Update the banner
