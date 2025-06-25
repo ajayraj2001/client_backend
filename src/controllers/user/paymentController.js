@@ -36,7 +36,6 @@ const paymentController = {
   */
 
   createPujaOrder: async (req, res) => {
-    console.log('hi jkaan')
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -48,6 +47,7 @@ const paymentController = {
         return res.status(404).json({ success: false, message: 'Puja not found' });
       }
 
+      console.log('puja', puja)
       if (puja.status !== 'Active') {
         return res.status(400).json({ success: false, message: 'This puja is currently unavailable' });
       }
