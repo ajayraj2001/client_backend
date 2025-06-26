@@ -97,6 +97,7 @@ const getHomePageData = async (req, res, next) => {
       message: 'Home page data fetched successfully',
       data: {
         pujas: transformedPujas,
+        chadawa: transformedPujas,
         testimonials,
         banners,
         blogs,
