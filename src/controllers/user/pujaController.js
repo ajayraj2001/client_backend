@@ -20,7 +20,7 @@ const getAllPujas = async (req, res, next) => {
 
     // Fetch all pujas matching the filter
     const allPujas = await Puja.find(filter)
-      .select('title titleHindi pujaImage slug displayedPrice rating actualPrice pujaDate shortDescription shortDescriptionHindi isPopular')
+      .select('title titleHindi pujaImage slug displayedPrice location locationHindi rating actualPrice pujaDate shortDescription shortDescriptionHindi isPopular')
       .lean();
 
     // Split into popular and non-popular
