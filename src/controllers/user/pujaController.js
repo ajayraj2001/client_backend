@@ -42,6 +42,7 @@ const getAllPujas = async (req, res, next) => {
       slug: puja.slug,
       pujaImage: puja.pujaImage,
       displayedPrice: puja.displayedPrice,
+      location:  lang === "hi" ? puja.locationHindi : puja.location,
       rating: puja.rating,
       actualPrice: puja.actualPrice,
       pujaDate: puja.pujaDate,
