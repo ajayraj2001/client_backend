@@ -4,9 +4,9 @@ const { authenticateUser } = require("../../middlewares");
 const { getAllBlogs, getBlogById, getActiveBlogBySlug } = require("../../controllers/user/blogController");
 
 
-router.get('/blogs', getAllBlogs);
+router.get('/', getAllBlogs);
 
-router.get('/blogs/:id', getBlogById);
+router.get('/:id', getBlogById);
 
 router.get('/getBlogBySlug/:slug',  getActiveBlogBySlug);
 

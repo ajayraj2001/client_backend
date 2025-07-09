@@ -21,7 +21,7 @@ const productReviewRoutes = require('./userRoutes/productReview');
 // Use the routes
 userRoute.use("/auth", authRoutes); // For authentication routes
 userRoute.use("/dashboard", dashboardRoutes); // For dashboard routes
-userRoute.use("/blog", blogRoutes); // For dashboard routes
+userRoute.use("/blogs", blogRoutes); // For dashboard routes
 userRoute.use("/astrologers", astrologerRoutes); // For astrologer routes
 userRoute.use("/transactions", transactionRoutes); // For transaction routes
 userRoute.use("/chat", chatRoutes); // For chat routes

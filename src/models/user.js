@@ -29,18 +29,18 @@ const UserSchema = new Schema({
     enum: ['Male', 'Female', 'Other', ''],
     default: '',
   },
-  busy: {
-    type: Boolean,
-    default: false,
-  },
-  call_type: {
-    type: String,
-    default: '',
-  },
-  wallet: {
-    type: Number,
-    default: 0,
-  },
+  // busy: {
+  //   type: Boolean,
+  //   default: false,
+  // },
+  // call_type: {
+  //   type: String,
+  //   default: '',
+  // },
+  // wallet: {
+  //   type: Number,
+  //   default: 0,
+  // },
   profile_img: {
     type: String,
     default: '',
@@ -92,8 +92,8 @@ const UserSchema = new Schema({
     type: Date, // Field to store OTP expiration time
   },
 
-  free_calls_used_today: { type: Number, default: 0 }, // Track free calls used today
-  last_free_call_reset: { type: Date, default: Date.now }, // Track when the free call count was last reset
+  // free_calls_used_today: { type: Number, default: 0 }, // Track free calls used today
+  // last_free_call_reset: { type: Date, default: Date.now }, // Track when the free call count was last reset
 
 }, {
   timestamps: { 

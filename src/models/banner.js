@@ -18,16 +18,16 @@ const bannerSchema = new Schema({
     default: 'Inactive',
   },
   // New fields for redirect functionality
-  // redirectType: {
-  //   type: String,
-  //   enum: ['none', 'Puja', 'Product', 'external'], // Redirect types
-  //   default: 'none',
-  // },
+  redirectType: {
+    type: String,
+    enum: ['none', 'puja', 'product', 'external'], // Redirect types
+    default: 'none',
+  },
 
-  // redirectId: {
-  //   type: String, // ID of specific puja or product (optional)
-  //   default: null,
-  // },
+  redirectId: {
+    type: String, // ID of specific puja or product (optional)
+    default: null,
+  },
   redirectUrl: {
     type: String, // External URL for external redirect type
     default: null,
