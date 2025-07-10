@@ -32,8 +32,8 @@ const PujaTransactionSchema = new Schema({
   },
   pujaStatus: {
     type: String,
-    enum: ['Pending', 'Completed'],
-    default: "Pending"
+    enum: ['puja booked', 'puja completed'],
+    default: "puja booked"
   },
   rating: {
     type: Number,
