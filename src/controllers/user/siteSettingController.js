@@ -32,11 +32,13 @@ const appStatusCheck = async (req, res) => {
                 mandatory: platformSettings.mandatory_update,
                 latestVersion: platformSettings.current_version,
                 downloadUrl: platformSettings.download_url,
+                appUrl: 'https://google.com'
             },
             maintenance: {
                 status: platformSettings.maintenance_status,
                 message: platformSettings.maintenance_text,
                 image: platformSettings.maintenance_image,
+                 appUrl: 'https://google.com'
             }
         });
     } catch (error) {
