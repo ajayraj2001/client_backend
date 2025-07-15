@@ -6,6 +6,7 @@ const {
   verifyOTP,
   getProfile,
   updateProfile,
+  deleteProfile,
   logout,
 } = require("../../controllers/user/authContoller");
 
@@ -14,6 +15,7 @@ router.post('/login', login);
 router.post('/verify_otp', verifyOTP);
 router.get("/profile", authenticateUser, getProfile);
 router.put('/update_profile', authenticateUser, updateProfile);
+router.delete('/delete_profile', authenticateUser, deleteProfile);
 router.post('/logout', authenticateUser, logout);
 
 module.exports = router;

@@ -249,10 +249,39 @@ const logout = async (req, res, next) => {
     }
 };
 
+const deleteProfile = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // Find and update user status
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { status: 'Inactive' },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile deactivated successfully',
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
     login,
     verifyOTP,
     getProfile,
     updateProfile,
     logout,
+    deleteProfile
 };
