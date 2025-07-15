@@ -12,13 +12,17 @@ const {
 const { authenticateAdmin } = require('../../middlewares');
 
 // Create a new puja
-router.post('/', createPuja);
+router.post('/', authenticateAdmin, createPuja);
+
+router.put('/status/:id', authenticateAdmin, updatePujaStatus);
 
 // Update a puja
-router.put('/:id', updatePuja);
+router.put('/:id', authenticateAdmin, updatePuja);
 
 // Delete a puja
 router.delete('/:id', authenticateAdmin, deletePuja);
+
+router.get('/getAllPujaTransactions', getAllPujaTransactions)
 
 // Get all pujas with search and sorting
 router.get('/', authenticateAdmin, getAllPujas);
@@ -26,8 +30,5 @@ router.get('/', authenticateAdmin, getAllPujas);
 // Get a specific puja by ID
 router.get('/:id', authenticateAdmin, getPujaById);
 
-router.put('/status/:id', authenticateAdmin, updatePujaStatus);
-
-router.put('/getAllPujaTransactions', authenticateAdmin, getAllPujaTransactions);
 
 module.exports = router;

@@ -354,7 +354,7 @@ const updatePujaStatus = async (req, res, next) => {
   }
 };
 
-const getAllPujaTransactions = async (req, res) => {
+const getAllPujaTransactions = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = '', status } = req.query;
 
@@ -365,26 +365,26 @@ const getAllPujaTransactions = async (req, res) => {
       query.status = status;
     }
 
-    // Populate with condition
     const transactions = await PujaTransaction.find(query)
       .populate({
         path: 'userId',
         select: 'fullName phone',
         match: search ? { fullName: { $regex: search, $options: 'i' } } : {},
       })
-      .populate('pujaId', 'title pujaImage') // if needed
+      .populate('pujaId', 'title pujaImage')
       .sort({ created_at: -1 })
       .skip(parseInt(skip))
       .limit(parseInt(limit))
       .lean();
 
-    // Remove entries where user doesn't match search (populate returns null in that case)
-    const filteredTransactions = transactions.filter((txn) => txn.userId !== null);
+    // Filter out null users when search doesn't match
+    const filteredTransactions = transactions.filter(txn => txn.userId !== null);
 
     const total = await PujaTransaction.countDocuments(query);
 
     return res.status(200).json({
       success: true,
+      message: 'Puja transactions fetched successfully',
       transactions: filteredTransactions,
       pagination: {
         totalItems: total,
@@ -394,14 +394,10 @@ const getAllPujaTransactions = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching admin puja transactions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error fetching puja transactions for admin',
-      error: error.message,
-    });
+    next(error);
   }
 };
+
 
 module.exports = {
   createPuja,
