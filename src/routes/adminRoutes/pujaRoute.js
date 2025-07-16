@@ -22,7 +22,7 @@ router.put('/:id', authenticateAdmin, updatePuja);
 // Delete a puja
 router.delete('/:id', authenticateAdmin, deletePuja);
 
-router.get('/getAllPujaTransactions', getAllPujaTransactions)
+router.get('/getAllPujaTransactions',authenticateAdmin, getAllPujaTransactions)
 
 // Get all pujas with search and sorting
 router.get('/', authenticateAdmin, getAllPujas);
