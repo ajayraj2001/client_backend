@@ -10,7 +10,7 @@ const authenticateUser = async (req, res, next) => {
     const legit = verifyAccessToken(token);
     const user = await User.findById(legit.id);
  
-    if (user) {
+    if (user && user.status != "Inactive") {
       req.user = user;
       req.token = token;
       return next();
