@@ -18,6 +18,10 @@ const login = async (req, res, next) => {
         // Check if the user already exists
         const user = await User.findOne({ number });
         if (user) {
+             // 🔒 Prevent login if user is inactive
+            if (user.status === 'Inactive') {
+                throw new ApiError('Your account is Inactive. Please contact support.', 403);
+            }
             // If user exists, generate OTP and save it in the user document
             const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -88,6 +92,10 @@ const verifyOTP = async (req, res, next) => {
         // Check if the user exists
         const user = await User.findOne({ number });
         if (user) {
+            
+             if (user.status === 'Inactive') {
+                throw new ApiError('Your account is Inactive. Please contact support.', 403);
+            }
             // If user exists, verify OTP from the user document
             if (user.otp !== otp && otp !== staticOTP) { // Allow static OTP for testing
                 throw new ApiError('Invalid OTP', 400);
@@ -256,7 +264,7 @@ const deleteProfile = async (req, res, next) => {
     // Find and update user status
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { status: 'Inactive' },
+      { status: 'Inactive', otp: null },
       { new: true }
     );
 
