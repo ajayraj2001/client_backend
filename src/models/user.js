@@ -1,7 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const { getCurrentIST } = require('../utils/timeUtils'); 
+const { getCurrentIST } = require('../utils/timeUtils');
 
 const UserSchema = new Schema({
   name: {
@@ -65,10 +65,10 @@ const UserSchema = new Schema({
     type: String,
     default: '',
   },
-  rashi: {
-    type: String,
-    default: '',
-  },
+  // rashi: {
+  //   type: String,
+  //   default: '',
+  // },
   status: {
     type: String,
     enum: ['Active', 'Inactive'],
@@ -91,14 +91,26 @@ const UserSchema = new Schema({
   otpExpiresAt: {
     type: Date, // Field to store OTP expiration time
   },
+  pending_email: {
+    type: String,
+    default: '',
+  },
+  email_otp: {
+    type: String,
+    match: /^[0-9]{4}$/,
+    default: '',
+  },
+  email_otp_expires_at: {
+    type: Date,
+  },
 
   // free_calls_used_today: { type: Number, default: 0 }, // Track free calls used today
   // last_free_call_reset: { type: Date, default: Date.now }, // Track when the free call count was last reset
 
 }, {
-  timestamps: { 
-    createdAt: 'created_at', 
-    updatedAt: 'updated_at', 
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     currentTime: getCurrentIST, // Use IST for timestamps
   },
 });

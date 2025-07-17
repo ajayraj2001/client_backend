@@ -1,6 +1,7 @@
 const { ApiError } = require('../../errorHandler');
 const { User, Otp } = require('../../models');
 const { sendOTP } = require('../../utils/sendOtpToPhone');
+const { sendEmailOTP } = require('../../utils/sendEmail');
 const { getFileUploader, deleteFile } = require('../../middlewares');
 const jwt = require('jsonwebtoken');
 
@@ -18,7 +19,7 @@ const login = async (req, res, next) => {
         // Check if the user already exists
         const user = await User.findOne({ number });
         if (user) {
-             // 🔒 Prevent login if user is inactive
+            // 🔒 Prevent login if user is inactive
             if (user.status === 'Inactive') {
                 throw new ApiError('Your account is Inactive. Please contact support.', 403);
             }
@@ -92,8 +93,8 @@ const verifyOTP = async (req, res, next) => {
         // Check if the user exists
         const user = await User.findOne({ number });
         if (user) {
-            
-             if (user.status === 'Inactive') {
+
+            if (user.status === 'Inactive') {
                 throw new ApiError('Your account is Inactive. Please contact support.', 403);
             }
             // If user exists, verify OTP from the user document
@@ -174,6 +175,9 @@ const getProfile = async (req, res, next) => {
         const userData = user.toObject();
         delete userData.otp;
         delete userData.otpExpiresAt;
+        delete userData.pending_email;
+        delete userData.email_otp;
+        delete userData.email_otp_expires_at;
 
         return res.status(200).json({
             success: true,
@@ -199,6 +203,14 @@ const updateProfile = async (req, res, next) => {
 
         try {
             const updateData = req.body;
+
+            // ❌ Block number update
+            if ('number' in updateData) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Phone number cannot be updated.',
+                });
+            }
 
             // Find the user
             const user = await User.findById(req.user._id);
@@ -258,31 +270,118 @@ const logout = async (req, res, next) => {
 };
 
 const deleteProfile = async (req, res, next) => {
-  try {
-    const userId = req.user._id;
+    try {
+        const userId = req.user._id;
 
-    // Find and update user status
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { status: 'Inactive', otp: null },
-      { new: true }
-    );
+        // Find and update user status
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { status: 'Inactive', otp: null },
+            { new: true }
+        );
 
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Profile deactivated successfully',
+            data: updatedUser,
+        });
+    } catch (error) {
+        next(error);
     }
+};
 
-    return res.status(200).json({
-      success: true,
-      message: 'Profile deactivated successfully',
-      data: updatedUser,
-    });
-  } catch (error) {
-    next(error);
-  }
+const sendEmailVerificationOtp = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required',
+            });
+        }
+
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Update user with email OTP
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {
+                pending_email: email,
+                email_otp: otp,
+                email_otp_expires_at: otpExpiresAt,
+            },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        await sendEmailOTP(email, otp); // uses your SMTP config & template
+
+        return res.status(200).json({
+            success: true,
+            message: 'OTP sent to email successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const verifyEmailOtp = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const { otp } = req.body;
+
+        if (!otp) {
+            return res.status(400).json({
+                success: false,
+                message: 'OTP is required',
+            });
+        }
+
+        const user = await User.findById(userId);
+
+        if (
+            !user ||
+            user.email_otp !== otp ||
+            !user.email_otp_expires_at ||
+            user.email_otp_expires_at < new Date()
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP',
+            });
+        }
+
+        // Update the email and clear OTP
+        user.email = user.pending_email;
+        user.pending_email = '';
+        user.email_otp = '';
+        user.email_otp_expires_at = null;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Email verified and updated successfully',
+            data: user,
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 module.exports = {
@@ -291,5 +390,7 @@ module.exports = {
     getProfile,
     updateProfile,
     logout,
-    deleteProfile
+    deleteProfile,
+    sendEmailVerificationOtp,
+    verifyEmailOtp
 };
