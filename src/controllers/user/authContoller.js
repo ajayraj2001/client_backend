@@ -169,20 +169,27 @@ const verifyOTP = async (req, res, next) => {
 
 const getProfile = async (req, res, next) => {
     try {
-        const user = req.user; // User is attached to the request by authenticateUser middleware
+        const user = req.user.toObject();
 
-        // Exclude sensitive fields like password and OTP
-        const userData = user.toObject();
-        delete userData.otp;
-        delete userData.otpExpiresAt;
-        delete userData.pending_email;
-        delete userData.email_otp;
-        delete userData.email_otp_expires_at;
+        const isEmailVerified = !!(user.email && (!user.pending_email || user.pending_email === user.email));
+
+        const response = {
+            ...user,
+            email: user.pending_email || user.email,
+            isEmailVerified,
+        };
+
+        // Remove sensitive fields
+        delete response.otp;
+        delete response.otpExpiresAt;
+        delete response.email_otp;
+        delete response.email_otp_expires_at;
+        delete response.pending_email;
 
         return res.status(200).json({
             success: true,
             message: 'Profile fetched successfully',
-            data: userData,
+            data: response,
         });
     } catch (error) {
         next(error);
@@ -197,14 +204,16 @@ const updateProfile = async (req, res, next) => {
 
     uploadProfileImage(req, res, async (err) => {
         if (err) {
-            console.error('Multer Error:', err); // Log Multer errors
-            return next(new ApiError(err.message, 400)); // Return the error through next middleware
+            console.error('Multer Error:', err);
+            return next(new ApiError(err.message, 400));
         }
 
         try {
             const updateData = req.body;
+            const user = await User.findById(req.user._id);
+            if (!user) throw new ApiError('User not found', 404);
 
-            // ❌ Block number update
+            // Block phone number update
             if ('number' in updateData) {
                 return res.status(400).json({
                     success: false,
@@ -212,24 +221,22 @@ const updateProfile = async (req, res, next) => {
                 });
             }
 
-            // Find the user
-            const user = await User.findById(req.user._id);
-            if (!user) {
-                throw new ApiError('User not found', 404);
-            }
-
-            // Save new file path if a file is uploaded
+            // Handle image upload
             if (req.file) {
                 profileImgPath = `/profile_images/${req.file.filename}`;
                 updateData.profile_img = profileImgPath;
             }
 
+            // Prevent direct email update
+            if ('email' in updateData && updateData.email !== user.email) {
+                updateData.pending_email = updateData.email;
+                delete updateData.email;
+            }
+
             updateData.is_profile_complete = true;
 
-            // Update the user profile
             const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
 
-            // Delete old profile image if a new one is uploaded
             if (req.file && user.profile_img) {
                 await deleteFile(user.profile_img);
             }
@@ -240,16 +247,13 @@ const updateProfile = async (req, res, next) => {
                 data: updatedUser,
             });
         } catch (error) {
-            // Delete uploaded file if an error occurs
-            if (profileImgPath) {
-                await deleteFile(profileImgPath);
-            }
-
-            console.error('Error here:', error); // Log the error
-            return next(error); // Pass the error to the global error handler
+            if (profileImgPath) await deleteFile(profileImgPath);
+            console.error('Error:', error);
+            return next(error);
         }
     });
 };
+
 
 const logout = async (req, res, next) => {
     try {
