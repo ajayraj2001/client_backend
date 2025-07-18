@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 const sendEmailOTP = async (to, otp) => {
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
-      <img src="http://" alt="AstroSetu" style="max-width: 100%; height: auto;" />
+      <img src="https://www.astrosetu.com/public/logo/astrosetu.jpeg" alt="AstroSetu" style="max-width: 100%; height: auto;" />
       <h2 style="color: #333;">Verify Your Email Address</h2>
       <p style="font-size: 18px;">Your OTP is:</p>
       <div style="font-size: 32px; font-weight: bold; color: #007bff;">${otp}</div>
