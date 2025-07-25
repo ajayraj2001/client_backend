@@ -82,10 +82,11 @@ const { getFileUploader, deleteFile } = require('../../middlewares');
                 let finalImage = '';
 
                 if (type === 'Puja' && type_ref_id) {
+                    console.log('tuep ofjf', type)
                     const pujaData = await Puja.findById(type_ref_id).select('pujaImage');
                     if (pujaData?.pujaImage) {
                         // finalImage = `http://3.108.80.130:5001/public${pujaData.pujaImage}`;
-                        finalImage = pujaData.Image
+                        finalImage = pujaData.pujaImage
                     }
                 }
 
