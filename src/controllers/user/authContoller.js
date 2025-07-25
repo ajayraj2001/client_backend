@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const { ACCESS_TOKEN_SECRET } = process.env;
 
+
 // Generate and Send OTP
 const login = async (req, res, next) => {
     try {

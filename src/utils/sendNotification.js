@@ -17,6 +17,9 @@ if (!admin.apps.length) {
 const sendPushNotification = async (tokens, payload) => {
   const deviceTokens = Array.isArray(tokens) ? tokens : [tokens];
 
+
+  console.log('deviceTokens', deviceTokens)
+  console.log('payload', payload)
   if (!deviceTokens.length) {
     console.log('No device tokens provided');
     return;
@@ -49,7 +52,7 @@ const sendPushNotification = async (tokens, payload) => {
 
 // Test static push
 // const test = async () => {
-//   const testDeviceToken = 'cEuwbNRjTTqR8-Vk49Hfkg:APA91bHj5mfROpRvDTjJW_o-lPW9azEAxSx4rAiMFgwbDHDxKAlQXKLWaP0SkdosmhX_XrBaUc-SHvk9YgJJs4XJVpF3mm3eemPxjSnMh9eWWK5K8_sh8Gw';
+//   const testDeviceToken = 'fMXG_fLAT8m-rmgZGCK5-B:APA91bES9uVsXtY0tlfx0YpM3bkR-b-ovR664d55K6PXFKPdCFzVXBtbd9sbobsyomoP9g_8GcDkybKGsFkhorpXHQ4LsxuUv3XZZOWvYyOu88RjlmHBCAc';
 
 //   // const payload = {
 //   //   title: '🚀 Test Notification',
