@@ -82,23 +82,20 @@ const { getFileUploader, deleteFile } = require('../../middlewares');
                 let finalImage = '';
 
                 if (type === 'Puja' && type_ref_id) {
-                    console.log('tuep ofjf', type)
                     const pujaData = await Puja.findById(type_ref_id).select('pujaImage');
                     if (pujaData?.pujaImage) {
-                        // finalImage = `http://3.108.80.130:5001/public${pujaData.pujaImage}`;
-                        finalImage = pujaData.pujaImage
+                        finalImage = `http://3.108.80.130:5001/public${pujaData.pujaImage}`;
                     }
                 }
 
                 // If not Puja, use the uploaded image
                 if (type !== 'Puja' && req.file) {
-                    finalImage = `/notification_images/${req.file.filename}`;
+                    finalImage = `http://3.108.80.130:5001/public/notification_images/${req.file.filename}`;
                 }
 
                 const users = await User.find({ deviceToken: { $ne: '' }, status: 'Active' }).select('_id deviceToken');
                 const deviceTokens = users.map(u => u.deviceToken);
 
-                console.log('devicetkens',deviceTokens )
                 const payload = {
                     title,
                     body,

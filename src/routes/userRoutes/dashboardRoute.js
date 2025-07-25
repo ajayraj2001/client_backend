@@ -5,6 +5,6 @@ const { getHomePageData } = require("../../controllers/user/dashboardController"
 
 // Dashboard routes
 // router.get("/", authenticateUser, getDashboardData);
-router.get("/", getHomePageData);
+router.get("/", authenticateUser, getHomePageData);
 
 module.exports = router;

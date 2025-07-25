@@ -41,22 +41,74 @@ const getDashboardData = async (req, res, next) => {
 
 const getHomePageData = async (req, res, next) => {
   try {
-    const now = new Date();
+    // const now = new Date();
 
-    // ===== 1. PUJAS =====
-    const allPujas = await Puja.find({})
+    // // ===== 1. PUJAS =====
+    // const allPujas = await Puja.find({})
+    //   .select('title pujaImage slug displayedPrice actualPrice pujaDate rating shortDescription isPopular')
+    //   .lean();
+
+    // const popularPujas = allPujas
+    //   .filter(puja => puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+    //   .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+
+    // const normalPujas = allPujas
+    //   .filter(puja => !puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+    //   .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+
+    // const homePujas = [...popularPujas, ...normalPujas].slice(0, 6);
+
+    // const transformedPujas = homePujas.map(puja => ({
+    //   _id: puja._id,
+    //   title: puja.title,
+    //   slug: puja.slug,
+    //   pujaImage: puja.pujaImage,
+    //   displayedPrice: puja.displayedPrice,
+    //   rating: puja.rating,
+    //   actualPrice: puja.actualPrice,
+    //   pujaDate: puja.pujaDate,
+    //   shortDescription: puja.shortDescription,
+    //   isPopular: puja.isPopular,
+    // }));
+
+    const userId = req.user._id;
+
+    // Get count of unread notifications
+    const unreadNotificationCount = await Notification.countDocuments({
+      user_id: userId,
+      is_read: false,
+    });
+
+    const now = new Date();
+    const LIMIT = 6;
+
+    // Step 1: Fetch up to 4 upcoming *popular* pujas
+    const popularPujas = await Puja.find({
+      isPopular: true,
+      pujaDate: { $gte: now }
+    })
+      .sort({ pujaDate: 1 })
+      .limit(LIMIT)
       .select('title pujaImage slug displayedPrice actualPrice pujaDate rating shortDescription isPopular')
       .lean();
 
-    const popularPujas = allPujas
-      .filter(puja => puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
-      .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+    // Step 2: If fewer than 4 popular pujas, fetch normal ones to fill the gap
+    let remainingLimit = LIMIT - popularPujas.length;
+    let normalPujas = [];
 
-    const normalPujas = allPujas
-      .filter(puja => !puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
-      .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+    if (remainingLimit > 0) {
+      normalPujas = await Puja.find({
+        isPopular: false,
+        pujaDate: { $gte: now }
+      })
+        .sort({ pujaDate: 1 })
+        .limit(remainingLimit)
+        .select('title pujaImage slug displayedPrice actualPrice pujaDate rating shortDescription isPopular')
+        .lean();
+    }
 
-    const homePujas = [...popularPujas, ...normalPujas].slice(0, 6);
+    // Step 3: Merge both and return
+    const homePujas = [...popularPujas, ...normalPujas];
 
     const transformedPujas = homePujas.map(puja => ({
       _id: puja._id,
@@ -70,6 +122,7 @@ const getHomePageData = async (req, res, next) => {
       shortDescription: puja.shortDescription,
       isPopular: puja.isPopular,
     }));
+
 
     // ===== 2. PUJA REVIEWS =====
     const testimonials = await PujaReview.find({ status: 'Active' })
@@ -101,6 +154,7 @@ const getHomePageData = async (req, res, next) => {
         testimonials,
         banners,
         blogs,
+        unreadNotificationCount
       },
     });
 
@@ -109,4 +163,4 @@ const getHomePageData = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboardData , getHomePageData};
+module.exports = { getDashboardData, getHomePageData };
