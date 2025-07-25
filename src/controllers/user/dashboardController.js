@@ -159,6 +159,7 @@ const getHomePageData = async (req, res, next) => {
     });
 
   } catch (error) {
+    console.log('erer', error)
     next(error);
   }
 };
