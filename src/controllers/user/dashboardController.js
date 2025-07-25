@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Banner,Notification, Blog, Astrologer, PujaReview, Puja } = require('../../models');
+const { Banner, Notification, Blog, Astrologer, PujaReview, Puja } = require('../../models');
 
 const getDashboardData = async (req, res, next) => {
   try {
@@ -71,13 +71,14 @@ const getHomePageData = async (req, res, next) => {
     //   isPopular: puja.isPopular,
     // }));
 
-    const userId = req.user._id;
+    let unreadNotificationCount = 0;
 
-    // Get count of unread notifications
-    const unreadNotificationCount = await Notification.countDocuments({
-      user_id: userId,
-      is_read: false,
-    });
+    if (req.user?._id) {
+      unreadNotificationCount = await Notification.countDocuments({
+        user_id: req.user._id,
+        is_read: false,
+      });
+    }
 
     const now = new Date();
     const LIMIT = 6;
