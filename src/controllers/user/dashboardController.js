@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Banner, Blog, Astrologer, PujaReview, Puja } = require('../../models');
+const { Banner,Notification, Blog, Astrologer, PujaReview, Puja } = require('../../models');
 
 const getDashboardData = async (req, res, next) => {
   try {
