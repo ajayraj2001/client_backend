@@ -14,22 +14,20 @@ const { authenticateAdmin } = require('../../middlewares');
 // Create a new chadawa
 router.post('/', authenticateAdmin, createChadawa);
 
+router.get('/', getAllChadawas);
 // Update chadawa status
-router.put('/status/:id', authenticateAdmin, updateChadawaStatus);
+router.put('/status/:id', updateChadawaStatus);
 
 // Update a chadawa
 router.put('/:id', authenticateAdmin, updateChadawa);
 
 // Delete a chadawa
-router.delete('/:id', authenticateAdmin, deleteChadawa);
+router.delete('/:id', deleteChadawa);
 
 // Get all chadawa transactions
 router.get('/getAllChadawaTransactions', authenticateAdmin, getAllChadawaTransactions);
 
-// Get all chadawas with search and sorting
-router.get('/', authenticateAdmin, getAllChadawas);
-
 // Get a specific chadawa by ID
-router.get('/:id', authenticateAdmin, getChadawaById);
+router.get('/:id', getChadawaById);
 
 module.exports = router;

@@ -90,14 +90,16 @@ const chadawaSchema = new Schema({
         default: false
     },
     // Single offering object instead of array
-    offering: {
-        header: { type: String, required: true },
-        headerHindi: { type: String, default: '' },
-        description: { type: String, required: true },
-        descriptionHindi: { type: String, default: '' },
-        price: { type: String, default: '0' },
-        image: { type: String, default: '' } // image path for the offering
-    },
+    offerings: [
+        {
+            header: { type: String, required: true },
+            headerHindi: { type: String, default: '' },
+            description: { type: String, required: true },
+            descriptionHindi: { type: String, default: '' },
+            price: { type: String, default: '0' },
+            image: { type: String, default: '' } // image path for the offering
+        }
+    ],
 }, {
     timestamps: {
         createdAt: 'created_at',

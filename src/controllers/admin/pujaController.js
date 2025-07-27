@@ -112,6 +112,8 @@ const createPuja = async (req, res, next) => {
       if (bannerImagePaths.length > 0) {
         await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
       }
+
+      //offering left to delte 
       next(error);
     }
   });

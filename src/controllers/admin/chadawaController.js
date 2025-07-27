@@ -7,7 +7,7 @@ const { getMultipleFilesUploader, deleteFile } = require('../../middlewares');
 const uploadChadawaFiles = getMultipleFilesUploader([
   { name: 'chadawaImage', folder: 'chadawa_images', maxCount: 1 }, // Single chadawa image
   { name: 'bannerImages', folder: 'chadawa_banners', maxCount: 6 }, // Multiple banner images (max 6)
-  { name: 'offeringImage', folder: 'chadawa_offering', maxCount: 1 } // Single offering image
+  { name: 'offeringsImages', folder: 'chadawa_offerings', maxCount: 10 } // Single offering image
 ]);
 
 const createChadawa = async (req, res, next) => {
@@ -19,7 +19,7 @@ const createChadawa = async (req, res, next) => {
 
     let chadawaImagePath = '';
     let bannerImagePaths = [];
-    let offeringImagePath = '';
+    // let offeringImagePath = '';
 
     try {
       const {
@@ -38,7 +38,7 @@ const createChadawa = async (req, res, next) => {
         displayedPrice,
         actualPrice,
         chadawaDate,
-        offering
+        // offering
       } = req.body;
 
       const finalSlug = slug || slugify(title, { lower: true, strict: true });
@@ -56,15 +56,18 @@ const createChadawa = async (req, res, next) => {
       if (req.files?.bannerImages) {
         bannerImagePaths = req.files.bannerImages.map(file => `/chadawa_banners/${file.filename}`);
       }
-      if (req.files?.offeringImage) {
-        offeringImagePath = `/chadawa_offering/${req.files.offeringImage[0].filename}`;
+
+      const offerings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
+      if (offerings.length && req.files?.offeringsImages) {
+        const offeringImages = req.files.offeringsImages;
+
+        offerings.forEach((offering, index) => {
+          if (offeringImages[index]) {
+            offering.image = `/chadawa_offerings/${offeringImages[index].filename}`;
+          }
+        });
       }
 
-      // Parse offering and add image if present
-      let parsedOffering = offering ? JSON.parse(offering) : {};
-      if (offeringImagePath) {
-        parsedOffering.image = offeringImagePath;
-      }
 
       const chadawa = new Chadawa({
         title,
@@ -85,7 +88,7 @@ const createChadawa = async (req, res, next) => {
         bannerImages: bannerImagePaths,
         benefits: benefits ? JSON.parse(benefits) : [],
         faq: faq ? JSON.parse(faq) : [],
-        offering: parsedOffering,
+        offerings,
       });
 
       await chadawa.save();
@@ -104,7 +107,6 @@ const createChadawa = async (req, res, next) => {
       if (bannerImagePaths.length > 0) {
         await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
       }
-      if (offeringImagePath) await deleteFile(offeringImagePath);
       next(error);
     }
   });
@@ -119,7 +121,6 @@ const updateChadawa = async (req, res, next) => {
 
     let chadawaImagePath = '';
     let bannerImagePaths = [];
-    let offeringImagePath = '';
 
     try {
       const { id } = req.params;
@@ -140,7 +141,6 @@ const updateChadawa = async (req, res, next) => {
         displayedPrice,
         actualPrice,
         chadawaDate,
-        offering,
       } = req.body;
 
       const existingChadawa = await Chadawa.findById(id);
@@ -161,25 +161,48 @@ const updateChadawa = async (req, res, next) => {
       if (req.files?.bannerImages) {
         bannerImagePaths = req.files.bannerImages.map(file => `/chadawa_banners/${file.filename}`);
       }
-      if (req.files?.offeringImage) {
-        offeringImagePath = `/chadawa_offering/${req.files.offeringImage[0].filename}`;
+
+      // Parse new offerings
+      let newOfferings = req.body.offerings ? JSON.parse(req.body.offerings) : [];
+      const existingOfferings = existingPuja.offerings || [];
+      const offeringImages = req.files?.offeringsImages || [];
+
+      let finalOfferings = [];
+      let newImageIndex = 0;
+
+      // Track deleted offerings to clean up images
+      const existingOfferingIds = existingOfferings.map(o => o._id.toString());
+      const incomingOfferingIds = newOfferings.filter(o => o._id).map(o => o._id);
+      const deletedOfferingIds = existingOfferingIds.filter(id => !incomingOfferingIds.includes(id));
+
+      // Delete images for deleted offerings
+      for (const delId of deletedOfferingIds) {
+        const old = existingOfferings.find(o => o._id.toString() === delId);
+        if (old?.image) {
+          await deleteFile(old.image);
+        }
       }
 
-      // Handle offering update
-      let finalOffering = existingChadawa.offering || {};
-      if (offering) {
-        const parsedOffering = JSON.parse(offering);
-        finalOffering = { ...finalOffering, ...parsedOffering };
-      }
-      
-      // Update offering image if new one is provided
-      if (offeringImagePath) {
-        // Delete old offering image if it exists
-        if (existingChadawa.offering?.image) {
-          await deleteFile(existingChadawa.offering.image);
+      // Process offerings
+      for (const offering of newOfferings) {
+        // Existing offering (retain image)
+        if (offering._id) {
+          const match = existingOfferings.find(o => o._id.toString() === offering._id);
+          finalOfferings.push({
+            ...offering,
+            image: match?.image || '',
+          });
+        } else {
+          // New offering (attach image if present)
+          const imageFile = offeringImages[newImageIndex++];
+          finalOfferings.push({
+            ...offering,
+            image: imageFile ? `/chadawa_offerings/${imageFile.filename}` : '',
+          });
         }
-        finalOffering.image = offeringImagePath;
       }
+
+
 
       // Build Final Update Data
       const updateData = {
@@ -201,7 +224,7 @@ const updateChadawa = async (req, res, next) => {
         bannerImages: bannerImagePaths.length > 0 ? bannerImagePaths : existingChadawa.bannerImages,
         benefits: benefits ? JSON.parse(benefits) : existingChadawa.benefits,
         faq: faq ? JSON.parse(faq) : existingChadawa.faq,
-        offering: finalOffering,
+        offering: finalOfferings,
       };
 
       const updatedChadawa = await Chadawa.findByIdAndUpdate(id, updateData, { new: true });
@@ -228,7 +251,6 @@ const updateChadawa = async (req, res, next) => {
       if (bannerImagePaths.length > 0) {
         await Promise.all(bannerImagePaths.map(path => deleteFile(path)));
       }
-      if (offeringImagePath) await deleteFile(offeringImagePath);
       next(error);
     }
   });
@@ -250,9 +272,6 @@ const deleteChadawa = async (req, res, next) => {
     }
     if (chadawa.bannerImages.length > 0) {
       await Promise.all(chadawa.bannerImages.map(path => deleteFile(path)));
-    }
-    if (chadawa.offering?.image) {
-      await deleteFile(chadawa.offering.image);
     }
 
     return res.status(200).json({

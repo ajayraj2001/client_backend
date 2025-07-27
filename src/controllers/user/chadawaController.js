@@ -108,11 +108,11 @@ const getChadawaBySlug = async (req, res, next) => {
         answer: getField(f.answer, f.answerHindi)
       })),
       // Single offering object (not array)
-      offering: chadawa.offering ? {
-        header: getField(chadawa.offering.header, chadawa.offering.headerHindi),
-        description: getField(chadawa.offering.description, chadawa.offering.descriptionHindi),
-        price: chadawa.offering.price,
-        image: chadawa.offering.image
+      offering: chadawa.offerings ? {
+        header: getField(chadawa.offerings.header, chadawa.offerings.headerHindi),
+        description: getField(chadawa.offerings.description, chadawa.offerings.descriptionHindi),
+        price: chadawa.offerings.price,
+        image: chadawa.offerings.image
       } : null
     };
 
@@ -171,11 +171,11 @@ const getChadawaById = async (req, res, next) => {
         answer: getField(f.answer, f.answerHindi)
       })),
       // Single offering object (not array)
-      offering: chadawa.offering ? {
-        header: getField(chadawa.offering.header, chadawa.offering.headerHindi),
-        description: getField(chadawa.offering.description, chadawa.offering.descriptionHindi),
-        price: chadawa.offering.price,
-        image: chadawa.offering.image
+      offerings: chadawa.offerings ? {
+        header: getField(chadawa.offerings.header, chadawa.offerings.headerHindi),
+        description: getField(chadawa.offerings.description, chadawa.offerings.descriptionHindi),
+        price: chadawa.offerings.price,
+        image: chadawa.offerings.image
       } : null
     };
 
