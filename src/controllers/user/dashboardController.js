@@ -1,5 +1,5 @@
 const { ApiError } = require('../../errorHandler');
-const { Banner, Notification, Blog, Astrologer, PujaReview, Puja } = require('../../models');
+const { Banner, Notification, Blog, Astrologer, PujaReview, Puja,Chadawa } = require('../../models');
 
 const getDashboardData = async (req, res, next) => {
   try {
@@ -125,6 +125,48 @@ const getHomePageData = async (req, res, next) => {
     }));
 
 
+    //Chadawa---
+    const popularChadawas = await Chadawa.find({
+      isPopular: true,
+      chadawaDate: { $gte: now }
+    })
+      .sort({ chadawaDate: 1 })
+      .limit(LIMIT)
+      .select('title chadawaImage slug displayedPrice actualPrice chadawaDate rating shortDescription isPopular')
+      .lean();
+
+    // Step 2: If fewer than 4 popular pujas, fetch normal ones to fill the gap
+    let remainingChadawaLimit = LIMIT - popularChadawas.length;
+    let normalChadawas = [];
+
+    if (remainingChadawaLimit > 0) {
+      normalChadawas = await Chadawa.find({
+        isPopular: false,
+        chadawaDate: { $gte: now }
+      })
+        .sort({ chadawaDate: 1 })
+        .limit(remainingChadawaLimit)
+        .select('title chadawaImage slug displayedPrice actualPrice chadawaDate rating shortDescription isPopular')
+        .lean();
+    }
+
+    // Step 3: Merge both and return
+    const homeChadawas = [...popularChadawas, ...normalChadawas];
+
+    const transformedChadawas = homeChadawas.map(chadawa => ({
+      _id: chadawa._id,
+      title: chadawa.title,
+      slug: chadawa.slug,
+      chadawaImage: chadawa.chadawaImage,
+      displayedPrice: chadawa.displayedPrice,
+      rating: chadawa.rating,
+      actualPrice: chadawa.actualPrice,
+      chadawaDate: chadawa.chadawaDate,
+      shortDescription: chadawa.shortDescription,
+      isPopular: chadawa.isPopular,
+    }));
+
+
     // ===== 2. PUJA REVIEWS =====
     const testimonials = await PujaReview.find({ status: 'Active' })
       .sort({ created_at: -1 })
@@ -151,7 +193,7 @@ const getHomePageData = async (req, res, next) => {
       message: 'Home page data fetched successfully',
       data: {
         pujas: transformedPujas,
-        chadawa: transformedPujas,
+        chadawa: transformedChadawas,
         testimonials,
         banners,
         blogs,
