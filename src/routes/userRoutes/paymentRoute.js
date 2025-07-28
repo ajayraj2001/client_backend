@@ -4,7 +4,7 @@ const { authenticateUser } = require("../../middlewares");
 const paymentController = require("../../controllers/user/paymentController");
 
 
-router.post('/webhook', paymentController.handleWebhook);
+router.post('/puja_webhook', paymentController.handlePujaWebhook);
 
 // Create orders
 router.post('/create_puja_order', authenticateUser, paymentController.createPujaOrder);

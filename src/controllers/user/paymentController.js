@@ -618,6 +618,81 @@ const paymentController = {
     }
   },
 
+  handlePujaWebhook: async (req, res) => {
+    try {
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      const signature = req.headers['x-razorpay-signature'];
+      const payload = req.body;
+
+      // 1. Verify the signature
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+
+      if (expectedSignature !== signature) {
+        console.error('❌ Invalid webhook signature');
+        return res.status(400).json({ success: false, message: 'Invalid signature' });
+      }
+
+      // 2. Extract event and order/payment info
+      const event = payload.event;
+      const paymentEntity = payload.payload?.payment?.entity;
+      const paymentId = paymentEntity?.id;
+      const orderId = paymentEntity?.order_id;
+
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Order ID missing from webhook payload' });
+      }
+
+      // 3. Find Puja transaction
+      const transaction = await PujaTransaction.findOne({ orderId });
+      if (!transaction) {
+        console.error(`❌ PujaTransaction not found for orderId: ${orderId}`);
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+
+      // 4. Process based on event type
+      switch (event) {
+        case 'payment.authorized':
+          transaction.status = 'PENDING';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+
+        case 'payment.captured':
+          transaction.status = 'COMPLETED';
+          transaction.paymentId = paymentId;
+          transaction.completedAt = getCurrentIST();
+          transaction.isPaymentAttempted = true;
+          break;
+
+        case 'payment.failed':
+          transaction.status = 'FAILED';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+
+        case 'refund.created':
+          transaction.status = 'REFUNDED';
+          break;
+
+        default:
+          console.log(`Unhandled event type: ${event}`);
+          break;
+      }
+
+      // 5. Save updated transaction
+      await transaction.save();
+
+      return res.status(200).json({ success: true });
+
+    } catch (error) {
+      console.error('Webhook error:', error);
+      return res.status(500).json({ success: false, message: 'Webhook processing failed', error: error.message });
+    }
+  },
+
   /**
   * Get transaction details
   * @param {Object} req - Request object
