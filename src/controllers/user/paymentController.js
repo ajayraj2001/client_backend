@@ -704,7 +704,12 @@ const paymentController = {
       const { page = 1, limit = 10, search = '', status } = req.query;
 
       const skip = (page - 1) * limit;
-      const query = { userId };
+
+      const query = {
+            userId,
+            isPaymentAttempted: true, // Only show transactions where payment was attempted
+            status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
+          };
 
       if (search) {
         query.pujaName = { $regex: search, $options: 'i' };
