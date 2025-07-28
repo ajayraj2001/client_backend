@@ -8,7 +8,7 @@ const paymentController = require("../../controllers/user/paymentController");
 router.post(
   '/webhook/puja',
   express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }),
-  handlePujaWebhook
+  paymentController.handlePujaWebhook
 );
 
 // Create orders
