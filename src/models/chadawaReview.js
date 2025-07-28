@@ -13,6 +13,12 @@ const chadawaReviewSchema = new Schema({
         ref: 'Chadawa',
         required: true,
     },
+    transactionId: {
+        type: Schema.Types.ObjectId,
+        ref: 'ChadawaTransaction',
+        required: true,
+        index: true
+    },
     rating: {
         type: Number,
         required: true,
@@ -28,10 +34,6 @@ const chadawaReviewSchema = new Schema({
         type: String,
         enum: ['Active', 'Inactive', 'Pending'],
         default: 'Pending',
-    },
-    isVerified: {
-        type: Boolean,
-        default: false,
     },
 }, {
     timestamps: {

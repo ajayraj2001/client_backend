@@ -87,6 +87,7 @@ const getPanchangOnly = async (req, res) => {
 
         const panchangRes = await axios.get(panchangURL);
 
+        console.log('panchangRes',panchangRes)
         res.status(200).json({
             status: 200,
             message: "Panchang Data",
