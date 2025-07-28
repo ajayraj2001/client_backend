@@ -107,13 +107,13 @@ const getChadawaBySlug = async (req, res, next) => {
         question: getField(f.question, f.questionHindi),
         answer: getField(f.answer, f.answerHindi)
       })),
-      // Single offering object (not array)
-      offering: chadawa.offerings ? {
-        header: getField(chadawa.offerings.header, chadawa.offerings.headerHindi),
-        description: getField(chadawa.offerings.description, chadawa.offerings.descriptionHindi),
-        price: chadawa.offerings.price,
-        image: chadawa.offerings.image
-      } : null
+       offerings: chadawa.offerings.map(o => ({
+        _id: o._id,
+        header: getField(o.header, o.headerHindi),
+        description: getField(o.description, o.descriptionHindi),
+        price: o.price,
+        image: o.image
+      }))
     };
 
     return res.status(200).json({
@@ -170,13 +170,13 @@ const getChadawaById = async (req, res, next) => {
         question: getField(f.question, f.questionHindi),
         answer: getField(f.answer, f.answerHindi)
       })),
-      // Single offering object (not array)
-      offerings: chadawa.offerings ? {
-        header: getField(chadawa.offerings.header, chadawa.offerings.headerHindi),
-        description: getField(chadawa.offerings.description, chadawa.offerings.descriptionHindi),
-        price: chadawa.offerings.price,
-        image: chadawa.offerings.image
-      } : null
+       offerings: chadawa.offerings.map(o => ({
+        _id: o._id,
+        header: getField(o.header, o.headerHindi),
+        description: getField(o.description, o.descriptionHindi),
+        price: o.price,
+        image: o.image
+      }))
     };
 
     return res.status(200).json({
