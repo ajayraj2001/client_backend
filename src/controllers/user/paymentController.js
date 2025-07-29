@@ -624,6 +624,8 @@ const paymentController = {
       const signature = req.headers['x-razorpay-signature'];
       const payload = req.body;
 
+
+      console.log('iazzat agar ho to check kro',  req.body)
       // 1. Verify the signature
       const expectedSignature = crypto
         .createHmac('sha256', webhookSecret)
