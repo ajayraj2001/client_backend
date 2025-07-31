@@ -20,6 +20,10 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
+const testRazorpay = new Razorpay({
+  key_id: process.env.TEST_KEY,
+  key_secret: process.env.RAZORPAY_TEST_SECRET
+});
 
 // Generate unique receipt ID
 const generateReceiptId = () => {
@@ -1294,7 +1298,7 @@ const paymentController = {
       const totalAmount = orderAmount;
       const receiptId = generateReceiptId();
   
-      const razorpayOrder = await razorpay.orders.create({
+      const razorpayOrder = await testRazorpay.orders.create({
         amount: totalAmount * 100,
         currency: 'INR',
         receipt: receiptId,
