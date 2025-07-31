@@ -1279,8 +1279,7 @@ const paymentController = {
       if (!chadawa) {
         return res.status(404).json({ success: false, message: 'Chadawa not found' });
       }
-  
-      console.log('chadawa', chadawa);
+
       if (chadawa.status !== 'Active') {
         return res.status(400).json({ success: false, message: 'This chadawa is currently unavailable' });
       }
@@ -1453,8 +1452,8 @@ const paymentController = {
   
       const query = {
         userId,
-        isPaymentAttempted: true, // Only show transactions where payment was attempted
-        status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
+        // isPaymentAttempted: true, // Only show transactions where payment was attempted
+        // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
       };
   
       if (search) {
