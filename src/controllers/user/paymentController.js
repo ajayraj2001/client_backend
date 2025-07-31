@@ -1342,7 +1342,7 @@ const paymentController = {
         success: true,
         order: razorpayOrder.id,
         transactionId: transaction._id,
-        key: process.env.RAZORPAY_KEY_ID,
+        key: process.env.TEST_KEY,
         orderSummary: {
           orderAmount: selectedOffering.price,
           totalAmount
