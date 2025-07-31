@@ -1,16 +1,97 @@
 const { ApiError } = require('../../errorHandler');
 const { Puja, PujaReview } = require('../../models');
 
+// const getAllPujas = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     //const limit = parseInt(req.query.limit) || 9;
+//     const limit =  9;
+//     const skip = (page - 1) * limit;
+//     const { search, lang = 'en' } = req.query;
+
+//     const now = new Date();
+//     const filter = {};
+
+//     if (search) {
+//       filter.$or = [
+//         { title: { $regex: search, $options: 'i' } },
+//         { titleHindi: { $regex: search, $options: 'i' } }
+//       ];
+//     }
+
+//     // Fetch all pujas matching the filter
+//     const allPujas = await Puja.find(filter)
+//       .select('title titleHindi pujaImage slug displayedPrice location locationHindi rating actualPrice pujaDate shortDescription shortDescriptionHindi isPopular')
+//       .lean();
+
+//     // Split into popular and non-popular
+//     const popularPujas = allPujas
+//       .filter(puja => puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+//       .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+
+//     const normalPujas = allPujas
+//       .filter(puja => !puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+//       .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
+
+//     const sortedPujas = [...popularPujas, ...normalPujas];
+
+//     const paginatedPujas = sortedPujas.slice(skip, skip + limit);
+
+//     const transformed = paginatedPujas.map(puja => ({
+//       _id: puja._id,
+//       title: lang === "hi" ? puja.titleHindi : puja.title,
+//       slug: puja.slug,
+//       pujaImage: puja.pujaImage,
+//       displayedPrice: puja.displayedPrice,
+//       location:  lang === "hi" ? puja.locationHindi : puja.location,
+//       rating: puja.rating,
+//       actualPrice: puja.actualPrice,
+//       pujaDate: puja.pujaDate,
+//       shortDescription: lang === 'hi' ? puja.shortDescriptionHindi : puja.shortDescription,
+//       isPopular: puja.isPopular,
+//     }));
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Pujas fetched successfully',
+//       data: transformed,
+//       pagination: {
+//         total: sortedPujas.length,
+//         page,
+//         limit,
+//         totalPages: Math.ceil(sortedPujas.length / limit),
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 const getAllPujas = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    //const limit = parseInt(req.query.limit) || 9;
-    const limit =  9;
+    const limit = 9;
     const skip = (page - 1) * limit;
     const { search, lang = 'en' } = req.query;
 
     const now = new Date();
-    const filter = {};
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const twoPM = new Date(today);
+    twoPM.setHours(14, 0, 0, 0); // 2:00 PM
+
+    const filter = {
+      status: 'Active',
+      $expr: {
+        $or: [
+          { $gt: ['$pujaDate', today] }, // Future dates
+          { $and: [
+            { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: "$pujaDate" } }, today.toISOString().slice(0, 10)] },
+            { $lt: [now, twoPM] } // Only before 2PM for today
+          ]}
+        ]
+      }
+    };
 
     if (search) {
       filter.$or = [
@@ -19,22 +100,19 @@ const getAllPujas = async (req, res, next) => {
       ];
     }
 
-    // Fetch all pujas matching the filter
     const allPujas = await Puja.find(filter)
       .select('title titleHindi pujaImage slug displayedPrice location locationHindi rating actualPrice pujaDate shortDescription shortDescriptionHindi isPopular')
       .lean();
 
-    // Split into popular and non-popular
     const popularPujas = allPujas
-      .filter(puja => puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+      .filter(puja => puja.isPopular)
       .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
 
     const normalPujas = allPujas
-      .filter(puja => !puja.isPopular && puja.pujaDate && new Date(puja.pujaDate) >= now)
+      .filter(puja => !puja.isPopular)
       .sort((a, b) => new Date(a.pujaDate) - new Date(b.pujaDate));
 
     const sortedPujas = [...popularPujas, ...normalPujas];
-
     const paginatedPujas = sortedPujas.slice(skip, skip + limit);
 
     const transformed = paginatedPujas.map(puja => ({
@@ -43,7 +121,7 @@ const getAllPujas = async (req, res, next) => {
       slug: puja.slug,
       pujaImage: puja.pujaImage,
       displayedPrice: puja.displayedPrice,
-      location:  lang === "hi" ? puja.locationHindi : puja.location,
+      location: lang === "hi" ? puja.locationHindi : puja.location,
       rating: puja.rating,
       actualPrice: puja.actualPrice,
       pujaDate: puja.pujaDate,
@@ -62,10 +140,12 @@ const getAllPujas = async (req, res, next) => {
         totalPages: Math.ceil(sortedPujas.length / limit),
       },
     });
+
   } catch (error) {
     next(error);
   }
 };
+
 
 const getPujaBySlug = async (req, res, next) => {
   try {
