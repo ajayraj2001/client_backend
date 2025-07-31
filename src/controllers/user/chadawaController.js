@@ -1,6 +1,72 @@
 const { ApiError } = require('../../errorHandler');
 const { Chadawa, ChadawaReview } = require('../../models');
 
+// const getAllChadawas = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = 9;
+//     const skip = (page - 1) * limit;
+//     const { search, lang = 'en' } = req.query;
+
+//     console.log('page',page)
+//     const now = new Date();
+//     const filter = { status: 'Active' }; // Only fetch active chadawas
+
+//     if (search) {
+//       filter.$or = [
+//         { title: { $regex: search, $options: 'i' } },
+//         { titleHindi: { $regex: search, $options: 'i' } }
+//       ];
+//     }
+
+//     // Fetch all chadawas matching the filter
+//     const allChadawas = await Chadawa.find(filter)
+//       .select('title titleHindi chadawaImage slug displayedPrice location locationHindi rating actualPrice chadawaDate shortDescription shortDescriptionHindi isPopular')
+//       .lean();
+
+//     // Split into popular and non-popular
+//     const popularChadawas = allChadawas
+//       .filter(chadawa => chadawa.isPopular && chadawa.chadawaDate && new Date(chadawa.chadawaDate) >= now)
+//       .sort((a, b) => new Date(a.chadawaDate) - new Date(b.chadawaDate));
+
+//     const normalChadawas = allChadawas
+//       .filter(chadawa => !chadawa.isPopular && chadawa.chadawaDate && new Date(chadawa.chadawaDate) >= now)
+//       .sort((a, b) => new Date(a.chadawaDate) - new Date(b.chadawaDate));
+
+//     const sortedChadawas = [...popularChadawas, ...normalChadawas];
+
+//     const paginatedChadawas = sortedChadawas.slice(skip, skip + limit);
+
+//     const transformed = paginatedChadawas.map(chadawa => ({
+//       _id: chadawa._id,
+//       title: lang === "hi" ? chadawa.titleHindi : chadawa.title,
+//       slug: chadawa.slug,
+//       chadawaImage: chadawa.chadawaImage,
+//       displayedPrice: chadawa.displayedPrice,
+//       location: lang === "hi" ? chadawa.locationHindi : chadawa.location,
+//       rating: chadawa.rating,
+//       actualPrice: chadawa.actualPrice,
+//       chadawaDate: chadawa.chadawaDate,
+//       shortDescription: lang === 'hi' ? chadawa.shortDescriptionHindi : chadawa.shortDescription,
+//       isPopular: chadawa.isPopular,
+//     }));
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Chadawas fetched successfully',
+//       data: transformed,
+//       pagination: {
+//         total: sortedChadawas.length,
+//         page,
+//         limit,
+//         totalPages: Math.ceil(sortedChadawas.length / limit),
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getAllChadawas = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -9,7 +75,15 @@ const getAllChadawas = async (req, res, next) => {
     const { search, lang = 'en' } = req.query;
 
     const now = new Date();
-    const filter = { status: 'Active' }; // Only fetch active chadawas
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today 00:00
+    const twoPM = new Date(today);
+    twoPM.setHours(14, 0, 0, 0); // 2:00 PM today
+
+    // Build base filter: fetch all Chadawas for today or future
+    const filter = {
+      status: 'Active',
+      chadawaDate: { $gte: today }
+    };
 
     if (search) {
       filter.$or = [
@@ -18,24 +92,42 @@ const getAllChadawas = async (req, res, next) => {
       ];
     }
 
-    // Fetch all chadawas matching the filter
-    const allChadawas = await Chadawa.find(filter)
+    // Fetch all matching Chadawas
+    let allChadawas = await Chadawa.find(filter)
       .select('title titleHindi chadawaImage slug displayedPrice location locationHindi rating actualPrice chadawaDate shortDescription shortDescriptionHindi isPopular')
       .lean();
 
-    // Split into popular and non-popular
+    // Final filtering: remove today's Chadawas if after 2PM
+    allChadawas = allChadawas.filter(chadawa => {
+      const chadawaDate = new Date(chadawa.chadawaDate);
+      const chadawaOnlyDate = new Date(chadawaDate.getFullYear(), chadawaDate.getMonth(), chadawaDate.getDate());
+
+      if (chadawaOnlyDate.getTime() > today.getTime()) {
+        return true; // Future date
+      }
+
+      if (chadawaOnlyDate.getTime() === today.getTime() && now < twoPM) {
+        return true; // Today and before 2PM
+      }
+
+      return false; // Today but after 2PM
+    });
+
+    // Sort: Popular first, then normal, both by date
     const popularChadawas = allChadawas
-      .filter(chadawa => chadawa.isPopular && chadawa.chadawaDate && new Date(chadawa.chadawaDate) >= now)
+      .filter(chadawa => chadawa.isPopular)
       .sort((a, b) => new Date(a.chadawaDate) - new Date(b.chadawaDate));
 
     const normalChadawas = allChadawas
-      .filter(chadawa => !chadawa.isPopular && chadawa.chadawaDate && new Date(chadawa.chadawaDate) >= now)
+      .filter(chadawa => !chadawa.isPopular)
       .sort((a, b) => new Date(a.chadawaDate) - new Date(b.chadawaDate));
 
     const sortedChadawas = [...popularChadawas, ...normalChadawas];
 
+    // Paginate
     const paginatedChadawas = sortedChadawas.slice(skip, skip + limit);
 
+    // Final response
     const transformed = paginatedChadawas.map(chadawa => ({
       _id: chadawa._id,
       title: lang === "hi" ? chadawa.titleHindi : chadawa.title,
@@ -65,6 +157,7 @@ const getAllChadawas = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const getChadawaBySlug = async (req, res, next) => {
   try {
