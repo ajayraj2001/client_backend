@@ -4,33 +4,40 @@ const { authenticateUser } = require("../../middlewares");
 const paymentController = require("../../controllers/user/paymentController");
 
 
-// router.post('/puja_webhook', paymentController.handlePujaWebhook);
+// puja -- routes
 router.post(
-  '/webhook/puja',
+    '/webhook/puja',
+    express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }),
+    paymentController.handlePujaWebhook
+);
+// router.post('/puja_webhook', paymentController.handlePujaWebhook);
+router.post('/create_puja_order', authenticateUser, paymentController.createPujaOrder);
+router.get('/puja_transactions', authenticateUser, paymentController.getPujaTransactionHistory);
+router.get('/puja_transaction_details/:transactionId', authenticateUser, paymentController.getPujaTransactionDetails);
+router.get('/puja_details_from_order/:pujaID', authenticateUser, paymentController.getPujaDetailsFromOrder);
+
+
+//chadawa
+router.post(
+  '/webhook/chadawa',
   express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }),
-  paymentController.handlePujaWebhook
+  paymentController.handleChadawaWebhook
 );
 
-// Create orders
-router.post('/create_puja_order', authenticateUser, paymentController.createPujaOrder);
+// Chadawa transaction routes
+router.post('/create_chadawa_order', authenticateUser, paymentController.createChadawaOrder);
+router.get('/chadawa_transactions', authenticateUser, paymentController.getChadawaTransactionHistory);
+router.get('/chadawa_transaction_details/:transactionId', authenticateUser, paymentController.getChadawaTransactionDetails);
+router.get('/chadawa_details_from_order/:chadawaID', authenticateUser, paymentController.getChadawaDetailsFromOrder);
+
+
+//extra of no use for current
 router.post('/create_product_order', authenticateUser, paymentController.createProductOrder);
-
-// Mark payment as attempted (to include in history)
 router.post('/mark_payment_attempted', authenticateUser, paymentController.markPaymentAttempted);
-
-// Verify payment
 router.post('/verify_payment', authenticateUser, paymentController.verifyPayment);
 router.post('/payment_failure', paymentController.handlePaymentFailure);
 router.get('/check_status/:type/:transactionId', paymentController.checkPaymentStatus);
-
-// Get transaction history
-router.get('/puja_transactions', authenticateUser, paymentController.getPujaTransactionHistory);
-router.get('/puja_transaction_details/:transactionId', authenticateUser, paymentController.getPujaTransactionDetails);
 router.get('/getProductDetailsFromOrder/:transactionId/:productInstanceId', authenticateUser, paymentController.getProductDetailsFromOrder);
-router.get('/getPujaDetailsFromOrder/:pujaID', authenticateUser, paymentController.getPujaDetailsFromOrder);
-
-// Get transaction details
-// router.get('/transaction/:type/:id', authenticateUser, paymentController.getTransactionDetails);
 
 // Cancel transaction
 router.post('/cancel_transaction/:type/:id', authenticateUser, paymentController.cancelTransaction);

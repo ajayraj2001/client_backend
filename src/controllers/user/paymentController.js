@@ -2,7 +2,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address } = require('../../models');
+const { PujaTransaction, ProductTransaction, Puja, Product, Cart, Address, ChadawaTransaction, Chadawa } = require('../../models');
 const { getCurrentIST } = require('../../utils/timeUtils');
 
 
@@ -517,115 +517,12 @@ const paymentController = {
     }
   },
 
-  /**
-  * Process payment webhook from Razorpay
-  * This handles all payment events and updates transaction status
-  * @param {Object} req - Request object
-  * @param {Object} res - Response object
-  */
-  handleWebhook: async (req, res) => {
-    try {
-      // Verify webhook signature
-      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-      const signature = req.headers['x-razorpay-signature'];
-      const payload = req.body;
-
-      // Verify webhook signature
-      const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(JSON.stringify(payload))
-        .digest('hex');
-
-      if (expectedSignature !== signature) {
-        console.error('Invalid webhook signature');
-        return res.status(400).json({ success: false, message: 'Invalid signature' });
-      }
-
-      // Process webhook event
-      const event = payload.event;
-      const paymentId = payload.payload.payment?.entity?.id;
-      const orderId = payload.payload.payment?.entity?.order_id;
-
-      if (!orderId) {
-        return res.status(400).json({ success: false, message: 'Order ID not found in webhook' });
-      }
-
-      // Find transaction by Razorpay order ID
-      const pujaTransaction = await PujaTransaction.findOne({ orderId });
-      const productTransaction = await ProductTransaction.findOne({ orderId });
-
-      const transaction = pujaTransaction || productTransaction;
-
-      if (!transaction) {
-        console.error(`Transaction not found for order ID: ${orderId}`);
-        return res.status(404).json({ success: false, message: 'Transaction not found' });
-      }
-
-      // Handle different webhook events
-      switch (event) {
-        case 'payment.authorized':
-          // Payment is authorized but not yet captured
-          transaction.status = 'PENDING';
-          transaction.paymentId = paymentId;
-          transaction.isPaymentAttempted = true;
-          break;
-
-        case 'payment.captured':
-          // Payment is successfully captured
-          transaction.status = 'COMPLETED';
-          transaction.paymentId = paymentId;
-          transaction.completedAt = getCurrentIST();
-          transaction.isPaymentAttempted = true;
-
-          // Clear cart if it's a product transaction from cart
-          if (productTransaction && transaction._fromCart) {
-            await Cart.updateOne(
-              { userId: transaction.userId },
-              { $set: { items: [] } }
-            );
-          }
-          break;
-
-        case 'payment.failed':
-          // Payment has failed
-          transaction.status = 'FAILED';
-          transaction.paymentId = paymentId;
-          transaction.isPaymentAttempted = true;
-          break;
-
-        case 'refund.created':
-          // Refund initiated
-          transaction.status = 'REFUNDED';
-          break;
-
-        default:
-          // Other events - just log but don't change status
-          console.log(`Unhandled webhook event: ${event} for order ${orderId}`);
-      }
-
-      await transaction.save();
-
-      // Respond to Razorpay with 200 OK
-      return res.status(200).json({ success: true });
-
-    } catch (error) {
-      console.error('Error processing webhook:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error processing webhook',
-        error: error.message
-      });
-    }
-  },
-
-  handlePujaWebhook: async (req, res) => {
+   handlePujaWebhook: async (req, res) => {
     try {
       const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
       const signature = req.headers['x-razorpay-signature'];
       const payload = req.body;
 
-
-      console.log('iazzat agar ho to check kro',  req.body)
       // 1. Verify the signature
       const expectedSignature = crypto
         .createHmac('sha256', webhookSecret)
@@ -783,127 +680,6 @@ const paymentController = {
     }
   },
 
-  getTransactionHistory: async (req, res) => {
-    try {
-      const userId = req.user._id;
-      const { type = "PUJA", page = 1, limit = 10, status } = req.query;
-
-      const skip = (page - 1) * limit;
-      const query = { userId };
-
-      // const query = {
-      //       userId,
-      //       // isPaymentAttempted: true, // Only show transactions where payment was attempted
-      //       // status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
-      //     };
-      if (status) query.status = status;
-
-      let transactions = [];
-      let total = 0;
-
-      if (type === 'PUJA') {
-        [transactions, total] = await Promise.all([
-          PujaTransaction.find(query)
-            .select('pujaName pujaId pujaStatus pujaDate status rating')
-            .populate('pujaId', 'title pujaImage _id')
-            .sort({ created_at: -1 })
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean(),
-          PujaTransaction.countDocuments(query)
-        ]);
-      } else if (type === 'PRODUCT') {
-        const aggregationPipeline = [
-          { $match: query },
-          { $unwind: "$products" },
-          {
-            $lookup: {
-              from: 'products',
-              localField: 'products.productId',
-              foreignField: '_id',
-              as: 'productDetails'
-            }
-          },
-          { $unwind: "$productDetails" },
-          {
-            $project: {
-              deliveryStatus: 1,
-              product: {
-                _id: "$products._id",
-                productId: "$products.productId",
-                name: "$products.name",
-                unitPrice: "$products.unitPrice",
-                quantity: "$products.quantity",
-                deliveryStatus: "$products.deliveryStatus",
-                rating: "$products.rating",
-                img: { $arrayElemAt: ["$productDetails.img", 0] }
-              }
-            }
-          },
-          { $sort: { created_at: -1 } },
-          { $skip: skip },
-          { $limit: parseInt(limit) }
-        ];
-
-        const countPipeline = [
-          { $match: query },
-          { $unwind: "$products" },
-          { $count: "total" }
-        ];
-
-        const [transactionsResult, totalResult] = await Promise.all([
-          ProductTransaction.aggregate(aggregationPipeline),
-          ProductTransaction.aggregate(countPipeline)
-        ]);
-
-        const expandedTransactions = [];
-
-        for (const transaction of transactionsResult) {
-          console.log('trancton', transaction)
-          for (let i = 0; i < transaction.product.quantity; i++) {
-            expandedTransactions.push({
-              transactionId: transaction._id,
-              _id: transaction.product._id,
-              productId: transaction.product.productId,
-              name: transaction.product.name,
-              img: transaction.product.img,
-              deliveryStatus: transaction.deliveryStatus,
-              rating: transaction.rating,
-              totalPrice: applyGST(transaction.product.unitPrice)
-            });
-          }
-        }
-
-        transactions = expandedTransactions;
-        total = expandedTransactions.length;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid transaction type. Must be PUJA or PRODUCT'
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        transactions,
-        pagination: {
-          totalItems: total,
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(total / limit),
-          limit: parseInt(limit)
-        }
-      });
-
-    } catch (error) {
-      console.error('Error fetching transaction history:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching transaction history',
-        error: error.message
-      });
-    }
-  },
-
 
   /**
   * Get transaction details
@@ -1012,8 +788,6 @@ const paymentController = {
       });
     }
   },
-
-
 
   getPujaDetailsFromOrder: async (req, res) => {
     try {
@@ -1484,6 +1258,307 @@ const paymentController = {
       return res.status(500).json({
         success: false,
         message: 'Error getting payment statistics',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Create a new chadawa payment order
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  createChadawaOrder: async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const { chadawaId, offeringId, customerDetails = {} } = req.body;
+      const userId = req.user._id;
+  
+      const chadawa = await Chadawa.findById(chadawaId);
+      if (!chadawa) {
+        return res.status(404).json({ success: false, message: 'Chadawa not found' });
+      }
+  
+      console.log('chadawa', chadawa);
+      if (chadawa.status !== 'Active') {
+        return res.status(400).json({ success: false, message: 'This chadawa is currently unavailable' });
+      }
+  
+      // Find selected offering by ID
+      const selectedOffering = chadawa.offerings.find(o => o._id.toString() === offeringId);
+      if (!selectedOffering) {
+        return res.status(400).json({ success: false, message: 'Invalid offering selected' });
+      }
+  
+      let orderAmount = selectedOffering.price;
+      const totalAmount = orderAmount;
+      const receiptId = generateReceiptId();
+  
+      const razorpayOrder = await razorpay.orders.create({
+        amount: totalAmount * 100,
+        currency: 'INR',
+        receipt: receiptId,
+        notes: {
+          userId: userId.toString(),
+          chadawaId,
+          type: 'CHADAWA_TRANSACTION'
+        }
+      });
+  
+      // Save transaction
+      const transaction = new ChadawaTransaction({
+        userId,
+        totalAmount,
+        orderAmount: selectedOffering.price,
+        receiptId,
+        chadawaName: chadawa.title,
+        orderId: razorpayOrder.id,
+        paymentId: '',
+        status: 'INITIATED',
+        discountAmount: 0,
+        couponCode: '',
+        chadawaId,
+        chadawaDate: chadawa.chadawaDate,
+        location: chadawa.location,
+        customerDetails,
+        initiatedAt: getCurrentIST(),
+        isPaymentAttempted: false,
+        selectedOffering: {
+          id: selectedOffering._id,
+          header: selectedOffering.header,
+          price: Number(selectedOffering.price) || 0,
+          image: selectedOffering.image || ''
+        }
+      });
+  
+      await transaction.save({ session });
+      await session.commitTransaction();
+  
+      return res.status(200).json({
+        success: true,
+        order: razorpayOrder.id,
+        transactionId: transaction._id,
+        key: process.env.RAZORPAY_KEY_ID,
+        orderSummary: {
+          orderAmount: selectedOffering.price,
+          totalAmount
+        }
+      });
+  
+    } catch (error) {
+      await session.abortTransaction();
+      console.error('Error creating chadawa order:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating order',
+        error: error.message
+      });
+    } finally {
+      session.endSession();
+    }
+  },
+  
+  /**
+   * Process chadawa payment webhook from Razorpay
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  handleChadawaWebhook: async (req, res) => {
+    try {
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      const signature = req.headers['x-razorpay-signature'];
+      const payload = req.body;
+  
+      // 1. Verify the signature
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+  
+      if (expectedSignature !== signature) {
+        console.error('❌ Invalid webhook signature');
+        return res.status(400).json({ success: false, message: 'Invalid signature' });
+      }
+  
+      // 2. Extract event and order/payment info
+      const event = payload.event;
+      const paymentEntity = payload.payload?.payment?.entity;
+      const paymentId = paymentEntity?.id;
+      const orderId = paymentEntity?.order_id;
+  
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Order ID missing from webhook payload' });
+      }
+  
+      // 3. Find Chadawa transaction
+      const transaction = await ChadawaTransaction.findOne({ orderId });
+      if (!transaction) {
+        console.error(`❌ ChadawaTransaction not found for orderId: ${orderId}`);
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+  
+      // 4. Process based on event type
+      switch (event) {
+        case 'payment.authorized':
+          transaction.status = 'PENDING';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+  
+        case 'payment.captured':
+          transaction.status = 'COMPLETED';
+          transaction.paymentId = paymentId;
+          transaction.completedAt = getCurrentIST();
+          transaction.isPaymentAttempted = true;
+          break;
+  
+        case 'payment.failed':
+          transaction.status = 'FAILED';
+          transaction.paymentId = paymentId;
+          transaction.isPaymentAttempted = true;
+          break;
+  
+        case 'refund.created':
+          transaction.status = 'REFUNDED';
+          break;
+  
+        default:
+          console.log(`Unhandled event type: ${event}`);
+          break;
+      }
+  
+      // 5. Save updated transaction
+      await transaction.save();
+  
+      return res.status(200).json({ success: true });
+  
+    } catch (error) {
+      console.error('Chadawa Webhook error:', error);
+      return res.status(500).json({ success: false, message: 'Webhook processing failed', error: error.message });
+    }
+  },
+  
+  /**
+   * Get chadawa transaction history
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  getChadawaTransactionHistory: async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const { page = 1, limit = 10, search = '', status } = req.query;
+  
+      const skip = (page - 1) * limit;
+  
+      const query = {
+        userId,
+        isPaymentAttempted: true, // Only show transactions where payment was attempted
+        status: { $ne: 'INITIATED' } // Don't show transactions that were just initiated
+      };
+  
+      if (search) {
+        query.chadawaName = { $regex: search, $options: 'i' };
+      }
+  
+      if (status) {
+        query.status = status;
+      }
+  
+      const [transactions, total] = await Promise.all([
+        ChadawaTransaction.find(query)
+          .select('chadawaName chadawaId chadawaStatus chadawaDate status rating created_at')
+          .populate('chadawaId', 'title chadawaImage')
+          .sort({ created_at: -1 })
+          .skip(parseInt(skip))
+          .limit(parseInt(limit))
+          .lean(),
+  
+        ChadawaTransaction.countDocuments(query),
+      ]);
+  
+      return res.status(200).json({
+        success: true,
+        transactions,
+        pagination: {
+          totalItems: total,
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / limit),
+          limit: parseInt(limit),
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching chadawa transaction history:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching transaction history',
+        error: error.message,
+      });
+    }
+  },
+  
+  /**
+   * Get chadawa transaction details
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  getChadawaTransactionDetails: async (req, res) => {
+    try {
+      const { transactionId } = req.params;
+      const userId = req.user._id;
+  
+      const transaction = await ChadawaTransaction.findOne({ _id: transactionId, userId })
+        .populate('chadawaId', 'title chadawaImage slug')
+        .lean();
+  
+      if (!transaction) {
+        return res.status(404).json({
+          success: false,
+          message: 'Transaction not found',
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        transaction,
+      });
+    } catch (error) {
+      console.error('Error fetching chadawa transaction details:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching transaction details',
+        error: error.message,
+      });
+    }
+  },
+  
+  /**
+   * Get chadawa details from order
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  getChadawaDetailsFromOrder: async (req, res) => {
+    try {
+      const { chadawaID } = req.params;
+      const userId = req.user._id;
+  
+      const transaction = await ChadawaTransaction.findById(chadawaID)
+        .populate('chadawaId', 'title chadawaImage aboutChadawa shortDescription customerDetails')
+  
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        transaction
+      });
+  
+    } catch (error) {
+      console.error('Error fetching chadawa transaction details:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching transaction details',
         error: error.message
       });
     }
